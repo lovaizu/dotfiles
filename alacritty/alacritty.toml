@@ -1,9 +1,0 @@
-# Use WSL as default shell
-[terminal.shell]
-program = "wsl.exe"
-
-# Shift+Enter sends newline (for Claude Code)
-[[keyboard.bindings]]
-key = "Return"
-mods = "Shift"
-chars = "\u001b[13;2u"
