@@ -1,0 +1,20 @@
+onboarding = false
+[ui.toast]
+delivery = "terminal"
+
+[ui]
+show_agent_labels_on_pane_borders = true
+agent_panel_sort = "priority"
+
+[theme]
+name = "gruvbox-light"
+auto_switch = false
+dark_name = "gruvbox"
+light_name = "gruvbox-light"
+
+[keys]
+prefix = "ctrl+t"
+previous_workspace = "prefix+["
+next_workspace     = "prefix+]"
+next_agent = "prefix+u"
+copy_mode = "prefix+y"
