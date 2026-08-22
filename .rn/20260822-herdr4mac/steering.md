@@ -81,12 +81,12 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Steps**:
 
-- [ ] `iterm2/herdr.json` を作成: Guid 固定の Dynamic Profile。Keyboard Map に `⌃⌘[` → `0x14 [`、`⌃⌘]` → `0x14 ]`、`⌃⌘U` → `0x14 u`、`⇧Enter` → `\n` の Send-Text エントリ、Gruvbox Dark の Ansi 0–15 / Foreground / Background / Cursor / Selection 色、`Normal Font: HackGenConsoleNF-Regular 13` を定義
-- [ ] JSON の構文と必須キー(Guid / Name / Keyboard Map のキーコード・修飾フラグ表記)を静的検証(`python3 -m json.tool` + キーコードの手計算照合)
-- [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] `iterm2/herdr.json` を作成: Guid 固定の Dynamic Profile。Keyboard Map に `⌃⌘[` → `0x14 [`、`⌃⌘]` → `0x14 ]`、`⌃⌘U` → `0x14 u`、`⇧Enter` → `\n` の Send-Text エントリ、Gruvbox Dark の Ansi 0–15 / Foreground / Background / Cursor / Selection 色、`Normal Font: HackGenConsoleNF-Regular 13` を定義
+- [x] JSON の構文と必須キー(Guid / Name / Keyboard Map のキーコード・修飾フラグ表記)を静的検証(`python3 -m json.tool` + キーコードの手計算照合)
+- [x] self-check (OK/NG per completion criterion, record in checks/2.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
@@ -166,6 +166,6 @@ so only a genuinely suspended session reads `paused`.)
 
 - **Status**: not suspended
 - **Date**: 2026-08-22
-- **Last completed**: #1 README 統一仕様(全レビュー PASS、4672253 + 修正 2836b23)
-- **Next**: #2 iTerm2 Dynamic Profile
+- **Last completed**: #2 iTerm2 Dynamic Profile(全レビュー PASS、d5a591e)
+- **Next**: #3 WT 設定整理(承認済みスコープで進行。Ubuntu プロファイル判断が A なら追加コミットで対応)
 - **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。エスカレーション中: WT Ubuntu プロファイルが Dracula/10pt で defaults を上書き — A: #3 で統一 / B: 現状維持+README 注記、ユーザー回答待ち(#2 は独立に進行)
