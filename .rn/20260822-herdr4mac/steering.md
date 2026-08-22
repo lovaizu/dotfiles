@@ -104,12 +104,12 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Steps**:
 
-- [ ] settings.json の keybindings から `ctrl+shift+[/]/u`・`alt+shift+[/]/u` のエントリを削除(sendInput アクション定義・`ctrl+alt` 系・⇧Enter・`ctrl+t` 無効化・その他 WT 固有キーと外観・プロファイルは維持)
-- [ ] JSON 構文検証と、残存キーバインドが README の対応表と一致することの照合
-- [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] settings.json の keybindings から `ctrl+shift+[/]/u`・`alt+shift+[/]/u` のエントリを削除(sendInput アクション定義・`ctrl+alt` 系・⇧Enter・`ctrl+t` 無効化・その他 WT 固有キーと外観・プロファイルは維持)
+- [x] JSON 構文検証と、残存キーバインドが README の対応表と一致することの照合
+- [x] self-check (OK/NG per completion criterion, record in checks/3.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
@@ -166,6 +166,6 @@ so only a genuinely suspended session reads `paused`.)
 
 - **Status**: not suspended
 - **Date**: 2026-08-22
-- **Last completed**: #2 iTerm2 Dynamic Profile(全レビュー PASS、d5a591e)
-- **Next**: #3 WT 設定整理(承認済みスコープで進行。Ubuntu プロファイル判断が A なら追加コミットで対応)
+- **Last completed**: #3 WT 設定整理(全レビュー PASS、f851dad)
+- **Next**: #4 setup.sh 再編(Ubuntu プロファイル判断が A なら WT 側へ追加コミットで対応)
 - **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。エスカレーション中: WT Ubuntu プロファイルが Dracula/10pt で defaults を上書き — A: #3 で統一 / B: 現状維持+README 注記、ユーザー回答待ち(#2 は独立に進行)
