@@ -127,13 +127,13 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Steps**:
 
-- [ ] `setup.sh` を再編: 共通部(herdr config 配置)→ `uname` による OS 判定 → darwin: `iterm2/herdr.json` を `~/Library/Application Support/iTerm2/DynamicProfiles/` に `backup_then_copy`、`brew` があれば `font-hackgen-nerd` をインストール(なければメッセージを出してスキップ)/ それ以外(WSL): 従来の WT ブロック
-- [ ] mac 上で `setup.sh` を実行し、exit 0 で herdr config と Dynamic Profile が配置されること(brew 有無の両分岐のメッセージ)を確認
-- [ ] `bash -n`(+ shellcheck があれば)で構文検証。WSL 経路が従来と同等の配置を行うことをコードレビューで確認
-- [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] `setup.sh` を再編: 共通部(herdr config 配置)→ `uname` による OS 判定 → darwin: `iterm2/herdr.json` を `~/Library/Application Support/iTerm2/DynamicProfiles/` に `backup_then_copy`、`brew` があれば `font-hackgen-nerd` をインストール(なければメッセージを出してスキップ)/ それ以外(WSL): 従来の WT ブロック
+- [x] mac 上で `setup.sh` を実行し、exit 0 で herdr config と Dynamic Profile が配置されること(brew 有無の両分岐のメッセージ)を確認
+- [x] `bash -n`(+ shellcheck があれば)で構文検証。WSL 経路が従来と同等の配置を行うことをコードレビューで確認
+- [x] self-check (OK/NG per completion criterion, record in checks/4.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
@@ -166,6 +166,6 @@ so only a genuinely suspended session reads `paused`.)
 
 - **Status**: not suspended
 - **Date**: 2026-08-22
-- **Last completed**: #3 WT 設定整理(全レビュー PASS、f851dad)
-- **Next**: #4 setup.sh 再編(Ubuntu プロファイル判断が A なら WT 側へ追加コミットで対応)
+- **Last completed**: #4 setup.sh 再編(全レビュー PASS、38e0997。mac 実行 exit 0・両ファイル配置確認済み)
+- **Next**: #5 Evaluation sign-off(評価ゲート提示済み、/rn:ty 待ち。Ubuntu プロファイル A/B 判断も未回答)
 - **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。エスカレーション中: WT Ubuntu プロファイルが Dracula/10pt で defaults を上書き — A: #3 で統一 / B: 現状維持+README 注記、ユーザー回答待ち(#2 は独立に進行)
