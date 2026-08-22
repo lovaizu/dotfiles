@@ -3,53 +3,62 @@ Design: .rn/20260822-herdr4mac/design.md
 
 # Goal
 
-WSL の herdr + Windows Terminal で実現している環境を macOS の iTerm2 で再現する。Windows Terminal
-側の設定は2系統ある: ① `ctrl+t` の既定動作を無効化して herdr のプレフィックス(`^T`)を通す、②
-`ctrl+alt+{[,],u}` で herdr のプレフィックス列(`^T [` / `^T ]` / `^T u`)を一発送信し、プレフィックス
-操作なしで workspace / agent を即時切替する。Mac では HHKB で Alt と Cmd が同じ物理位置にあるため、
-② を `⌃⌘[` / `⌃⌘]` / `⌃⌘U` に割り当てる(① は iTerm2 が `⌃T` を既定で奪わないため設定不要)。
-あわせて `⇧Enter` での改行送信、Gruvbox テーマ、HackGen Console NF フォントも再現する。
-これらを dotfiles に追加し、setup.sh を mac 対応にしてインストールできるようにする。
+この dotfiles の目的は、Win(WSL + Windows Terminal)と Mac(iTerm2)の端末環境を
+「clone → setup 一発」で再現し、毎回手で設定しなくて済むようにすること。そのために両OSの設定を
+同じ使い勝手に統一して管理する — テーマ(Gruvbox Dark)、フォント(HackGen Console NF 13)、
+herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctrl+alt+{[,],u}` / Mac:
+`⌃⌘{[,],U}` — HHKB では Alt と Cmd が同じ物理位置)、`⇧Enter` での改行送信。
+
+本セッションでは Mac(iTerm2)対応を新規追加し、あわせて Win 側の設定内容を見直して統一仕様に
+揃え、setup.sh を共通部+OS別の構成に再編する。統一仕様は README に明文化する。
 
 # Acceptance criteria
 
-- dotfiles に iTerm2 用設定が存在し、それをインストールした iTerm2 で:
-  - `⌃⌘[` が `0x14 0x5b`(`^T [`)、`⌃⌘]` が `0x14 0x5d`(`^T ]`)、`⌃⌘U` が `0x14 0x75`(`^T u`)を端末に送信する
+- README に統一仕様が明文化されている: 操作×OS別キーの対応表(即時切替3操作・⇧Enter・プレフィックス
+  パススルー)、テーマ・フォント、セットアップ手順(Win / Mac 双方)
+- iTerm2 用設定が dotfiles に存在し、インストールした iTerm2 で:
+  - `⌃⌘[` が `0x14 0x5b`(`^T [`)、`⌃⌘]` が `0x14 0x5d`(`^T ]`)、`⌃⌘U` が `0x14 0x75`(`^T u`)を送信する
   - `⇧Enter` が `\n`(0x0a)を送信する
   - `⌃T` は横取りされず端末(herdr)に届く
   - カラースキームは Gruvbox Dark、フォントは HackGen Console NF 13pt
-- mac 上で `setup.sh` を実行すると herdr config と iTerm2 設定がインストールされ、Windows Terminal
-  部分はエラーにならずスキップされる(`wslpath` / `cmd.exe` 不在で落ちない)
-- WSL 上での `setup.sh` の既存動作(herdr config と WT settings.json のインストール)が変わらない
-- 既存ファイル(herdr/config.toml, windows-terminal/settings.json)は変更されない
+- windows-terminal/settings.json が統一仕様に整理されている: 即時切替は `ctrl+alt` 系のみ
+  (`ctrl+shift` / `alt+shift` の別名チョードは削除)、`⇧Enter`→`\n`・`ctrl+t` 無効化・外観・
+  プロファイル定義は維持
+- `setup.sh` が共通部(herdr config)+OS別(darwin: iTerm2 Dynamic Profile 配置と、Homebrew が
+  あれば HackGen フォントのインストール / WSL: WT settings.json 配置)の構成で、両OSで exit 0 で
+  完了する(darwin では `wslpath`/`cmd.exe` 不在で落ちない、WSL では従来と同等の配置結果)
+- herdr/config.toml は変更されない(OS 共通でそのまま使う)
 
 # Assumptions
 
 - herdr の `config.toml` は OS 共通で、mac でもそのまま `~/.config/herdr/config.toml` に置けば動く(未検証)
-- iTerm2 はユーザーがインストール済み。HackGen Console NF のインストールは本セッションのスコープ外
-  (未導入ならフォールバックフォントで表示される)
-- iTerm2 の実機での鍵送信確認はユーザーが行う(エージェントは設定ファイルの静的検証まで)
-- `ctrl+shift` / `alt+shift` 系の WT の別名チョードは Mac では再現しない(ユーザー確認済み: 本命は ctrl+alt 系)
+- iTerm2 はユーザーがインストール済み。mac のフォントは Homebrew(cask `font-hackgen-nerd`)が
+  あれば setup.sh で入れ、なければスキップ(手動導入でも可)。Win 側のフォントインストールは
+  WSL からは行えないため従来どおり手動(README に手順を記載)
+- iTerm2 / WT の実機での鍵送信確認はユーザーが行う(エージェントは設定ファイルの静的検証まで)
+- WT の `ctrl+shift` / `alt+shift` 別名チョードは削除してよい(本命は `ctrl+alt` 系 — ユーザー確認済み。
+  削除自体の最終確認はプランゲートで取る)
+- シェル自体は統一しない: Win は WT のプロファイル(PowerShell / WSL bash)、Mac は zsh のまま。
+  herdr の起動は両OSとも手動
 
 # Rules
 
 - commit and push every change; one completion marker per task
 - 会話・ドキュメントは日本語(コード・コミットメッセージは英語)
-- 既存の WSL / Windows 向けファイルには手を入れない
+- herdr/config.toml には手を入れない
 
 # Tasks
 
-### #1: iTerm2 Dynamic Profile を作成する
+### #1: README に統一仕様を定義する
 
-**Purpose**: herdr 用キーマッピング・Gruvbox Dark・HackGen フォントを含む iTerm2 Dynamic Profile
-JSON を `iterm2/herdr.json` として dotfiles に追加する。
+**Purpose**: 両OSで揃える使い勝手(キー対応表・テーマ・フォント)とセットアップ手順を README に
+明文化し、以降のタスクの仕様源にする。
 
 **Prerequisites**: none
 
 **Steps**:
 
-- [ ] `iterm2/herdr.json` を作成: Guid 固定の Dynamic Profile。Keyboard Map に `⌃⌘[` → `0x14 [`、`⌃⌘]` → `0x14 ]`、`⌃⌘U` → `0x14 u`、`⇧Enter` → `\n` の Send-Text(escape sequence)エントリ、Gruvbox Dark の Ansi 0–15 / Foreground / Background / Cursor / Selection 色、`Normal Font: HackGenConsoleNF-Regular 13` を定義
-- [ ] JSON の構文と必須キー(Guid / Name / Keyboard Map のキーコード表記)を静的検証(`python3 -m json.tool` + キーコードの手計算照合)
+- [ ] README.md に記載: リポジトリの目的、操作×キー対応表(操作 / herdr 列 / Win キー / Mac キー)、テーマ・フォント、セットアップ手順(WSL: `./setup.sh`、mac: `./setup.sh`、Win フォントは手動)
 - [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -57,23 +66,23 @@ JSON を `iterm2/herdr.json` として dotfiles に追加する。
 
 **Completion criteria**:
 
-- `iterm2/herdr.json` が有効な JSON で、iTerm2 の Dynamic Profile 仕様の必須キー(Guid, Name)を持つ
-- Keyboard Map に4エントリが存在し、キーコード(修飾フラグ含む)とアクション(Send text with escape sequences 相当)・送信バイト列が Acceptance criteria の対応表(⌃⌘[→`^T [`, ⌃⌘]→`^T ]`, ⌃⌘U→`^T u`, ⇧Enter→`\n`)と一致する
-- 色定義が windows-terminal/settings.json の Gruvbox Dark スキームの16色+前景/背景と同一の値である
-- 既存ファイルに差分がない
+- README に対応表があり、即時切替3操作(previous/next workspace, next agent)・⇧Enter・⌃T
+  パススルーについて Win / Mac 双方のキーと送信内容(herdr 列)が読み取れる
+- テーマ(Gruvbox Dark)・フォント(HackGen Console NF 13)と、両OSのセットアップ手順
+  (フォントの入手方法含む)が記載されている
+- 記載内容が steering の Acceptance criteria の対応表と矛盾しない
 
-### #2: setup.sh を mac 対応にする
+### #2: iTerm2 Dynamic Profile を作成する
 
-**Purpose**: darwin 判定を追加し、mac では iTerm2 Dynamic Profile をインストールし
-Windows Terminal 部分をスキップするようにする。
+**Purpose**: 統一仕様どおりのキーマッピング・Gruvbox Dark・HackGen フォントを含む iTerm2
+Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Prerequisites**: #1
 
 **Steps**:
 
-- [ ] `setup.sh` に OS 判定を追加: darwin では `iterm2/herdr.json` を `~/Library/Application Support/iTerm2/DynamicProfiles/` に `backup_then_copy` でインストールし、WT ブロックはスキップ。それ以外(WSL)は従来どおり
-- [ ] mac 上で `setup.sh` を実行し、エラーなく完了して Dynamic Profile が配置されることを確認(herdr config の配置も含む)
-- [ ] `bash -n` と shellcheck(あれば)で構文検証。WSL パス(wslpath 不在時)の分岐をコードレビューで確認
+- [ ] `iterm2/herdr.json` を作成: Guid 固定の Dynamic Profile。Keyboard Map に `⌃⌘[` → `0x14 [`、`⌃⌘]` → `0x14 ]`、`⌃⌘U` → `0x14 u`、`⇧Enter` → `\n` の Send-Text エントリ、Gruvbox Dark の Ansi 0–15 / Foreground / Background / Cursor / Selection 色、`Normal Font: HackGenConsoleNF-Regular 13` を定義
+- [ ] JSON の構文と必須キー(Guid / Name / Keyboard Map のキーコード・修飾フラグ表記)を静的検証(`python3 -m json.tool` + キーコードの手計算照合)
 - [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -81,20 +90,68 @@ Windows Terminal 部分をスキップするようにする。
 
 **Completion criteria**:
 
-- mac 上で `setup.sh` が exit 0 で完了し、`~/Library/Application Support/iTerm2/DynamicProfiles/herdr.json` と `~/.config/herdr/config.toml` が配置されている
-- スクリプトの WSL 経路は変更前と同一の動作をする(darwin 分岐追加以外の差分がない)
-- `wslpath` / `cmd.exe` が存在しない環境で実行してもエラー終了しない
+- `iterm2/herdr.json` が有効な JSON で、iTerm2 の Dynamic Profile 仕様の必須キー(Guid, Name)を持つ
+- Keyboard Map に4エントリが存在し、キーコード(修飾フラグ含む)と送信バイト列が README の対応表
+  (⌃⌘[→`^T [`, ⌃⌘]→`^T ]`, ⌃⌘U→`^T u`, ⇧Enter→`\n`)と一致する
+- 色定義が windows-terminal/settings.json の Gruvbox Dark スキームの16色+前景/背景と同一の値である
 
-### #3: Evaluation sign-off
+### #3: Windows Terminal 設定を統一仕様に整理する
 
-**Purpose**: Acceptance criteria の充足をユーザーに提示し、承認を得る。
+**Purpose**: windows-terminal/settings.json から別名チョード(`ctrl+shift` / `alt+shift` 系)を
+削除し、即時切替を `ctrl+alt` 系のみに統一する。
 
-**Prerequisites**: #1, #2
+**Prerequisites**: #1
 
 **Steps**:
 
-- [ ] Acceptance criteria を1件ずつ検証した結果(設定ファイルの対応表・setup.sh 実行結果・ユーザーの実機確認手順)を提示する
-- [ ] ユーザーの実機確認(iTerm2 再起動 → herdr 上で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T の動作)を依頼する
+- [ ] settings.json の keybindings から `ctrl+shift+[/]/u`・`alt+shift+[/]/u` のエントリを削除(sendInput アクション定義・`ctrl+alt` 系・⇧Enter・`ctrl+t` 無効化・その他 WT 固有キーと外観・プロファイルは維持)
+- [ ] JSON 構文検証と、残存キーバインドが README の対応表と一致することの照合
+- [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- settings.json が有効な JSON で、即時切替の keybinding が `ctrl+alt+[/]/u` の3つのみになっている
+- `⇧Enter`→`\n`、`ctrl+t` 無効化、`ctrl+c/v`・`ctrl+shift+f`・`alt+shift+d`、外観(Gruvbox Dark /
+  HackGen 13)、プロファイル定義に変更がない
+- 未使用になった action 定義が残っていない
+
+### #4: setup.sh を共通部+OS別構成に再編する
+
+**Purpose**: OS 判定を導入し、共通部(herdr)のあと darwin では iTerm2 設定配置+フォント
+(Homebrew があれば)、WSL では従来の WT 配置を行うようにする。
+
+**Prerequisites**: #2, #3
+
+**Steps**:
+
+- [ ] `setup.sh` を再編: 共通部(herdr config 配置)→ `uname` による OS 判定 → darwin: `iterm2/herdr.json` を `~/Library/Application Support/iTerm2/DynamicProfiles/` に `backup_then_copy`、`brew` があれば `font-hackgen-nerd` をインストール(なければメッセージを出してスキップ)/ それ以外(WSL): 従来の WT ブロック
+- [ ] mac 上で `setup.sh` を実行し、exit 0 で herdr config と Dynamic Profile が配置されること(brew 有無の両分岐のメッセージ)を確認
+- [ ] `bash -n`(+ shellcheck があれば)で構文検証。WSL 経路が従来と同等の配置を行うことをコードレビューで確認
+- [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- mac 上で `setup.sh` が exit 0 で完了し、`~/Library/Application Support/iTerm2/DynamicProfiles/herdr.json` と `~/.config/herdr/config.toml` が配置されている
+- darwin では `wslpath` / `cmd.exe` 不在でもエラー終了せず、WT ブロックに到達しない
+- WSL 経路は従来と同じファイルを同じ場所に配置する(herdr config + WT settings.json)
+- Homebrew 不在の mac でもエラー終了しない
+
+### #5: Evaluation sign-off
+
+**Purpose**: Acceptance criteria の充足をユーザーに提示し、承認を得る。
+
+**Prerequisites**: #1, #2, #3, #4
+
+**Steps**:
+
+- [ ] Acceptance criteria を1件ずつ検証した結果(README・両設定ファイルの対応表照合・setup.sh 実行結果)を提示する
+- [ ] ユーザーの実機確認を依頼する: mac は iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T、Win は次回同期時に WT で ctrl+alt 系
 - [ ] verdict を /rn:ty(approve)または /rn:gm(revise → 対応して再提示)で受ける
 
 **Completion criteria**:
