@@ -58,11 +58,11 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 
 **Steps**:
 
-- [ ] README.md に記載: リポジトリの目的、操作×キー対応表(操作 / herdr 列 / Win キー / Mac キー)、テーマ・フォント、セットアップ手順(WSL: `./setup.sh`、mac: `./setup.sh`、Win フォントは手動)
-- [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] README.md に記載: リポジトリの目的、操作×キー対応表(操作 / herdr 列 / Win キー / Mac キー)、テーマ・フォント、セットアップ手順(WSL: `./setup.sh`、mac: `./setup.sh`、Win フォントは手動)
+- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
@@ -166,6 +166,6 @@ so only a genuinely suspended session reads `paused`.)
 
 - **Status**: not suspended
 - **Date**: 2026-08-22
-- **Last completed**: プランゲート承認(/rn:ty, 2026-08-22)— WT 別名チョード削除・brew フォントインストール方針も承認済み
-- **Next**: #1 README 統一仕様
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)
+- **Last completed**: #1 README 統一仕様(全レビュー PASS、4672253 + 修正 2836b23)
+- **Next**: #2 iTerm2 Dynamic Profile
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。エスカレーション中: WT Ubuntu プロファイルが Dracula/10pt で defaults を上書き — A: #3 で統一 / B: 現状維持+README 注記、ユーザー回答待ち(#2 は独立に進行)
