@@ -164,8 +164,8 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
+- **Status**: not suspended
 - **Date**: 2026-08-22
-- **Last completed**: none — 計画立案・修正まで(統一方針でプラン改訂済み、プランゲート未承認)
-- **Next**: プランゲート承認(/rn:ty または /rn:gm)→ 承認後 #1 README 統一仕様
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。プランゲートで確認待ちの点: WT の別名チョード削除の最終可否、brew でのフォントインストールを #4 に含める方針
+- **Last completed**: プランゲート承認(/rn:ty, 2026-08-22)— WT 別名チョード削除・brew フォントインストール方針も承認済み
+- **Next**: #1 README 統一仕様
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)
