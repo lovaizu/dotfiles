@@ -47,28 +47,12 @@
             "keys": "ctrl+alt+["
         },
         {
-            "id": "User.sendInput.5976FD22",
-            "keys": "ctrl+shift+["
-        },
-        {
-            "id": "User.sendInput.6B80DC5A",
-            "keys": "alt+shift+]"
-        },
-        {
             "id": "User.sendInput.6B80DC5A",
             "keys": "ctrl+alt+]"
         },
         {
-            "id": "User.sendInput.5976FD22",
-            "keys": "alt+shift+["
-        },
-        {
             "id": "User.sendInput.E1F939F",
             "keys": "ctrl+alt+u"
-        },
-        {
-            "id": "User.sendInput.E1F939F",
-            "keys": "alt+shift+u"
         },
         {
             "id": "Terminal.CopyToClipboard",
@@ -81,14 +65,6 @@
         {
             "id": "User.sendInput.DFCDAF06",
             "keys": "shift+enter"
-        },
-        {
-            "id": "User.sendInput.6B80DC5A",
-            "keys": "ctrl+shift+]"
-        },
-        {
-            "id": "User.sendInput.E1F939F",
-            "keys": "ctrl+shift+u"
         },
         {
             "id": "Terminal.FindText",
