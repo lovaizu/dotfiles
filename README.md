@@ -1,12 +1,14 @@
 # dotfiles
 
-Windows (WSL + Windows Terminal) と Mac (iTerm2) の端末環境を、clone して `./setup.sh` を実行するだけで再現するためのリポジトリ。両 OS で herdr の操作感(キー・テーマ・フォント)を揃える。
+Windows (WSL + Windows Terminal) と Mac (iTerm2) の端末環境を、clone して `./setup.sh` を実行するだけで再現するためのリポジトリ。両 OS で herdr のキー操作と、端末(Windows Terminal / iTerm2)のテーマ・フォントを揃える。
+
+シェルは統一しない(Win: PowerShell / WSL bash、Mac: zsh)。herdr の起動は両 OS とも手動。
 
 ## キー対応表
 
 herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/config.toml`(OS 共通)。
 
-よく使う 3 操作は、プレフィックスなしの即時キーでも実行できる。端末側(Windows Terminal / iTerm2)がキーを対応するバイト列に変換して herdr に送信する。
+下表は、よく使う 3 操作の即時切替(プレフィックスなしで実行できるキー)に加え、改行の送信と herdr プレフィックスのパススルーをまとめたもの。即時切替と改行送信は、端末側(Windows Terminal / iTerm2)がキーを対応するバイト列に変換して herdr に送信する。プレフィックスは端末が奪わず、そのまま herdr に届く。
 
 | 操作 | herdr(送信内容) | Win キー | Mac キー |
 |---|---|---|---|
@@ -17,16 +19,18 @@ herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/c
 | herdr プレフィックス | `^T` (`0x14`) | `Ctrl+T`(WT の既定 `ctrl+t` を無効化してパススルー) | `⌃T`(iTerm2 は既定で奪わないため設定不要) |
 
 - HHKB では Win の `Alt` と Mac の `⌘` が同じ物理位置にあるため、両 OS で指運びが揃う。
-- プレフィックス経由の操作(`^T [` / `^T ]` / `^T u`、コピーモード `^T y`)は両 OS 共通。`⌃T` が herdr に届くことが前提。
+- プレフィックス経由の操作(`^T [` / `^T ]` / `^T u`、コピーモード `^T y`)は両 OS 共通。プレフィックス `^T` が herdr に届くことが前提。
 
 ## テーマ・フォント
 
+端末(Windows Terminal / iTerm2)のカラースキームとフォントを両 OS で揃える。
+
 | 項目 | 値 |
 |---|---|
-| テーマ | Gruvbox Dark |
+| テーマ(端末のカラースキーム) | Gruvbox Dark |
 | フォント | HackGen Console NF 13(Win: `HackGen Console NF` 13pt / Mac: `HackGenConsoleNF-Regular` 13pt) |
 
-シェルは統一しない(Win: PowerShell / WSL bash、Mac: zsh)。herdr の起動は両 OS とも手動。
+herdr 自体の UI テーマはこれとは別に `herdr/config.toml` の `[theme]`(現在 `gruvbox-light`)で管理している。
 
 ## セットアップ
 
