@@ -30,6 +30,8 @@ herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/c
 | テーマ(端末のカラースキーム) | Gruvbox Dark |
 | フォント | HackGen Console NF 13(Win: `HackGen Console NF` 13pt / Mac: `HackGenConsoleNF-Regular` 13pt) |
 
+Windows Terminal では `profiles.defaults` にこの値を置き、全プロファイル(PowerShell / Ubuntu / ClaudeCode / my など)が継承する。個別プロファイルでのテーマ・フォント上書きは行わない。
+
 herdr 自体の UI テーマはこれとは別に `herdr/config.toml` の `[theme]`(現在 `gruvbox-light`)で管理している。
 
 ## セットアップ

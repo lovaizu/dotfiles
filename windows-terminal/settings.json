@@ -117,11 +117,6 @@
                 "source": "Windows.Terminal.Azure"
             },
             {
-                "colorScheme": "Dracula",
-                "font":
-                {
-                    "size": 10
-                },
                 "guid": "{14aad45b-3d8b-50fc-86fa-9eeaef3383cb}",
                 "hidden": false,
                 "name": "Ubuntu",
