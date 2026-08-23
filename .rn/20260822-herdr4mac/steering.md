@@ -164,8 +164,8 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-23
-- **Last completed**: #1–#4 全完了(各全レビュー PASS)。#5 は評価ゲート提示済み(全 Acceptance criteria OK)、verdict 未受領
-- **Next**: #5 の verdict(/rn:ty または /rn:gm)+ Ubuntu プロファイル判断(A: Gruvbox 統一 / B: 現状維持+README 注記)
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。実機確認依頼済み: Mac iTerm2 で ⌃⌘[/]/U・⇧Enter・⌃T、Win は次回同期時に ctrl+alt 系。setup.sh はこの Mac で実行済み(Dynamic Profile・herdr config 配置済み)
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
