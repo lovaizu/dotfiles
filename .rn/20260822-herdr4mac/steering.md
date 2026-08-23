@@ -151,7 +151,7 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 **Steps**:
 
 - [x] Acceptance criteria を1件ずつ検証した結果(README・両設定ファイルの対応表照合・setup.sh 実行結果)を提示する
-- [x] ユーザーの実機確認を依頼する: mac は iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T、Win は次回同期時に WT で ctrl+alt 系
+- [x] ユーザーの実機確認を依頼する: mac は iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T(実施済み: raw モード捕捉で `14 5b 14 5d 14 75 0a 14` — 全キー期待どおり)、Win は次回同期時に WT で ctrl+alt 系
 - [ ] verdict を /rn:ty(approve)または /rn:gm(revise → 対応して再提示)で受ける
 
 **Completion criteria**:
