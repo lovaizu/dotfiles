@@ -27,7 +27,8 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - `setup.sh` が共通部(herdr config)+OS別(darwin: iTerm2 Dynamic Profile 配置と、Homebrew が
   あれば HackGen フォントのインストール / WSL: WT settings.json 配置)の構成で、両OSで exit 0 で
   完了する(darwin では `wslpath`/`cmd.exe` 不在で落ちない、WSL では従来と同等の配置結果)
-- herdr/config.toml は変更されない(OS 共通でそのまま使う)
+- herdr/config.toml は OS 共通のまま(OS 別の分岐を持ち込まない)。`[keys]` は変更しない。
+  `[theme]` は端末側テーマ(Gruvbox Dark)と揃える — herdr の UI テーマが `gruvbox`(dark)であること
 
 # Assumptions
 
@@ -45,7 +46,7 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 
 - commit and push every change; one completion marker per task
 - 会話・ドキュメントは日本語(コード・コミットメッセージは英語)
-- herdr/config.toml には手を入れない
+- herdr/config.toml の `[keys]` には手を入れない(`[theme]` は端末側と揃えるため変更可)
 
 # Tasks
 

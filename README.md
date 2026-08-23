@@ -27,12 +27,13 @@ herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/c
 
 | 項目 | 値 |
 |---|---|
-| テーマ(端末のカラースキーム) | Gruvbox Dark |
+| テーマ(端末のカラースキーム) | Gruvbox Dark(背景 `#282828` / 前景 `#EBDBB2`) |
 | フォント | HackGen Console NF 13(Win: `HackGen Console NF` 13pt / Mac: `HackGenConsoleNF-Regular` 13pt) |
+| herdr の UI テーマ | `gruvbox`(dark) |
 
 Windows Terminal では `profiles.defaults` にこの値を置き、全プロファイル(PowerShell / Ubuntu / ClaudeCode / my など)が継承する。個別プロファイルでのテーマ・フォント上書きは行わない。
 
-herdr 自体の UI テーマはこれとは別に `herdr/config.toml` の `[theme]`(現在 `gruvbox-light`)で管理している。
+テーマは 2 か所にあり、両方を暗い配色で揃える必要がある。端末(Windows Terminal / iTerm2)側は「端末そのものの配色」— 背景色と ANSI 0–15 が実際に何色になるか。herdr 側は `herdr/config.toml` の `[theme]` で「herdr が自分の UI(サイドバー・ペイン境界・ステータス)を描くときの配色」を決める。端末だけ暗くしても herdr の UI は追随しないため、`name = "gruvbox"` を明示している(`auto_switch = false`)。
 
 ## セットアップ
 
