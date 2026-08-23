@@ -57,4 +57,13 @@ herdr 自体の UI テーマはこれとは別に `herdr/config.toml` の `[them
 - iTerm2 の Dynamic Profile を `~/Library/Application Support/iTerm2/DynamicProfiles/` に配置
 - Homebrew があれば `font-hackgen-nerd` cask でフォントをインストール(なければ上記リリースページから手動)
 
-初回のみ、iTerm2 でプロファイル「herdr」をデフォルトに設定する(手動)。
+#### 初回のみ: herdr プロファイルをデフォルトにする(必須・手動)
+
+キーマッピングは Dynamic Profile「herdr」に入っているため、**そのプロファイルで開いたウィンドウにしか効かない**。
+デフォルトにしていないと、通常のウィンドウでは `⌃⌘[` などが素通りして herdr のワークスペース切り替えが動かない。
+
+1. iTerm2 の Settings(`⌘,`)→ Profiles → 左の一覧から **herdr** を選択
+2. 下部の **Other Actions...** → **Set as Default**
+3. **新しいウィンドウを開く**(`⌘N`)。既存のウィンドウは開いた時のプロファイルを保持するため、設定しても切り替わらない
+
+`./setup.sh` は herdr がデフォルトプロファイルでない場合に警告を出す。
