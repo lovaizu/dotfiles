@@ -150,8 +150,8 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Steps**:
 
-- [ ] Acceptance criteria を1件ずつ検証した結果(README・両設定ファイルの対応表照合・setup.sh 実行結果)を提示する
-- [ ] ユーザーの実機確認を依頼する: mac は iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T、Win は次回同期時に WT で ctrl+alt 系
+- [x] Acceptance criteria を1件ずつ検証した結果(README・両設定ファイルの対応表照合・setup.sh 実行結果)を提示する
+- [x] ユーザーの実機確認を依頼する: mac は iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T、Win は次回同期時に WT で ctrl+alt 系
 - [ ] verdict を /rn:ty(approve)または /rn:gm(revise → 対応して再提示)で受ける
 
 **Completion criteria**:
@@ -164,8 +164,8 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: 2026-08-22
-- **Last completed**: #4 setup.sh 再編(全レビュー PASS、38e0997。mac 実行 exit 0・両ファイル配置確認済み)
-- **Next**: #5 Evaluation sign-off(評価ゲート提示済み、/rn:ty 待ち。Ubuntu プロファイル A/B 判断も未回答)
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。エスカレーション中: WT Ubuntu プロファイルが Dracula/10pt で defaults を上書き — A: #3 で統一 / B: 現状維持+README 注記、ユーザー回答待ち(#2 は独立に進行)
+- **Status**: paused
+- **Date**: 2026-08-23
+- **Last completed**: #1–#4 全完了(各全レビュー PASS)。#5 は評価ゲート提示済み(全 Acceptance criteria OK)、verdict 未受領
+- **Next**: #5 の verdict(/rn:ty または /rn:gm)+ Ubuntu プロファイル判断(A: Gruvbox 統一 / B: 現状維持+README 注記)
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。実機確認依頼済み: Mac iTerm2 で ⌃⌘[/]/U・⇧Enter・⌃T、Win は次回同期時に ctrl+alt 系。setup.sh はこの Mac で実行済み(Dynamic Profile・herdr config 配置済み)
