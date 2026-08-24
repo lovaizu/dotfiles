@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '__HOME__/.claude/hooks/herdr-agent-state.sh' session",
+            "command": "bash \"$HOME/.claude/hooks/herdr-agent-state.sh\" session",
             "timeout": 10
           }
         ]
@@ -15,7 +15,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "sh __HOME__/.claude/scripts/statusline.sh"
+    "command": "sh \"$HOME/.claude/scripts/statusline.sh\""
   },
   "enabledPlugins": {
     "rn@ccpm": true

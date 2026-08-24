@@ -1,0 +1,27 @@
+{
+  "name": "Catppuccin Mocha",
+  "base": "dark-ansi",
+  "overrides": {
+    "claude": "#cba6f7",
+    "text": "#cdd6f4",
+    "inverseText": "#1e1e2e",
+    "inactive": "#a6adc8",
+    "subtle": "#585b70",
+    "permission": "#89dceb",
+    "remember": "#f9e2af",
+    "success": "#a6e3a1",
+    "error": "#f38ba8",
+    "warning": "#fab387",
+    "promptBorder": "#6c7086",
+    "planMode": "#89b4fa",
+    "autoAccept": "#a6e3a1",
+    "bashBorder": "#f5c2e7",
+    "diffAdded": "#2a3e2a",
+    "diffRemoved": "#3e2a2e",
+    "diffAddedDimmed": "#222e22",
+    "diffRemovedDimmed": "#2e2226",
+    "diffAddedWord": "#a6e3a1",
+    "diffRemovedWord": "#f38ba8",
+    "userMessageBackground": "#313244"
+  }
+}

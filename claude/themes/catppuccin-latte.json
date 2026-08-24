@@ -1,0 +1,27 @@
+{
+  "name": "Catppuccin Latte",
+  "base": "light-ansi",
+  "overrides": {
+    "claude": "#8839ef",
+    "text": "#4c4f69",
+    "inverseText": "#eff1f5",
+    "inactive": "#6c6f85",
+    "subtle": "#acb0be",
+    "permission": "#04a5e5",
+    "remember": "#df8e1d",
+    "success": "#40a02b",
+    "error": "#d20f39",
+    "warning": "#fe640b",
+    "promptBorder": "#9ca0b0",
+    "planMode": "#1e66f5",
+    "autoAccept": "#40a02b",
+    "bashBorder": "#ea76cb",
+    "diffAdded": "#dceeda",
+    "diffRemoved": "#f5d5d8",
+    "diffAddedDimmed": "#e6f3e5",
+    "diffRemovedDimmed": "#f9e5e7",
+    "diffAddedWord": "#40a02b",
+    "diffRemovedWord": "#d20f39",
+    "userMessageBackground": "#e6e9ef"
+  }
+}
