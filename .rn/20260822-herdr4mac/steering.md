@@ -49,6 +49,17 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   settings.json が有効な JSON である
 - `setup.sh` が `jq` 不在を検出して警告する(statusline.sh は jq が無いと exit 0 のまま
   ` |  | dir@branch` と壊れた表示になり、無言で失敗するため)
+- setup.sh の配置方式が2種類に分かれている: dotfiles でしか生成しないファイル
+  (`iterm2/herdr.json` / `claude/scripts/statusline.sh` / `claude/themes/*.json`)は丸ごと上書き、
+  アプリ側も書くファイル(`~/.claude/settings.json` / `~/.config/herdr/config.toml` /
+  WT の `settings.json`)は **項目マージ** — dotfiles が持つキーは置き換え、dotfiles に無いキーは
+  配置先のものを残す
+- 項目マージによって、配置先にしか存在しない設定(そのマシンで `/config` や herdr UI から変えた値、
+  WT がそのマシンの WSL ディストロ向けに生成したプロファイル)が失われない
+- WT の `profiles.list` は `guid` をキーに1件ずつ突き合わせてマージされ、dotfiles に無い
+  プロファイルが配置先に残る
+- マージ処理が `jq` と `tomllib` のどちらにも依存しない(mac の python3 は 3.9 系で `tomllib` が無く、
+  WSL 既定に `jq` が無いため)
 - README に Claude Code 設定の管理対象・herdr 統合の前提(`hooks/herdr-agent-state.sh` は herdr 側が
   導入するため dotfiles では管理しない)・セットアップ手順が記載されている。あわせて配布時に
   意識が要る3点が明記されている: `jq` が前提であること、`skipDangerousModePermissionPrompt: true`
@@ -79,6 +90,13 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   `Concise`)ため、再現に必要な最小セットから外す — ユーザー確認済み
 - `remoteControlAtStartup` を明示 `false` にするのは原本の複製ではなく挙動変更。未設定時の実効値は
   組織デフォルト次第で必ずしも false ではないため、配置後に `/config` 上の表示で確認する
+- `~/.config/herdr/config.toml` は herdr が実行時に書き戻す — 実証済み(8/24 09:05 に setup.sh が
+  repo 版 363 B `name = "gruvbox"` を配置したのち、09:57 時点で 369 B `name = "gruvbox-light"` に
+  変化)。`onboarding = false` の存在と `herdr config reset-keys` の存在も herdr 側が所有者であることを示す
+- WT の `settings.json` も WT 自身が書く。`profiles.list` にはそのマシンの WSL ディストロ由来の
+  GUID(Ubuntu / ClaudeCode / my)が入るため、丸ごと配ると別マシンで実ディストロ定義を壊す
+- mac の python3 は 3.9.6 で `tomllib`(3.11+)が無い。TOML のマージは行ベースのキー置換で行う —
+  副産物としてコメントと行順が保たれる。JSON は python3 標準の `json` でマージする
 
 # Rules
 
@@ -185,7 +203,7 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Purpose**: Acceptance criteria の充足をユーザーに提示し、承認を得る。
 
-**Prerequisites**: #1, #2, #3, #4, #6, #7, #8
+**Prerequisites**: #1, #2, #3, #4, #6, #7, #8, #9, #10
 
 **Steps**:
 
@@ -215,10 +233,10 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 - [x] `claude/settings.json` を作成: 現行 `~/.claude/settings.json` の内容を写し、`remoteControlAtStartup: false` を追加
 - [x] `claude/scripts/statusline.sh` を作成: 現行 `~/.claude/scripts/statusline.sh` をそのまま複製(ホーム依存の記述がないことを確認)
-- [ ] `statusLine.command` と SessionStart フックの `command` 内のホームパスを `"$HOME/..."`(ダブルクォート囲み)に書き換える。プレースホルダ方式は採らない — `command` がシェル経由で実行されることを検証済みのため
-- [ ] `claude/themes/catppuccin-mocha.json` と `claude/themes/catppuccin-latte.json` を現行 `~/.claude/themes/` から複製(`theme: "custom:catppuccin-mocha"` の実体。無いと他PCで無警告フォールバックする)
-- [ ] `python3 -m json.tool` で全 JSON の構文検証、`sh -n` と `dash -n` で statusline.sh の構文検証、原本との diff で意図した差分のみであることを照合
-- [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
+- [x] `statusLine.command` と SessionStart フックの `command` 内のホームパスを `"$HOME/..."`(ダブルクォート囲み)に書き換える。プレースホルダ方式は採らない — `command` がシェル経由で実行されることを検証済みのため
+- [x] `claude/themes/catppuccin-mocha.json` と `claude/themes/catppuccin-latte.json` を現行 `~/.claude/themes/` から複製(`theme: "custom:catppuccin-mocha"` の実体。無いと他PCで無警告フォールバックする)
+- [x] `python3 -m json.tool` で全 JSON の構文検証、`sh -n` と `dash -n` で statusline.sh の構文検証、原本との diff で意図した差分のみであることを照合
+- [x] self-check (OK/NG per completion criterion, record in checks/6.md)
 - [x] QA expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium)
 - [x] Verification expert review (subagent, per the task's medium)
@@ -241,11 +259,11 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 **Purpose**: setup.sh の共通部に Claude Code 設定の配置を追加し、両OSで `~/.claude/` 以下に
 settings.json・statusline.sh・カスタムテーマが置かれるようにする。
 
-**Prerequisites**: #6
+**Prerequisites**: #6, #9
 
 **Steps**:
 
-- [ ] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` と `~/.claude/themes/` を作成し、`claude/settings.json`・`claude/scripts/statusline.sh`・`claude/themes/*.json` を既存の `backup_then_copy` でそのまま配置(置換処理は不要)。statusline.sh に実行権を付与
+- [ ] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` と `~/.claude/themes/` を作成し、`claude/scripts/statusline.sh`(実行権付与)と `claude/themes/*.json` は `backup_then_copy` で上書き配置、`claude/settings.json` は #9 の JSON マージヘルパーで項目マージ
 - [ ] `~/.claude/hooks/herdr-agent-state.sh` が無い場合に警告を出す(herdr 統合が未導入だと SessionStart フックが空振りするため)
 - [ ] `command -v jq` を確認し、不在なら警告を出す(mac は `brew install jq`、Ubuntu/WSL は `sudo apt install jq`)。既存の herdr 不在警告と同じ書式に揃える
 - [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON であること、statusline.sh が実行可能なこと、themes が配置されたことを確認。`bash -n`(+ shellcheck があれば)で構文検証
@@ -260,7 +278,8 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 - mac 上で `setup.sh` が exit 0 で完了し、`~/.claude/settings.json`・
   `~/.claude/scripts/statusline.sh`(実行権あり)・`~/.claude/themes/catppuccin-{mocha,latte}.json`
   が配置されている
-- 配置された settings.json が dotfiles 側とバイト一致する(変換処理を挟まないため)
+- 配置された settings.json に dotfiles 側の全キーが反映され、かつ配置前に存在した
+  dotfiles 外のキー・値がそのまま残っている
 - ホームパスに空白が含まれる環境でも `command` が壊れない — 配置後の `command` 文字列内の
   `$HOME` がダブルクォートで囲まれている
 - 既存の `~/.claude/settings.json` は上書き前に BACKUP_DIR に退避されている
@@ -270,16 +289,17 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 ### #8: README に Claude Code 設定の管理範囲と手順を追記する
 
-**Purpose**: dotfiles が管理する Claude Code 設定の範囲・herdr 統合との境界・セットアップ後の
-確認方法を README に明文化する。
+**Purpose**: dotfiles が管理する Claude Code 設定の範囲・herdr 統合との境界・配置方式(上書き /
+項目マージ)・セットアップ後の確認方法を README に明文化する。
 
-**Prerequisites**: #6, #7
+**Prerequisites**: #6, #7, #9, #10
 
 **Steps**:
 
 - [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh` / `claude/themes/*.json`)と配置先、`claude/` 以下は `~/.claude/` の構造をそのまま写す規則、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
 - [ ] 配布時に意識が要る3点を明記: `jq` が前提(不在だとステータスラインが無言で壊れる)、`skipDangerousModePermissionPrompt: true` も配布されること、`rn@ccpm` はバージョン非固定で初回オンライン起動が要ること
-- [ ] setup.sh は `~/.claude/settings.json` を上書きするため、手元での `/config` 変更は dotfiles 側へ手で戻す必要がある旨を明記
+- [ ] 配置方式の表を追加: どのファイルが「丸ごと上書き」でどれが「項目マージ」か、その理由(そのファイルをアプリ側も書くかどうか)
+- [ ] 項目マージでも dotfiles にあるキーは dotfiles 側の値で置き換わるため、手元での `/config`・herdr UI での変更を残したい場合は dotfiles 側にも反映する必要がある旨を明記
 - [ ] 記載内容が steering の Acceptance criteria および実際の setup.sh の挙動と一致することを照合
 - [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
 - [ ] QA expert review (subagent)
@@ -295,14 +315,85 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 - 記載された手順が実際の setup.sh の挙動と一致し、README 内の既存記述(端末統一仕様)と矛盾しない
 
 
+### #9: setup.sh に項目マージのヘルパーを実装する
+
+**Purpose**: アプリ側も書く設定ファイルに対して「dotfiles が持つキーだけを置き換え、dotfiles に
+無いキーは配置先のものを残す」マージを、`jq` にも `tomllib` にも依存せず行えるようにする。
+
+**Prerequisites**: none
+
+**Steps**:
+
+- [ ] `setup.sh` に `merge_json` を実装: python3 標準の `json` で配置先と dotfiles を読み、再帰的な dict マージ(dotfiles 優先、配列は葉として扱う)を行って書き戻す。配置先が無い/壊れている場合は dotfiles 側をそのまま書く。書き込み前に BACKUP_DIR へ退避
+- [ ] `merge_json` に `profiles.list` 用の特例を実装: 配列内オブジェクトを `guid` をキーに突き合わせ、dotfiles にある guid は置き換え、無い guid は配置先のものを残す
+- [ ] `setup.sh` に `merge_toml` を実装: 行ベースで `[section]` を追跡しつつ `key = value` を突き合わせ、dotfiles にあるキーは値を置き換え、無いキーは配置先の行(コメント・空行・順序を含む)をそのまま残す。dotfiles にしか無いキーは該当セクションの末尾に追加し、セクション自体が無ければセクションごと追加
+- [ ] 一時ファイルに書いてから `mv` する(書き込み中の中断で設定ファイルを壊さないため)
+- [ ] ユニット的な検証: スクラッチに作った擬似 JSON / TOML に対して、置換・保持・追加・セクション追加・配置先が空/不正の各ケースを実行して結果を確認する
+- [ ] `bash -n`(+ shellcheck があれば)で構文検証
+- [ ] self-check (OK/NG per completion criterion, record in checks/9.md)
+- [ ] QA expert review (subagent)
+- [ ] Design expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `merge_json` が、配置先にしか無いキーを保持したまま dotfiles 側のキーを反映し、結果が有効な
+  JSON である。ネストしたオブジェクト(`hooks` / `profiles.defaults` など)でも同様に動く
+- `merge_json` が `profiles.list` を `guid` 単位で突き合わせ、dotfiles に無い guid のプロファイルを
+  残す
+- `merge_toml` が、配置先にしか無いキー・コメント・行順を保ったまま dotfiles 側のキーを反映し、
+  結果が herdr に読める TOML である(`herdr config check` が通る)
+- 配置先ファイルが存在しない場合と、内容が壊れている場合のどちらでもエラー終了せず、dotfiles 側の
+  内容で復旧する
+- マージ処理が `jq` / `tomllib` / その他の外部依存を必要とせず、mac の python3 3.9 と
+  Ubuntu の python3 の双方で動く
+- 書き込みが原子的で、途中で中断しても配置先が半端な内容にならない
+
+### #10: herdr と Windows Terminal の配置を項目マージに切り替える
+
+**Purpose**: 既に丸ごと上書きで配置している `~/.config/herdr/config.toml` と WT の
+`settings.json` を #9 のヘルパー経由に切り替え、配置先固有の設定が消えないようにする。
+
+**Prerequisites**: #9
+
+**Steps**:
+
+- [ ] `setup.sh` の herdr ブロックを `merge_toml` 経由に切り替える
+- [ ] `setup.sh` の WT ブロックを `merge_json` 経由に切り替える(`profiles.list` 特例つき)
+- [ ] mac 上で実行し、`~/.config/herdr/config.toml` の dotfiles 由来のキーが反映され、herdr が書き込んだ dotfiles 外のキーが残ることを確認。`herdr config check` が通ることも確認
+- [ ] WT 経路は mac で実行できないため、擬似的な配置先ファイル(別マシンを模して WSL ディストロが異なるもの)を作ってマージ結果をコードレビューで確認する。実機確認は次回 Windows 同期時
+- [ ] herdr の `[theme] name` が dotfiles の値どおりに反映されることを確認する(8/24 時点で配置先が `gruvbox-light` に書き戻されており、#5 の revise (c) が効いていない状態)
+- [ ] self-check (OK/NG per completion criterion, record in checks/10.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- mac 上で `setup.sh` が exit 0 で完了し、`~/.config/herdr/config.toml` が dotfiles のキーを反映
+  しつつ dotfiles 外のキーを保っている。`herdr config check` が通る
+- 擬似的な WT 配置先(dotfiles に無い WSL ディストロのプロファイルを含むもの)に対してマージした
+  結果に、そのプロファイルが残っている
+- 既存の iTerm2 / statusline.sh / themes の配置は従来どおり丸ごと上書きのままである
+- setup.sh が両OSで exit 0 のまま(WSL 経路は静的レビューまで)
+
+
 # State
 
 (written by /rn:dn, read and reset to this placeholder by /rn:up. `Status` is `paused` while a
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: -
-- **Last completed**: -
-- **Next**: -
-- **Notes**: -
+- **Status**: paused
+- **Date**: 2026-08-24
+- **Last completed**: #1-#4。#6 は実装+修正ラウンドまで完了(`$HOME` 直書き化、`claude/themes/` の2ファイル追加)、初回3レビュー済み
+- **Next**: #9 — setup.sh の項目マージヘルパー(`merge_json` / `merge_toml`)を実装。並行して #6 の修正後再レビュー(QA / Craft / Verification)を回して #6 を check off する
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
+  ユーザー指示で配置方式を2種類に分割 — dotfiles でしか生成しないファイルは上書き、アプリ側も書く
+  ファイル(Claude settings.json / herdr config.toml / WT settings.json)は項目マージ。これを受けて
+  #9 / #10 を追加し、#7 / #8 / #5 の prerequisites を更新済み。
+  **未回答の確認事項2件**: (a) 完了済みの #3(WT 設定)と #4(setup.sh)を開け直すことへの明示的な
+  承認、(b) herdr の `[theme] name` をどちらの値で正とするか — dotfiles は `gruvbox`、配置先は
+  herdr が書き戻した `gruvbox-light` になっており #5 の revise (c) が効いていない。
+  Win 側(ctrl+alt 系・Ubuntu の Gruvbox 継承・WT マージ結果)は次回 Windows 同期時に未検証のまま。
