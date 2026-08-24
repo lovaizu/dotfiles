@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '__HOME__/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "sh __HOME__/.claude/scripts/statusline.sh"
+  },
+  "enabledPlugins": {
+    "rn@ccpm": true
+  },
+  "extraKnownMarketplaces": {
+    "ccpm": {
+      "source": {
+        "source": "github",
+        "repo": "lovaizu/ccpm"
+      }
+    }
+  },
+  "outputStyle": "Concise",
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "custom:catppuccin-mocha",
+  "agentPushNotifEnabled": true,
+  "remoteControlAtStartup": false
+}
