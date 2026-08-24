@@ -13,12 +13,9 @@ BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
 LAST_BACKUP=""
 
 # Copy an existing dst into BACKUP_DIR. Does nothing when dst is not there yet.
-#
-# One run backs up several files with the same basename -- ~/.claude/settings.json
-# and Windows Terminal's settings.json both land here -- and a timestamp only
-# counts whole seconds, so the name is made unique by counting up instead of
-# letting the second copy overwrite the first. The messages promise the user a
-# file at that path; it has to still be there afterwards.
+# One run backs up several files with the same basename and a timestamp counts
+# whole seconds, so the name is made unique by counting up: the messages
+# promise the user a file at that path.
 backup_file() {
   local dst="$1" stem bak count=1
   LAST_BACKUP=""
@@ -30,14 +27,18 @@ backup_file() {
       bak="$stem-$count.bak"
       count=$((count + 1))
     done
-    # Returns non-zero when there is a dst but it cannot be copied -- a
-    # directory in its place, a file that cannot be read. backup_then_copy is
-    # about to fail on the same file anyway; merge_config asks first.
-    cp "$dst" "$bak" 2>/dev/null || return 1
+    # Non-zero when there is a dst but it cannot be copied -- a directory in
+    # its place, a file that cannot be read. cp says why on stderr and the
+    # caller decides what that means: merge_config warns and carries on,
+    # backup_then_copy does not, so set -e stops the setup there.
+    cp "$dst" "$bak" || return 1
     LAST_BACKUP="$bak"
     echo "Backed up existing config to $bak"
   fi
 }
+
+# One wording for "dst now holds the dotfiles copy", from every path there.
+installed() { echo "Installed $1"; }
 
 # Copy src to dst, backing up an existing dst first. For the files only
 # dotfiles ever writes: the whole file is ours, so it is replaced wholesale.
@@ -45,30 +46,21 @@ backup_then_copy() {
   local src="$1" dst="$2"
   backup_file "$dst"
   cp "$src" "$dst"
-  echo "Installed $dst"
+  installed "$dst"
 }
 
 # Merge src into dst item by item, backing up an existing dst first. For the
 # files the application itself also writes: the keys dotfiles has are set to
 # the dotfiles value, the keys only dst has are left alone. Both take
-# (src, dst) exactly like backup_then_copy, so switching a call site over is
-# a matter of changing the function name.
+# (src, dst) exactly like backup_then_copy.
 #
-# Three outcomes, and only the first of them can stop the setup:
-#   1. src is broken or uses something the merge does not handle -- a bug in
-#      dotfiles, so it aborts and leaves dst untouched.
-#   2. dst is broken -- back it up, put the dotfiles copy there, warn, carry on.
-#   3. the merge cannot be done (dst is in the way, the environment is, or the
-#      result did not pass its own check) -- write nothing at all, warn, carry
-#      on. Not writing to dst is a complete answer to "never leave dst
-#      invalid", and it keeps one machine's damaged config from stopping every
-#      other file in the setup from being installed.
+# Only a broken src stops the setup; a broken dst is replaced and a merge that
+# cannot be done leaves dst untouched, both with a warning. dst is replaced
+# atomically. The merger's docstring has the outcomes in full.
 #
-# dst is replaced atomically. This is a read-modify-write, so it assumes the
-# application is not writing the same file at the same moment: herdr and Claude
-# Code both rewrite their config when settings change in their UI, and a change
-# made there while setup.sh runs can be read before it and written back after.
-# Run setup.sh with them closed, or expect to re-apply that change.
+# Read-modify-write, so it assumes herdr and Claude Code are not writing the
+# same file at the same moment. Run setup.sh with them closed, or expect to
+# re-apply a change made in their UI while it ran.
 merge_json() {
   merge_config json "$1" "$2"
 }
@@ -82,24 +74,15 @@ merge_toml() {
 # the merger only ever writes dst.
 merge_config() {
   local format="$1" src="$2" dst="$3" status=0
-  # `command -v python3` is not a test of whether python3 runs: macOS ships a
-  # /usr/bin/python3 shim that exists on a machine with no Command Line Tools
-  # and only fails when something invokes it. Running it is the test.
-  #
-  # Without python3 an existing file is left exactly as it is. It is
-  # deliberately not copied over instead: these are the files the application
-  # also writes, so replacing one wholesale throws away the settings that live
-  # only there -- the very thing merging exists to avoid. Warn and carry on,
-  # the way the rest of setup.sh treats a missing tool.
-  #
-  # When dst is not there yet that reasoning does not apply -- there is
-  # nothing on this machine to discard -- and refusing to write would leave a
-  # fresh mac with no configuration at all, which is the case "clone, run
-  # setup.sh" exists for. So copy.
+  # `command -v python3` is not the test: macOS ships a /usr/bin/python3 shim
+  # that exists until something invokes it. Running it is.
   if ! python3 -c 'pass' &>/dev/null; then
+    # Nothing here to discard, so copy: refusing would leave a fresh mac with
+    # no configuration at all. An existing file is left alone instead -- the
+    # application writes it too, and overwriting it discards what only it has.
     if [ ! -e "$dst" ]; then
       if cp "$src" "$dst" 2>/dev/null; then
-        echo "Installed $dst"
+        installed "$dst"
       else
         echo
         echo "WARNING: $dst could not be written."
@@ -117,8 +100,8 @@ merge_config() {
     echo
     return 0
   fi
-  # Outcome 3 again: no backup, no merge. The merger promises the user a copy
-  # of what it replaces, and it cannot make that promise without this.
+  # No backup, no merge: the merger promises the user a copy of whatever it
+  # replaces, and it cannot make that promise without this one.
   if ! backup_file "$dst"; then
     echo
     echo "WARNING: $dst could not be copied, so it was left as it is."
@@ -136,24 +119,23 @@ Only the keys SRC has are touched; everything else in DST survives, including
 module newer than Python 3.9 (macOS ships 3.9, which has no TOML parser) and
 nothing shells out, so no jq either.
 
-The exit code says which of four things happened. 0: SRC was merged into an
-existing DST. 5: there was no DST and SRC was installed as it is. 3: DST was
-not usable and SRC replaced it wholesale, after a warning naming the backup.
-4: the merge could not be done -- DST is in the way, or the environment is,
-or the result failed its own check -- so nothing was written and DST is
-exactly as it was, again after a warning. Anything else means SRC itself is
-broken, which is a bug in dotfiles; DST is untouched and setup.sh stops.
+The exit code says which of five things happened. 0: merged into an existing
+DST. 5: there was no DST, so SRC was installed as it is. 3: DST was not
+usable and SRC replaced it, after a warning naming the backup. 4: the merge
+could not be done, so nothing was written and DST is exactly as it was. 6:
+there was no DST and none could be written, so the machine has no settings
+for this file at all. Anything else is a broken SRC -- a bug in dotfiles --
+and setup.sh stops with DST untouched.
 
-What the merge guarantees about what it writes: the text is re-read by the
-parser below before it is allowed near DST, so its key structure is one TOML
-or JSON accepts -- no key set twice, no table declared twice, no name used as
-both a key and a table, and every value syntactically well formed. It does
-not guarantee that the application likes the *meaning* of what it holds: an
-unknown key, or a value of the wrong type for the setting it names, is
-carried across from SRC or left in DST exactly as it was found.
+What it guarantees about what it writes: the text is re-read by the parser
+below first, so no key is set twice, no table declared twice, no name used as
+both, and every value is well formed. Not that the application likes the
+*meaning* -- an unknown key, or a value of the wrong type, is carried across
+from SRC or left in DST as it was found.
 
-Messages go to stdout, where the rest of setup.sh's warnings go, so that
-`./setup.sh > log` keeps them in the same order as the lines they explain.
+Messages go to stdout, where setup.sh's own warnings go, so `./setup.sh > log`
+keeps them in order. The abort on a broken SRC goes to stderr instead: it is
+a bug report, not a note to the user.
 """
 
 import datetime
@@ -166,7 +148,15 @@ import tempfile
 
 
 class Unsupported(Exception):
-    """A document that parses but uses a construct the merge cannot handle."""
+    """Not broken, but past this parser: an array of tables, a value spelled
+    in a way it has no rule for.
+
+    ValueError is the other side of that line: the document is wrong however
+    it is read -- an unclosed string or bracket, a line that is neither key
+    nor header, a name defined twice. Unsupported means only that the parser
+    fell short, so DST may be perfectly good and is left alone. What cannot
+    be placed on one side or the other goes here, the side that does not
+    write."""
 
 
 class Unmergeable(Exception):
@@ -179,6 +169,12 @@ MERGED = 0
 REPLACED = 3
 SKIPPED = 4
 INSTALLED = 5
+MISSING = 6
+
+# Set by merge_file: whether there is a DST holding something worth keeping.
+# The warnings for a merge that did not happen say opposite things depending
+# on it -- "left as it is" only means something when there is a file.
+DST_KEPT = False
 
 # The file being merged into. Every message here is about that one file, and
 # threading it through the merge itself would put a parameter on functions
@@ -200,11 +196,8 @@ def report(headline, *rest):
 
 
 def report_replaced(label, reason):
-    """DST was not usable and the dotfiles copy has taken its place.
-
-    This is the one outcome that loses settings, so it names the backup they
-    can be recovered from.
-    """
+    """DST was not usable and the dotfiles copy has taken its place. The one
+    outcome that loses settings, so it names the backup to recover from."""
     lines = ["It has been replaced by the dotfiles copy, so any setting that",
              "existed only on this machine is gone from it."]
     backup = os.environ.get("MERGE_BACKUP", "")
@@ -216,6 +209,13 @@ def report_replaced(label, reason):
 
 def report_unmerged(reason):
     """The merge did not happen and DST was not written to at all."""
+    if not DST_KEPT:
+        report("%s could not be written (%s)." % (TARGET, reason),
+               "The dotfiles settings for it were not applied, and there is",
+               "no file there to fall back on: this machine has no settings",
+               "for it at all.",
+               "Deal with the reason above and re-run ./setup.sh.")
+        return MISSING
     report("%s was left as it is (%s)." % (TARGET, reason),
            "The dotfiles settings for it were not applied. Nothing was",
            "written, so it still holds exactly what it held before.",
@@ -228,7 +228,8 @@ def read_text(path):
     # merge writes those endings back, while the JSON merge re-serialises the
     # whole document and so always writes LF. utf-8-sig so a byte order mark
     # from a Windows editor is skipped rather than read as content and
-    # mistaken for a corrupt file.
+    # mistaken for a corrupt file; the write side is plain utf-8, so a BOM in
+    # dst is dropped rather than merged around.
     with open(path, encoding="utf-8-sig", newline="") as handle:
         return handle.read()
 
@@ -272,10 +273,9 @@ def json_skip_string(text, index):
 def json_relax(text):
     """JSONC reduced to plain JSON: comments and trailing commas dropped.
 
-    Windows Terminal's settings.json is JSONC by design -- the file it ships
-    is full of // comments and people add their own -- so a file with them is
-    a working file, not a broken one. Losing the comments from the output is
-    a far smaller price than discarding every setting the file held.
+    Windows Terminal's settings.json is JSONC by design, so a file with them
+    is a working file, not a broken one -- and losing the comments costs far
+    less than discarding every setting the file held.
     """
     plain = []
     index = 0
@@ -409,20 +409,19 @@ def json_indent(text):
 def json_combine(old, new, dst_text):
     if dst_text is not None and json_relax(dst_text) != dst_text:
         # JSONC input, plain JSON output: the merge works on the parsed
-        # document, and comments are not part of it.
-        warn("the // comments in it are not kept by the merge (the settings "
-             "they sit next to are)")
+        # document, and neither comments nor trailing commas are part of it.
+        warn("the // comments and trailing commas in it are not kept by the "
+             "merge (the settings they sit next to are)")
     return json.dumps(merge_objects(old, new), indent=json_indent(dst_text),
                       ensure_ascii=False) + "\n"
 
 
 # --- TOML ------------------------------------------------------------------
 #
-# Line based on purpose: rewriting the file through a parser would drop the
-# comments and the ordering the application (or the user) put there, and
-# Python 3.9 has no TOML parser to rewrite it with anyway. What is parsed is
-# only as much as the merge has to understand -- where each logical line
-# starts and ends, and which key it sets.
+# Line based on purpose: rewriting the file through a parser would drop its
+# comments and ordering, and 3.9 has no TOML parser anyway. Only as much is
+# parsed as the merge needs: where each logical line is, and which key it
+# sets.
 
 BARE_KEY = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                      "abcdefghijklmnopqrstuvwxyz0123456789_-")
@@ -449,12 +448,10 @@ def toml_skip_string(text, index):
 
 
 def toml_skip_multiline(text, index):
-    """Index just past the \"\"\" or ''' string starting at index.
-
-    Getting this right is what stops the merge from treating the lines inside
-    a multi-line string as key lines and rewriting them: input and output
-    both parse, so nothing would ever notice the value had been mangled.
-    """
+    """Index just past the \"\"\" or ''' string starting at index. Getting
+    this right is what stops the lines inside a multi-line string from being
+    read as key lines and rewritten -- input and output would both parse, so
+    nothing would notice the value had been mangled."""
     quote = text[index:index + 3]
     index += 3
     while index < len(text):
@@ -473,14 +470,11 @@ def toml_skip_multiline(text, index):
 
 
 def toml_lex(text):
-    """Split a TOML document into logical lines.
-
-    A logical line is one key/value pair, one section header, or one comment
-    or blank line, together with every physical line it spans: a multi-line
+    """Split a TOML document into logical lines: one key/value pair, header,
+    comment or blank line, with every physical line it spans -- a multi-line
     array, inline table or triple-quoted string stays with the line that
-    opened it. Returns [(text, eq)], eq being the offset within text of the
-    '=' that separates key from value, or None when there is none.
-    """
+    opened it. Returns [(text, eq)], eq being the offset of the '=' within
+    text, or None when the line has none."""
     records = []
     start = 0
     eq = None
@@ -519,8 +513,10 @@ def toml_lex(text):
 
 
 def toml_unescape(body, multiline=False):
-    """The text of a basic string, with a ValueError for an escape TOML has
-    no meaning for. Used on quoted keys and to check quoted values."""
+    """The text of a basic string, with an Unsupported for an escape this
+    merge has no meaning for. Used on quoted keys and to check quoted
+    values. Unsupported rather than ValueError because TOML 1.1 gives a
+    meaning to escapes 1.0 does not, and this cannot tell those from a typo."""
     if "\\" not in body:
         return body
     out = []
@@ -540,7 +536,7 @@ def toml_unescape(body, multiline=False):
             width = 4 if code == "u" else 8
             digits = body[index + 1:index + 1 + width]
             if len(digits) < width:
-                raise ValueError("bad escape in %r" % body)
+                raise Unsupported("bad escape in %r" % body)
             out.append(chr(int(digits, 16)))
             index += 1 + width
         elif multiline and code in " \t\r\n":
@@ -549,29 +545,41 @@ def toml_unescape(body, multiline=False):
             while index < len(body) and body[index] in " \t":
                 index += 1
             if index >= len(body) or body[index] not in "\r\n":
-                raise ValueError("bad escape in %r" % body)
+                raise Unsupported("bad escape in %r" % body)
             while index < len(body) and body[index] in " \t\r\n":
                 index += 1
         else:
-            raise ValueError("bad escape in %r" % body)
+            raise Unsupported("bad escape in %r" % body)
     return "".join(out)
 
 
-def toml_key_path(raw):
-    """A key or header name as the tuple of parts TOML gives it.
+def toml_trim(raw):
+    """A logical line without its ending and the blanks around it. Only space
+    and tab count: str.strip() would also eat a CR, a form feed or a
+    non-breaking space from the middle of a line, which is how a key like
+    "light_nam\\r" reads as a sound one -- and the line goes back out as it
+    came in, so nothing downstream notices either."""
+    if raw.endswith("\r\n"):
+        text = raw[:-2]
+    elif raw.endswith("\n"):
+        text = raw[:-1]
+    else:
+        text = raw
+    return text.strip(" \t")
 
-    bare, "quoted", 'literal', dotted, and any spacing around the dots are
-    four spellings of the same key. Comparing the spellings instead of the
-    parts is how a merge ends up declaring the same table twice.
-    """
-    text = raw.strip()
+
+def toml_key_path(raw):
+    """A key or header name as the tuple of parts TOML gives it. bare,
+    "quoted", 'literal' and dotted are four spellings of one key; comparing
+    spellings rather than parts is how a merge declares a table twice."""
+    text = toml_trim(raw)
     parts = []
     index = 0
     while True:
         while index < len(text) and text[index] in " \t":
             index += 1
         if index >= len(text):
-            raise ValueError("empty key in %r" % raw.strip())
+            raise ValueError("empty key in %r" % text)
         char = text[index]
         if char == '"' or char == "'":
             end = toml_skip_string(text, index)
@@ -583,7 +591,7 @@ def toml_key_path(raw):
             while end < len(text) and text[end] in BARE_KEY:
                 end += 1
             if end == index:
-                raise ValueError("cannot parse key %r" % raw.strip())
+                raise ValueError("cannot parse key %r" % text)
             parts.append(text[index:end])
             index = end
         while index < len(text) and text[index] in " \t":
@@ -591,13 +599,13 @@ def toml_key_path(raw):
         if index >= len(text):
             return tuple(parts)
         if text[index] != ".":
-            raise ValueError("cannot parse key %r" % raw.strip())
+            raise ValueError("cannot parse key %r" % text)
         index += 1
 
 
 def toml_header_path(raw):
     """(path, is_array_of_tables) for a section header line."""
-    body = raw.strip()
+    body = toml_trim(raw)
     array = body.startswith("[[")
     index = 2 if array else 1
     while index < len(body):
@@ -619,7 +627,8 @@ def toml_header_path(raw):
                          % body.replace("\n", "\\n")[:40])
     if array and not body[index:index + 2] == "]]":
         raise ValueError("unterminated section header %r" % body)
-    if rest.strip() and not rest.strip().startswith("#"):
+    rest = toml_trim(rest)
+    if rest and not rest.startswith("#"):
         raise ValueError("trailing text after section header %r" % body)
     return toml_key_path(inner), array
 
@@ -651,7 +660,9 @@ DATETIME_RE = re.compile(r"(\d{4}-\d{2}-\d{2})[Tt ](\d{2}:\d{2}:\d{2}(?:\.\d+)?)
 
 
 def toml_temporal_ok(token):
-    """True for a date or time whose numbers are a date or time that exists."""
+    """True for a date or time the calendar has. A leap second is not one of
+    them here: TOML allows :60, no Python datetime holds it, and reading it
+    is not worth the code -- toml_value_end says what that costs."""
     match = DATETIME_RE.match(token)
     date_part = time_part = None
     if match:
@@ -709,17 +720,20 @@ def toml_check_body(body, escapes, multiline):
 
 
 def toml_value_end(text, index):
-    """Index just past the value at index; ValueError when there is not one.
+    """Index just past the value at index; it never returns without one.
 
-    This is the line the merge draws around "the value is broken", and it is
-    drawn there because the merge writes values through untouched: a value it
-    accepts from DST is a value it writes back out. What it establishes: the
-    value is present, strings are terminated and hold nothing TOML forbids,
-    arrays and inline tables are balanced and punctuated, an inline table
-    does not set the same key twice, and a bare word is a boolean, a number
-    or a date that exists. What it does not: that an integer fits in 64 bits,
-    that a \\u escape names a character rather than a surrogate half, or
-    anything at all about whether the application wants this value here.
+    The merge writes values through untouched, so what it accepts from DST is
+    what it writes back out. It establishes that the value is there, strings
+    are terminated and hold nothing TOML forbids, arrays and inline tables
+    are balanced and punctuated with no key set twice, and a bare word is a
+    boolean, a number, or a date or time the calendar has. Not: that an
+    integer fits in 64 bits, that a \\u escape names a character rather than a
+    surrogate half, or anything about meaning.
+
+    A missing value is a ValueError; one that is there but reads as none of
+    the above is Unsupported, because TOML 1.1 spells some values 1.0 does
+    not and a leap second is legal TOML no Python datetime holds -- calling
+    those broken would blame DST for this parser's vocabulary.
     """
     char = text[index:index + 1]
     if not char or char in "\r\n":
@@ -752,7 +766,7 @@ def toml_atom_end(text, index):
         if toml_atom_ok(token + "T" + text[end + 1:rest]):
             return rest
     if not toml_atom_ok(token):
-        raise ValueError("%r is not a value TOML understands" % token[:40])
+        raise Unsupported("%r is not a value this merge can read" % token[:40])
     return end
 
 
@@ -826,7 +840,7 @@ def toml_split_value(text, eq):
     """
     start = toml_skip_space(text, eq + 1)
     end = toml_value_end(text, start)
-    rest = text[end:].strip()
+    rest = toml_trim(text[end:])
     if rest and not rest.startswith("#"):
         raise ValueError("%r after the value" % rest[:40])
     return text[eq + 1:end], text[end:]
@@ -841,20 +855,21 @@ def toml_inline_keys(text, eq):
 
 
 def toml_parse(text):
-    """Split a TOML document into sections of items.
-
-    Every line of the document lands in exactly one item, so re-joining them
-    reproduces the input byte for byte. An item's path is None for comments,
-    blank lines and section headers, and the full key path otherwise. Raises
-    ValueError on anything that cannot be classified or that TOML itself
-    would reject -- that is how a truncated or otherwise broken file, and a
-    merge that went wrong, are both recognised.
-    """
+    """Split a TOML document into sections of items. Every line lands in
+    exactly one item, so re-joining them reproduces the input byte for byte.
+    An item's path is None for comments, blanks and headers, and the full key
+    path otherwise. ValueError for anything that cannot be classified or that
+    TOML would reject: that is how a broken file and a merge that went wrong
+    are both recognised."""
+    if text.endswith("\r"):
+        # A file that stops halfway through a CRLF. Supplying the LF below
+        # would turn a truncated file into a sound looking one.
+        raise ValueError("the file ends in a stray carriage return")
     sections = [{"path": (), "header": None, "items": []}]
     # A missing final newline would otherwise glue an added key or section
     # onto the last line of the file.
     for raw, eq in toml_lex(ensure_newline(text, toml_ending_of(text))):
-        stripped = raw.strip()
+        stripped = toml_trim(raw)
         if eq is None and stripped.startswith("["):
             path, array = toml_header_path(raw)
             if array:
@@ -876,19 +891,12 @@ def toml_parse(text):
 
 
 def toml_check(sections):
-    """Reject a document TOML itself would reject.
-
-    Two kinds of breakage: a name used twice or used as two different things,
-    which is exactly what a merge that compared key spellings rather than key
-    paths produces, and a value that is not a value, which is what a file
-    truncated or edited by hand tends to hold. Running this over the merged
-    text before it goes anywhere near dst is what makes those two properties
-    of the merge instead of hopes; running it over dst is what tells a
-    genuinely broken file apart from one this parser merely found surprising.
-
-    What it establishes is the structure and the syntax, not the meaning: see
-    toml_value_end for where the line around a value is drawn.
-    """
+    """Reject a document TOML itself would reject: a name used twice or as
+    two different things, or a value that is not a value. Run over the merged
+    text before it goes near dst, it makes both properties of the merge
+    rather than hopes; run over dst, it tells a broken file from one this
+    parser found surprising. Structure and syntax only -- toml_value_end
+    draws the line around a value."""
     keys = set()
     tables = set()
     implied = set()
@@ -919,6 +927,13 @@ def toml_check(sections):
     clash = keys & (tables | implied | parents)
     if clash:
         raise ValueError("%s is both a key and a table"
+                         % toml_join(sorted(clash)[0]))
+    # The same rule as the two-headers case above, in the order the loop
+    # cannot see: [a.b] first and `b.c = 1` under [a] afterwards is still
+    # two goes at the same table, however far apart they are written.
+    clash = tables & implied
+    if clash:
+        raise ValueError("table [%s] is declared twice"
                          % toml_join(sorted(clash)[0]))
 
 
@@ -962,32 +977,35 @@ def toml_reline(text, ending):
 
 def toml_index(sections):
     """Where dst keeps things, by path: the item for a key, and the section
-    an added key belongs in."""
+    an added key belongs in. Built once and kept up to date as the merge
+    writes, so that what the next src section sees includes the last one.
+    A key can only appear once -- toml_check has already refused a document
+    where it does not -- so "keys" holds the item, not a list of them."""
     index = {"keys": {}, "sections": {}, "parents": {}, "implied": {}}
     index["sections"][()] = sections[0]
     for section in sections:
         if section["header"] is not None:
             index["sections"].setdefault(section["path"], section)
         for item in section["items"]:
-            path = item["path"]
-            if path is None:
-                continue
-            index["keys"].setdefault(path, []).append(item)
-            index["parents"].setdefault(path[:-1], section)
-            for cut in range(len(section["path"]) + 1, len(path)):
-                index["implied"].setdefault(path[:cut], section)
+            toml_index_item(index, section, item)
     return index
+
+
+def toml_index_item(index, section, item):
+    if item["path"] is None:
+        return
+    path = item["path"]
+    index["keys"].setdefault(path, item)
+    index["parents"].setdefault(path[:-1], section)
+    for cut in range(len(section["path"]) + 1, len(path)):
+        index["implied"].setdefault(path[:cut], section)
 
 
 def toml_set_value(target, item, ending):
     """dst keeps its spelling of the key, its spacing and anything it wrote
-    after the value; src supplies the value and nothing else.
-
-    Rewriting the whole line would put src's spelling of the key into a file
-    whose table layout may express it differently, and would carry src's own
-    end of line comment into a file it was not written about -- while losing
-    the comment dst had there, which was.
-    """
+    after the value; src supplies the value and nothing else. Rewriting the
+    whole line would carry src's end of line comment into a file it was not
+    written about, and lose the one dst had there, which was."""
     value = toml_split_value(item["text"], item["eq"])[0]
     trailing = toml_split_value(target["text"], target["eq"])[1]
     old = toml_inline_keys(target["text"], target["eq"])
@@ -1012,10 +1030,16 @@ def toml_can_append(index, section, keys):
     for item in keys:
         if item["path"] in index["keys"] or item["path"][:-1] in index["parents"]:
             return False
+        # A dotted key makes the tables above it, so appending [a] with
+        # b.c = 1 under it is a second go at a table dst already declares as
+        # [a.b]. The key belongs in that one; toml_add_key puts it there.
+        for cut in range(len(section["path"]) + 1, len(item["path"])):
+            if item["path"][:cut] in index["sections"]:
+                return False
     return True
 
 
-def toml_append_section(merged, src_section, items, ending):
+def toml_append_section(merged, index, src_section, items, ending):
     """Put a src section at the end of merged, one blank line clear of
     whatever is already there, with its lines in dst's line endings."""
     if toml_last_line(merged).strip():
@@ -1026,22 +1050,27 @@ def toml_append_section(merged, src_section, items, ending):
                "items": [dict(item, text=toml_reline(item["text"], ending))
                          for item in items]}
     merged.append(section)
+    index["sections"].setdefault(section["path"], section)
+    for item in section["items"]:
+        toml_index_item(index, section, item)
     return section
 
 
 def toml_add_key(merged, index, src_section, item, ending):
     """Add a key dst does not have, where dst would have kept it."""
     path = item["path"]
+    # Where dst already keeps keys of this table wins; a table dst declares
+    # but never filled comes next, because putting the key anywhere else
+    # would declare that table a second time.
     section = (index["parents"].get(path[:-1])
-               or index["sections"].get(src_section["path"])
                or index["sections"].get(path[:-1])
+               or index["sections"].get(src_section["path"])
                or index["implied"].get(path[:-1]))
     if section is None:
         section = toml_append_section(
-            merged, src_section,
+            merged, index, src_section,
             [{"path": None, "text": src_section["header"], "eq": None}],
             ending)
-        index["sections"].setdefault(section["path"], section)
     relative = path[len(section["path"]):]
     if relative == path[len(src_section["path"]):]:
         head = item["text"][:item["eq"] + 1]
@@ -1051,22 +1080,26 @@ def toml_add_key(merged, index, src_section, item, ending):
         head = toml_join(relative) + " ="
     added = {"path": path, "eq": len(head) - 1,
              "text": toml_reline(head + item["text"][item["eq"] + 1:], ending)}
-    # At the end of the section, but above its trailing blank lines.
+    # At the end of the section, but above the blank lines and the comment
+    # block it ends with: a comment written just above the next header is
+    # about that header, and a key pushed under it separates the two.
     items = section["items"]
     at = len(items)
-    while at > 0 and not items[at - 1]["text"].strip():
+    while at > 0 and (not items[at - 1]["text"].strip()
+                      or items[at - 1]["text"].lstrip().startswith("#")):
         at -= 1
+    if at == 0:
+        # Nothing but comments here, so there is no "end of the keys" to be
+        # above. Append, and leave the comments where their author put them.
+        at = len(items)
     items.insert(at, added)
-    index["keys"].setdefault(path, []).append(added)
-    index["parents"].setdefault(path[:-1], section)
+    toml_index_item(index, section, added)
 
 
 def toml_adopt_comments(sections):
-    """Give each section the comment lines written directly above its header.
-
-    A comment above [table] is about that table, but a parse puts it in the
-    section before it, where appending the table whole would leave it behind.
-    """
+    """Give each section the comment lines written directly above its header:
+    they are about that table, but a parse puts them in the section before,
+    where appending the table whole would leave them behind."""
     adopted = [dict(section, items=list(section["items"]))
                for section in sections]
     for position in range(1, len(adopted)):
@@ -1087,29 +1120,28 @@ def toml_merge(dst_sections, src_sections):
     was: its comments, its blank lines, its key order, its line endings."""
     ending = toml_ending(dst_sections)
     merged = list(dst_sections)
+    index = toml_index(merged)
     for src_section in toml_adopt_comments(src_sections):
-        index = toml_index(merged)
         keys = [item for item in src_section["items"]
                 if item["path"] is not None]
         if toml_can_append(index, src_section, keys):
             # A table dst has never heard of: append it whole, comments and
             # all, keeping one blank line between it and what came before.
-            toml_append_section(merged, src_section, src_section["items"],
-                                ending)
+            toml_append_section(merged, index, src_section,
+                                src_section["items"], ending)
             continue
         for item in keys:
-            found = index["keys"].get(item["path"])
-            if found:
-                for target in found:
-                    toml_set_value(target, item, ending)
-            else:
+            target = index["keys"].get(item["path"])
+            if target is None:
                 toml_add_key(merged, index, src_section, item, ending)
+            else:
+                toml_set_value(target, item, ending)
     return merged
 
 
 def toml_combine(old, new, dst_text):
-    # dst_text is unused: the signature is json_combine's, so that merge_text
-    # can call either without knowing which it has.
+    # dst_text is json_combine's third argument, so merge_text can call
+    # either without knowing which it has.
     return toml_render(toml_merge(old, new))
 
 
@@ -1120,20 +1152,14 @@ HANDLERS = {"json": (json_parse, json_combine, "JSON"),
 
 
 def merge_text(fmt, src_text, dst_text, src):
-    """The shape both formats share, as (text to write, outcome).
+    """The shape both formats share, as (text to write, outcome, reason).
 
-    A src that does not parse, or that uses something the merge cannot
-    handle, is a bug in dotfiles: abort and leave dst alone. A dst that does
-    not parse has already lost whatever it held, so recover it from src and
-    say so loudly. A dst that parses but is beyond the merge is nobody's
-    fault and no reason to stop: leave it alone and carry on. And the merged
-    text is parsed once more before it is allowed near dst: if the result
-    could only be expressed as an invalid document, writing nothing is the
-    safe answer.
-
-    That last check is the TOML side's: json.dumps cannot produce JSON that
-    json.loads then rejects, so for JSON it only ever confirms what the
-    serialiser already guarantees.
+    A src that does not parse is a bug in dotfiles: abort, leave dst alone. A
+    dst that does not parse has lost what it held, so recover it from src and
+    say so loudly -- reason is what to say, and the caller says it once the
+    write has happened. A dst beyond the merge is nobody's fault: leave it
+    alone. The merged text is parsed once more before it goes near dst, and
+    writing nothing is the answer if it would be invalid.
     """
     parse, combine, label = HANDLERS[fmt]
     try:
@@ -1141,20 +1167,19 @@ def merge_text(fmt, src_text, dst_text, src):
     except (Unsupported, ValueError) as err:
         sys.exit("merge: %s: %s" % (src, err))
     if dst_text is None:
-        return ensure_newline(src_text), INSTALLED
+        return ensure_newline(src_text), INSTALLED, None
     try:
         old = parse(dst_text)
     except Unsupported as err:
         raise Unmergeable(err)
     except ValueError as err:
-        report_replaced(label, err)
-        return ensure_newline(src_text), REPLACED
+        return ensure_newline(src_text), REPLACED, err
     text = combine(old, new, dst_text)
     try:
         parse(text)
     except (Unsupported, ValueError) as err:
         raise Unmergeable("the merged %s would be invalid: %s" % (label, err))
-    return text, MERGED
+    return text, MERGED, None
 
 
 # --- writing ---------------------------------------------------------------
@@ -1163,18 +1188,12 @@ def merge_text(fmt, src_text, dst_text, src):
 def write_atomically(path, text):
     """Replace path with text through a temp file in the same directory.
 
-    Same directory means same filesystem, so the rename is atomic: a run
-    interrupted at any point leaves either the old file or the new one, never
-    half of either. That is atomicity against the process stopping, which is
-    what an interrupted setup.sh does; surviving a power cut as well would
-    take an fsync of the directory too, and is not what this is for. The temp
-    file is hidden because iTerm2 reads every file in DynamicProfiles, and
-    one left behind by a SIGKILL would be read as a second profile with a
-    duplicate Guid.
-
-    A symlinked path is followed to the file it points at. dotfiles are
-    often symlinked into place, and replacing the link with a regular file
-    would leave the real file behind holding the old contents.
+    Same filesystem, so the rename is atomic: an interrupted run leaves the
+    old file or the new one, never half of either. That is atomicity against
+    the process stopping, not against a power cut, which would need the
+    directory fsynced too. The temp file is hidden because iTerm2 reads every
+    file in DynamicProfiles. A symlinked path is followed to its target,
+    which is where dotfiles that are symlinked into place really live.
     """
     path = os.path.realpath(path)
     directory = os.path.dirname(path) or "."
@@ -1202,20 +1221,28 @@ def write_atomically(path, text):
 
 
 def merge_file(fmt, src_text, src, dst):
+    global DST_KEPT
+    label = HANDLERS[fmt][2]
     dst_text = None
-    if os.path.exists(dst):
+    DST_KEPT = os.path.exists(dst)
+    if DST_KEPT:
         try:
             dst_text = read_text(dst)
         except UnicodeDecodeError as err:
             # Not text at all: broken content, not a broken environment.
-            report_replaced(HANDLERS[fmt][2], err)
             write_atomically(dst, ensure_newline(src_text))
+            report_replaced(label, err)
             return REPLACED
         if not dst_text.strip():
             # An empty file has nothing to keep: same as not being there.
             dst_text = None
-    text, outcome = merge_text(fmt, src_text, dst_text, src)
+            DST_KEPT = False
+    text, outcome, reason = merge_text(fmt, src_text, dst_text, src)
+    # Written first, told afterwards: a report of what has been replaced is
+    # a lie until the replacement is on disk, and the write can still fail.
     write_atomically(dst, text)
+    if reason is not None:
+        report_replaced(label, reason)
     return outcome
 
 
@@ -1249,13 +1276,14 @@ def main(argv):
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
 PYTHON_MERGE
-  # The three outcomes above, in the merger's exit codes. Anything else is
-  # outcome 1 -- a broken src -- and stops the setup.
+  # One line per exit code the merger has. Anything else is a broken src,
+  # which stops the setup.
   case "$status" in
     0) echo "Merged $(basename "$src") into $dst" ;;
     3) echo "Replaced $dst with $(basename "$src") -- see the warning above" ;;
     4) echo "Left $dst as it is -- see the warning above" ;;
-    5) echo "Installed $dst" ;;
+    5) installed "$dst" ;;
+    6) echo "Could not install $dst -- see the warning above" ;;
     *) return "$status" ;;
   esac
 }
