@@ -12,6 +12,9 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 本セッションでは Mac(iTerm2)対応を新規追加し、あわせて Win 側の設定内容を見直して統一仕様に
 揃え、setup.sh を共通部+OS別の構成に再編する。統一仕様は README に明文化する。
 
+さらに同じ考え方を Claude Code のユーザー設定にも広げる: `~/.claude/settings.json` と
+ステータスライン用シェルスクリプトを dotfiles に取り込み、両OSで setup.sh から再現できるようにする。
+
 # Acceptance criteria
 
 - README に統一仕様が明文化されている: 操作×OS別キーの対応表(即時切替3操作・⇧Enter・プレフィックス
@@ -29,6 +32,18 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   完了する(darwin では `wslpath`/`cmd.exe` 不在で落ちない、WSL では従来と同等の配置結果)
 - herdr/config.toml は OS 共通のまま(OS 別の分岐を持ち込まない)。`[keys]` は変更しない。
   `[theme]` は端末側テーマ(Gruvbox Dark)と揃える — herdr の UI テーマが `gruvbox`(dark)であること
+- `claude/settings.json` が dotfiles にあり、ホーム依存の絶対パス(statusLine / hooks の command)が
+  プレースホルダ化されていて、mac(`/Users/...`)と WSL(`/home/...`)の双方で正しい実パスに展開される
+- `claude/settings.json` に `remoteControlAtStartup: false` が含まれる(キー名は Claude Code の
+  設定スキーマで確認済み)。既存の設定値(outputStyle / effortLevel / theme / tui / enabledPlugins /
+  extraKnownMarketplaces / statusLine / SessionStart フック / skipDangerousModePermissionPrompt /
+  agentPushNotifEnabled)は現行の `~/.claude/settings.json` と同じ内容が保たれる
+- `claude/scripts/statusline.sh` が dotfiles にあり、配置後のステータスラインが従来と同じ
+  `C:…k/…k 5h:…% 7d:…% | モデル/努力度 | ディレクトリ@ブランチ` 形式で表示される
+- `setup.sh` の共通部が両OSで `~/.claude/settings.json` と `~/.claude/scripts/statusline.sh` を配置し、
+  既存ファイルは BACKUP_DIR に退避される。配置後の settings.json が有効な JSON である
+- README に Claude Code 設定の管理対象・herdr 統合の前提(`hooks/herdr-agent-state.sh` は herdr 側が
+  導入するため dotfiles では管理しない)・セットアップ手順が記載されている
 
 # Assumptions
 
@@ -41,6 +56,13 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   削除自体の最終確認はプランゲートで取る)
 - シェル自体は統一しない: Win は WT のプロファイル(PowerShell / WSL bash)、Mac は zsh のまま。
   herdr の起動は両OSとも手動
+- `~/.claude/hooks/herdr-agent-state.sh` は herdr の統合インストーラが生成・上書きするファイル
+  (ファイル冒頭に "managed by herdr" と明記)なので dotfiles では管理しない。settings.json の
+  SessionStart エントリだけを持ち、スクリプト本体は herdr の導入に委ねる
+- settings.json の `command` 文字列内で `$HOME` / `~` が展開されるかは未確認。展開有無に依存しない
+  よう、dotfiles 側はプレースホルダを持ち、setup.sh が実パスへ置換して配置する
+- `~/.claude/settings.json` は Claude Code 自身が(/config 等で)書き換えることがある。配置は
+  「バックアップ+上書き」とし、手元で変えた設定を dotfiles に戻すのはユーザーの運用とする
 
 # Rules
 
@@ -147,7 +169,7 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Purpose**: Acceptance criteria の充足をユーザーに提示し、承認を得る。
 
-**Prerequisites**: #1, #2, #3, #4
+**Prerequisites**: #1, #2, #3, #4, #6, #7, #8
 
 **Steps**:
 
@@ -157,12 +179,88 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
       (a) herdr プロファイルが iTerm2 のデフォルトでないとキーが効かない → setup.sh に検出警告、README に手順明記
       (b) `.bak` が DynamicProfiles 内に残り同一 Guid の二重プロファイルになる → バックアップ先を `~/.local/state/dotfiles-backups/` に変更
       (c) herdr の UI テーマが `gruvbox-light` で端末の Gruvbox Dark と不一致 → `gruvbox` に変更(steering の Rules / Acceptance criteria も更新)
-- [ ] ユーザーが新規ウィンドウ(⌘N)で確認: ワークスペース切り替えが効くこと、herdr UI が暗い配色になること
+- [x] ユーザーが新規ウィンドウ(⌘N)で確認: ワークスペース切り替えが効くこと、herdr UI が暗い配色になること(実施済み: 動作確認 OK)
+- [ ] revise 2 巡目: Claude Code 設定(settings.json / statusline.sh)の dotfiles 化 — #6〜#8 として追加、完了後に再提示
 - [ ] verdict を /rn:ty(approve)または /rn:gm(revise → 対応して再提示)で受ける
 
 **Completion criteria**:
 
 - Acceptance criteria の全項目に OK/NG と根拠が提示され、ユーザーが /rn:ty で承認している
+
+### #6: Claude Code 設定ファイルを dotfiles に取り込む
+
+**Purpose**: `~/.claude/settings.json` と `~/.claude/scripts/statusline.sh` を `claude/` 配下に
+ホーム非依存の形で複製し、両OSから同じ設定を再現できる元データにする。
+
+**Prerequisites**: none
+
+**Steps**:
+
+- [ ] `claude/settings.json` を作成: 現行 `~/.claude/settings.json` の内容を写し、`statusLine.command` と SessionStart フックの `command` 内のホームパスを `__HOME__` プレースホルダに置換。`remoteControlAtStartup: false` を追加
+- [ ] `claude/scripts/statusline.sh` を作成: 現行 `~/.claude/scripts/statusline.sh` をそのまま複製(ホーム依存の記述がないことを確認)
+- [ ] `python3 -m json.tool` で JSON 構文検証、`sh -n` で statusline.sh の構文検証、現行ファイルとの diff で意図した差分(プレースホルダ化+`remoteControlAtStartup`)のみであることを照合
+- [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `claude/settings.json` が有効な JSON で、`__HOME__` 以外にホーム依存の絶対パスを含まない
+- 現行 `~/.claude/settings.json` との差分が「2箇所のパスのプレースホルダ化」と「`remoteControlAtStartup: false` の追加」のみで、他のキー・値が変わっていない
+- `claude/scripts/statusline.sh` が `sh -n` を通り、現行の `~/.claude/scripts/statusline.sh` と
+  バイト一致する
+- 秘密情報(APIキー・トークン等)が含まれていない
+
+### #7: setup.sh 共通部で Claude Code 設定を配置する
+
+**Purpose**: setup.sh の共通部に Claude Code 設定の配置を追加し、両OSで `~/.claude/` 以下に
+展開済みの settings.json と statusline.sh が置かれるようにする。
+
+**Prerequisites**: #6
+
+**Steps**:
+
+- [ ] `setup.sh` の共通部に Claude Code ブロックを追加: `~/.claude/scripts/` を作成、`claude/scripts/statusline.sh` を `backup_then_copy` で配置して実行権を付与、`claude/settings.json` の `__HOME__` を `$HOME` に置換した一時ファイルを作って `~/.claude/settings.json` に `backup_then_copy`
+- [ ] `~/.claude/hooks/herdr-agent-state.sh` が無い場合に警告を出す(herdr 統合が未導入だと SessionStart フックが空振りするため)
+- [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON かつ `__HOME__` が残っていないこと、statusline.sh が実行可能なことを確認。`bash -n`(+ shellcheck があれば)で構文検証
+- [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- mac 上で `setup.sh` が exit 0 で完了し、`~/.claude/settings.json` と
+  `~/.claude/scripts/statusline.sh` が配置されている
+- 配置された settings.json が有効な JSON で `__HOME__` を含まず、`command` のパスが実在ファイルを指す
+- 既存の `~/.claude/settings.json` は上書き前に BACKUP_DIR に退避されている
+- Claude Code ブロックが OS 判定より前(共通部)にあり、WSL 経路でも同じ配置が行われる。既存の
+  herdr / iTerm2 / WT の配置動作は変わらない
+- sed 置換がパス中の区切り文字で壊れない(`$HOME` に `/` が含まれても正しく置換される)
+
+### #8: README に Claude Code 設定の管理範囲と手順を追記する
+
+**Purpose**: dotfiles が管理する Claude Code 設定の範囲・herdr 統合との境界・セットアップ後の
+確認方法を README に明文化する。
+
+**Prerequisites**: #6, #7
+
+**Steps**:
+
+- [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh`)、配置先、`__HOME__` 置換の仕組み、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
+- [ ] 記載内容が steering の Acceptance criteria および実際の setup.sh の挙動と一致することを照合
+- [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- README を読んだ第三者が、dotfiles が管理する Claude Code 設定ファイルと配置先、および
+  管理しないもの(herdr 統合フックの本体)を区別できる
+- 記載された手順が実際の setup.sh の挙動と一致し、README 内の既存記述(端末統一仕様)と矛盾しない
+
 
 # State
 

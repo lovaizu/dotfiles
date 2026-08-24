@@ -10,6 +10,8 @@ right when requirements change.
 dotfiles の目的(Win / Mac の端末環境を clone → setup 一発で再現し、毎回設定しない)に沿って、
 Mac(iTerm2)対応を追加し、Win(Windows Terminal)側も含めて設定を統一仕様
 (テーマ・フォント・herdr 操作・即時切替キー・⇧Enter)に揃える。
+あわせて、同じ「clone → setup 一発」の対象に Claude Code のユーザー設定
+(`~/.claude/settings.json` とステータスライン用シェル)を加える。
 
 ### 1.2 What goes wrong without this?
 
@@ -21,12 +23,15 @@ Mac では herdr の workspace / agent 切替に毎回プレフィックス2ス�
 
 統一仕様の明文化(README の対応表)、iTerm2 側のキー→バイト列マッピングと色・フォントの
 プロファイル定義、WT 側の別名チョード整理、それらを OS 判定つきでインストールする setup.sh。
+加えて Claude Code のユーザー設定をホーム非依存の形で持ち、setup.sh の共通部から配置すること。
 
 ### 1.4 What is out of scope?
 
 herdr 本体・iTerm2 のインストール、Win 側フォントのインストール(WSL からは不可能 — README の
 手動手順に委ねる)、シェルの統一(Win は PowerShell / WSL bash、Mac は zsh のまま — herdr の中の
-体験が揃えば足りる)、iTerm2 のプロファイル外グローバル設定の管理。
+体験が揃えば足りる)、iTerm2 のプロファイル外グローバル設定の管理、Claude Code の
+`~/.claude` 配下のうち settings.json / statusline.sh 以外(プラグイン実体・履歴・認証情報・
+herdr 統合フックの本体)。
 
 ## 2. Assumptions & Constraints
 
@@ -62,12 +67,14 @@ Dynamic Profile)。仕様を README に1か所で明文化することで、両O
 - `herdr/config.toml` — OS 共通の herdr 設定(本セッションでは不変)。
 - `windows-terminal/settings.json` — 統一仕様の Win 翻訳(ctrl+alt 系のみに整理)。
 - `iterm2/herdr.json` — 統一仕様の Mac 翻訳(⌃⌘ 系 + ⇧Enter + Gruvbox Dark + HackGen)。
-- `setup.sh` — 単一エントリ: 共通部(herdr)→ `uname` で分岐 → darwin(iTerm2 配置+brew があれば
-  フォント)/ WSL(WT 配置)。
+- `claude/settings.json` — Claude Code のユーザー設定。ホーム依存パスは `__HOME__` プレースホルダ。
+- `claude/scripts/statusline.sh` — ステータスライン生成スクリプト(ホーム非依存、そのまま配置)。
+- `setup.sh` — 単一エントリ: 共通部(herdr + Claude Code)→ `uname` で分岐 → darwin(iTerm2 配置+
+  brew があればフォント)/ WSL(WT 配置)。
 
 ### 3.3 How does work move?
 
-両OSとも `./setup.sh` を実行 → 共通部が herdr config を配置 → OS 判定 → darwin なら Dynamic
+両OSとも `./setup.sh` を実行 → 共通部が herdr config と Claude Code 設定を配置 → OS 判定 → darwin なら Dynamic
 Profile 配置(iTerm2 が監視していて再起動不要で反映)+フォント、WSL なら WT の settings.json を
 配置。使い勝手を変えたいときは README の仕様を先に直し、両翻訳ファイルを追随させる。
 
@@ -105,6 +112,24 @@ macOS / iTerm2 既定とは ⌃⌘ 系・⇧Enter とも衝突なし(⌃⌘F フ
 WSL では従来と同じファイルを同じ場所に配置する。破れの検出: mac での実行テスト(exit 0 + 配置確認、
 brew 分岐のメッセージ)と、WSL 経路のコードレビュー(タスク#4)。
 
+### 4.6 What does the Claude Code settings deployment guarantee, and how is a breach caught?
+
+保証: 両OSで同じ Claude Code のユーザー設定(出力スタイル・努力度・テーマ・プラグイン・
+ステータスライン・herdr の SessionStart フック)が再現され、ホームディレクトリのパスが
+OS ごとに異なっても正しい実パスを指す。
+
+仕組み: dotfiles 側は `__HOME__` プレースホルダを持ち、setup.sh が配置時に `$HOME` へ置換する。
+これは settings.json の `command` 文字列内でシェル変数やチルダが展開されるかが未確認であるため —
+展開の有無に依存しない形にしている。置換は共通部で行い、mac(`/Users/...`)と WSL(`/home/...`)の
+双方で同じコードパスを通る。
+
+境界: `~/.claude/hooks/herdr-agent-state.sh` は herdr の統合インストーラが管理するファイル
+(冒頭に "managed by herdr" と明記され、再インストールで上書きされる)なので dotfiles では持たない。
+settings.json 側の SessionStart エントリだけを持ち、本体不在なら setup.sh が警告する。
+
+破れの検出: 配置後の settings.json に `__HOME__` が残っていないことと JSON 妥当性を setup 実行時に
+確認(タスク#7)、および現行ファイルとの diff 照合(タスク#6)。
+
 ## 5. Alternatives considered
 
 ### 5.1 Why this shape, and not another?
@@ -121,10 +146,19 @@ brew 分岐のメッセージ)と、WSL 経路のコードレビュー(タスク
   完結する Dynamic Profiles が最小。
 - **WT の別名チョードを Mac にも展開**: 統一の方向と逆(使われていない別名を増やす)。むしろ Win 側を
   ctrl+alt 系のみに整理して両OSを1:1 にする。
+- **`~/.claude` ごとシンボリックリンク**: プラグインキャッシュ・履歴・認証情報など Claude Code が
+  実行時に書き込む大量のファイルを巻き込む。管理したいのは settings.json と statusline.sh の2つだけ。
+- **settings.json をそのまま(絶対パスのまま)持つ**: mac(`/Users/kiyo`)と WSL(`/home/kiyo`)で
+  ホームパスが異なるため片方で壊れる。プレースホルダ置換が最小のコスト。
+- **`command` に `$HOME` / `~` を直接書く**: 展開されるかが Claude Code の実装依存で未確認。
+  置換方式なら実装に依存しない。
+- **herdr のフックスクリプト本体も dotfiles で持つ**: herdr の統合が再インストール時に上書きする
+  ため二重管理になり、バージョン不整合を招く。
 
 ### 5.2 What did we trade away?
 
 Dynamic Profile はデフォルトプロファイル化を自動でできない(初回に iTerm2 UI で一度設定する手作業が
 残る)。Win 側フォントは自動化されない(WSL から Windows へのフォントインストールは不可 — README の
 手動手順で受容)。シェルは OS ごとに異なるまま(統一しない判断)。グローバルな iTerm2 設定
-(ウィンドウ挙動等)は管理対象外のまま。
+(ウィンドウ挙動等)は管理対象外のまま。Claude Code 側は、設定を手元で変えた(/config など)場合に
+dotfiles へ戻す作業が手動で残る — 一方向(dotfiles → ホーム)の配置に割り切った。
