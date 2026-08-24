@@ -33,17 +33,26 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - herdr/config.toml は OS 共通のまま(OS 別の分岐を持ち込まない)。`[keys]` は変更しない。
   `[theme]` は端末側テーマ(Gruvbox Dark)と揃える — herdr の UI テーマが `gruvbox`(dark)であること
 - `claude/settings.json` が dotfiles にあり、ホーム依存の絶対パス(statusLine / hooks の command)が
-  プレースホルダ化されていて、mac(`/Users/...`)と WSL(`/home/...`)の双方で正しい実パスに展開される
+  `"$HOME/..."`(ダブルクォート囲み)で書かれていて、mac(`/Users/...`)と WSL(`/home/...`)の双方で
+  正しい実パスに解決される。リテラルのホームパスを含まない
 - `claude/settings.json` に `remoteControlAtStartup: false` が含まれる(キー名は Claude Code の
   設定スキーマで確認済み)。既存の設定値(outputStyle / effortLevel / theme / tui / enabledPlugins /
   extraKnownMarketplaces / statusLine / SessionStart フック / skipDangerousModePermissionPrompt /
   agentPushNotifEnabled)は現行の `~/.claude/settings.json` と同じ内容が保たれる
 - `claude/scripts/statusline.sh` が dotfiles にあり、配置後のステータスラインが従来と同じ
   `C:…k/…k 5h:…% 7d:…% | モデル/努力度 | ディレクトリ@ブランチ` 形式で表示される
-- `setup.sh` の共通部が両OSで `~/.claude/settings.json` と `~/.claude/scripts/statusline.sh` を配置し、
-  既存ファイルは BACKUP_DIR に退避される。配置後の settings.json が有効な JSON である
+- `settings.json` が参照するカスタムテーマの実体(`claude/themes/catppuccin-mocha.json`、および
+  対になる `catppuccin-latte.json`)が dotfiles にあり、配置される。他PCでテーマ名だけが残って
+  組み込み dark に無警告フォールバックする状態にならない
+- `setup.sh` の共通部が両OSで `~/.claude/settings.json`・`~/.claude/scripts/statusline.sh`・
+  `~/.claude/themes/*.json` を配置し、既存ファイルは BACKUP_DIR に退避される。配置後の
+  settings.json が有効な JSON である
+- `setup.sh` が `jq` 不在を検出して警告する(statusline.sh は jq が無いと exit 0 のまま
+  ` |  | dir@branch` と壊れた表示になり、無言で失敗するため)
 - README に Claude Code 設定の管理対象・herdr 統合の前提(`hooks/herdr-agent-state.sh` は herdr 側が
-  導入するため dotfiles では管理しない)・セットアップ手順が記載されている
+  導入するため dotfiles では管理しない)・セットアップ手順が記載されている。あわせて配布時に
+  意識が要る3点が明記されている: `jq` が前提であること、`skipDangerousModePermissionPrompt: true`
+  も配布されること、`rn@ccpm` はバージョン非固定で初回オンライン起動が要ること
 
 # Assumptions
 
@@ -59,10 +68,17 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - `~/.claude/hooks/herdr-agent-state.sh` は herdr の統合インストーラが生成・上書きするファイル
   (ファイル冒頭に "managed by herdr" と明記)なので dotfiles では管理しない。settings.json の
   SessionStart エントリだけを持ち、スクリプト本体は herdr の導入に委ねる
-- settings.json の `command` 文字列内で `$HOME` / `~` が展開されるかは未確認。展開有無に依存しない
-  よう、dotfiles 側はプレースホルダを持ち、setup.sh が実パスへ置換して配置する
+- settings.json の `command` はシェル経由で実行されるため `$HOME` は展開される — 検証済み(Claude Code
+  2.1.241 のバイナリ内、hook `command` スキーマの説明に "When absent [args], `command` runs through a
+  shell (bash on POSIX, PowerShell on Windows without Git Bash)" とあり、statusLine も同じランナー
+  `Oes(i,"StatusLine","statusLine",…)` を通る)。よってプレースホルダ置換は行わず `$HOME` を直接書く。
+  ホームパスに空白が含まれても壊れないよう、両 command のパスはダブルクォートで囲む
 - `~/.claude/settings.json` は Claude Code 自身が(/config 等で)書き換えることがある。配置は
   「バックアップ+上書き」とし、手元で変えた設定を dotfiles に戻すのはユーザーの運用とする
+- `~/.claude/output-styles/sleek.md` は現行 settings.json が参照していない(`outputStyle` は組み込みの
+  `Concise`)ため、再現に必要な最小セットから外す — ユーザー確認済み
+- `remoteControlAtStartup` を明示 `false` にするのは原本の複製ではなく挙動変更。未設定時の実効値は
+  組織デフォルト次第で必ずしも false ではないため、配置後に `/config` 上の表示で確認する
 
 # Rules
 
@@ -189,41 +205,51 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 ### #6: Claude Code 設定ファイルを dotfiles に取り込む
 
-**Purpose**: `~/.claude/settings.json` と `~/.claude/scripts/statusline.sh` を `claude/` 配下に
-ホーム非依存の形で複製し、両OSから同じ設定を再現できる元データにする。
+**Purpose**: `~/.claude/` 配下のうち再現に必要なファイル(settings.json / statusline.sh /
+カスタムテーマ)を `claude/` 配下にホーム非依存の形で複製し、両OSから同じ設定を再現できる
+元データにする。
 
 **Prerequisites**: none
 
 **Steps**:
 
-- [ ] `claude/settings.json` を作成: 現行 `~/.claude/settings.json` の内容を写し、`statusLine.command` と SessionStart フックの `command` 内のホームパスを `__HOME__` プレースホルダに置換。`remoteControlAtStartup: false` を追加
-- [ ] `claude/scripts/statusline.sh` を作成: 現行 `~/.claude/scripts/statusline.sh` をそのまま複製(ホーム依存の記述がないことを確認)
-- [ ] `python3 -m json.tool` で JSON 構文検証、`sh -n` で statusline.sh の構文検証、現行ファイルとの diff で意図した差分(プレースホルダ化+`remoteControlAtStartup`)のみであることを照合
+- [x] `claude/settings.json` を作成: 現行 `~/.claude/settings.json` の内容を写し、`remoteControlAtStartup: false` を追加
+- [x] `claude/scripts/statusline.sh` を作成: 現行 `~/.claude/scripts/statusline.sh` をそのまま複製(ホーム依存の記述がないことを確認)
+- [ ] `statusLine.command` と SessionStart フックの `command` 内のホームパスを `"$HOME/..."`(ダブルクォート囲み)に書き換える。プレースホルダ方式は採らない — `command` がシェル経由で実行されることを検証済みのため
+- [ ] `claude/themes/catppuccin-mocha.json` と `claude/themes/catppuccin-latte.json` を現行 `~/.claude/themes/` から複製(`theme: "custom:catppuccin-mocha"` の実体。無いと他PCで無警告フォールバックする)
+- [ ] `python3 -m json.tool` で全 JSON の構文検証、`sh -n` と `dash -n` で statusline.sh の構文検証、原本との diff で意図した差分のみであることを照合
 - [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [ ] 修正ラウンド後の再レビュー(QA / Craft / Verification)
 
 **Completion criteria**:
 
-- `claude/settings.json` が有効な JSON で、`__HOME__` 以外にホーム依存の絶対パスを含まない
-- 現行 `~/.claude/settings.json` との差分が「2箇所のパスのプレースホルダ化」と「`remoteControlAtStartup: false` の追加」のみで、他のキー・値が変わっていない
-- `claude/scripts/statusline.sh` が `sh -n` を通り、現行の `~/.claude/scripts/statusline.sh` と
-  バイト一致する
+- `claude/settings.json` が有効な JSON で、リテラルのホームパス(`/Users/…` / `/home/…`)を含まず、
+  2つの `command` がどちらも `"$HOME/…"` をダブルクォートで囲んでいる
+- 現行 `~/.claude/settings.json` との差分が「2箇所の command のパスの `$HOME` 化(クォート付与を含む)」と
+  「`remoteControlAtStartup: false` の追加」のみで、他のキー・値が変わっていない
+- `claude/scripts/statusline.sh` が `sh -n` / `dash -n` を通り、現行の
+  `~/.claude/scripts/statusline.sh` とバイト一致する
+- `claude/themes/catppuccin-mocha.json` と `claude/themes/catppuccin-latte.json` が有効な JSON で、
+  現行 `~/.claude/themes/` の同名ファイルとバイト一致する
 - 秘密情報(APIキー・トークン等)が含まれていない
 
 ### #7: setup.sh 共通部で Claude Code 設定を配置する
 
 **Purpose**: setup.sh の共通部に Claude Code 設定の配置を追加し、両OSで `~/.claude/` 以下に
-展開済みの settings.json と statusline.sh が置かれるようにする。
+settings.json・statusline.sh・カスタムテーマが置かれるようにする。
 
 **Prerequisites**: #6
 
 **Steps**:
 
-- [ ] `setup.sh` の共通部に Claude Code ブロックを追加: `~/.claude/scripts/` を作成、`claude/scripts/statusline.sh` を `backup_then_copy` で配置して実行権を付与、`claude/settings.json` の `__HOME__` を `$HOME` に置換した一時ファイルを作って `~/.claude/settings.json` に `backup_then_copy`
+- [ ] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` と `~/.claude/themes/` を作成し、`claude/settings.json`・`claude/scripts/statusline.sh`・`claude/themes/*.json` を既存の `backup_then_copy` でそのまま配置(置換処理は不要)。statusline.sh に実行権を付与
 - [ ] `~/.claude/hooks/herdr-agent-state.sh` が無い場合に警告を出す(herdr 統合が未導入だと SessionStart フックが空振りするため)
-- [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON かつ `__HOME__` が残っていないこと、statusline.sh が実行可能なことを確認。`bash -n`(+ shellcheck があれば)で構文検証
+- [ ] `command -v jq` を確認し、不在なら警告を出す(mac は `brew install jq`、Ubuntu/WSL は `sudo apt install jq`)。既存の herdr 不在警告と同じ書式に揃える
+- [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON であること、statusline.sh が実行可能なこと、themes が配置されたことを確認。`bash -n`(+ shellcheck があれば)で構文検証
+- [ ] Claude Code 上で `/config` を開き、"Enable Remote Control for all sessions" が `false` になっていることを目視確認する(`remoteControlAtStartup` は原本に無い追加設定で、未設定時の実効値が false とは限らないため)
 - [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -231,13 +257,16 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Completion criteria**:
 
-- mac 上で `setup.sh` が exit 0 で完了し、`~/.claude/settings.json` と
-  `~/.claude/scripts/statusline.sh` が配置されている
-- 配置された settings.json が有効な JSON で `__HOME__` を含まず、`command` のパスが実在ファイルを指す
+- mac 上で `setup.sh` が exit 0 で完了し、`~/.claude/settings.json`・
+  `~/.claude/scripts/statusline.sh`(実行権あり)・`~/.claude/themes/catppuccin-{mocha,latte}.json`
+  が配置されている
+- 配置された settings.json が dotfiles 側とバイト一致する(変換処理を挟まないため)
+- ホームパスに空白が含まれる環境でも `command` が壊れない — 配置後の `command` 文字列内の
+  `$HOME` がダブルクォートで囲まれている
 - 既存の `~/.claude/settings.json` は上書き前に BACKUP_DIR に退避されている
 - Claude Code ブロックが OS 判定より前(共通部)にあり、WSL 経路でも同じ配置が行われる。既存の
   herdr / iTerm2 / WT の配置動作は変わらない
-- sed 置換がパス中の区切り文字で壊れない(`$HOME` に `/` が含まれても正しく置換される)
+- `jq` 不在時と herdr 統合フック不在時に、それぞれ警告が出てエラー終了しない
 
 ### #8: README に Claude Code 設定の管理範囲と手順を追記する
 
@@ -248,7 +277,9 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Steps**:
 
-- [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh`)、配置先、`__HOME__` 置換の仕組み、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
+- [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh` / `claude/themes/*.json`)と配置先、`claude/` 以下は `~/.claude/` の構造をそのまま写す規則、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
+- [ ] 配布時に意識が要る3点を明記: `jq` が前提(不在だとステータスラインが無言で壊れる)、`skipDangerousModePermissionPrompt: true` も配布されること、`rn@ccpm` はバージョン非固定で初回オンライン起動が要ること
+- [ ] setup.sh は `~/.claude/settings.json` を上書きするため、手元での `/config` 変更は dotfiles 側へ手で戻す必要がある旨を明記
 - [ ] 記載内容が steering の Acceptance criteria および実際の setup.sh の挙動と一致することを照合
 - [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
 - [ ] QA expert review (subagent)
@@ -258,7 +289,9 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 **Completion criteria**:
 
 - README を読んだ第三者が、dotfiles が管理する Claude Code 設定ファイルと配置先、および
-  管理しないもの(herdr 統合フックの本体)を区別できる
+  管理しないもの(herdr 統合フックの本体、output-styles)を区別できる
+- `jq` 前提・`skipDangerousModePermissionPrompt` の配布・`rn@ccpm` のバージョン非固定・
+  `/config` 変更の手戻し運用の4点が記載されている
 - 記載された手順が実際の setup.sh の挙動と一致し、README 内の既存記述(端末統一仕様)と矛盾しない
 
 
