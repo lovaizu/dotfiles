@@ -85,7 +85,9 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   `Oes(i,"StatusLine","statusLine",…)` を通る)。よってプレースホルダ置換は行わず `$HOME` を直接書く。
   ホームパスに空白が含まれても壊れないよう、両 command のパスはダブルクォートで囲む
 - `~/.claude/settings.json` は Claude Code 自身が(/config 等で)書き換えることがある。配置は
-  「バックアップ+上書き」とし、手元で変えた設定を dotfiles に戻すのはユーザーの運用とする
+  バックアップのうえ**項目マージ**とし(dotfiles が持つキーは dotfiles の値で置き換え、dotfiles に
+  無いキーは配置先のものを残す)、手元で変えた設定を dotfiles に戻すのはユーザーの運用とする。
+  マージには削除の概念がないため、dotfiles 側でキーを消しても配置先からは消えない
 - `~/.claude/output-styles/sleek.md` は現行 settings.json が参照していない(`outputStyle` は組み込みの
   `Concise`)ため、再現に必要な最小セットから外す — ユーザー確認済み
 - `remoteControlAtStartup` を明示 `false` にするのは原本の複製ではなく挙動変更。未設定時の実効値は
