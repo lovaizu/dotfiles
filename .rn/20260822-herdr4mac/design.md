@@ -47,7 +47,11 @@ WT の ctrl+shift / alt+shift 別名チョードは使われておらず削除�
 iTerm2 は WT のような単一の可搬な settings.json を持たず、設定は `com.googlecode.iterm2.plist` に
 集約される — dotfiles で扱うにはファイル1個で完結し、起動中でも安全に読み込める仕組みが要る。
 setup は Win 側も WSL の bash で実行される前提(既存 setup.sh の方式)なので、両OSとも bash 1本の
-エントリで書ける。既存の `backup_then_copy` によるコピー方式(シンボリックリンクなし)を踏襲する。
+エントリで書ける。配置はシンボリックリンクを張らずファイルの実体を置く(既存 setup.sh の方式)。
+ただし配置先には2種類ある — dotfiles だけが書くファイル(iTerm2 の Dynamic Profile)と、アプリ自身も
+書くファイル(herdr の config.toml、Claude Code の settings.json、WT の settings.json)。後者を
+まるごと上書きすると、そのマシンにしか無い設定(WSL ディストロのプロファイル、手で変えたテーマ)を
+消す。よって前者は `backup_then_copy`、後者は項目単位のマージ(§4.7)と、方式を分ける。
 
 ## 3. Design overview
 
@@ -122,8 +126,10 @@ OS ごとに異なっても正しい実パスを指す。
 仕組み: settings.json の `command` はシェル経由で実行される — Claude Code 2.1.241 のバイナリで検証済み
 (hook `command` スキーマの説明が "When absent [args], `command` runs through a shell (bash on POSIX,
 PowerShell on Windows without Git Bash)" と述べ、statusLine も同じランナー `Oes(…,"StatusLine",…)` を
-通る)。よって dotfiles 側は `"$HOME/…"` を直接書き、setup.sh は変換なしの `backup_then_copy` で
-配置する。ホームパスに空白が含まれても壊れないよう、両 command のパスはダブルクォートで囲む。
+通る)。よって dotfiles 側は `"$HOME/…"` を直接書き、setup.sh はパスの変換をせずそのまま配置する
+(settings.json は Claude Code 自身も書くファイルなので、配置は §4.7 の `merge_json`。statusline.sh と
+themes/ は dotfiles だけが書くので `backup_then_copy`)。
+ホームパスに空白が含まれても壊れないよう、両 command のパスはダブルクォートで囲む。
 
 当初はプレースホルダ(`__HOME__`)+ setup 時の置換を採る設計だったが、`$HOME` 展開が検証できたため
 不採用にした。置換方式は sed の置換文字列側で `&` がマッチ全体に解釈されるなど無言で壊れる失敗モードを
@@ -142,8 +148,43 @@ settings.json 側の SessionStart エントリだけを持ち、本体不在な�
 前提: statusline.sh は `jq` に依存する。不在時は exit 0 のまま ` |  | dir@branch` を返して無言で
 劣化するため、setup.sh が `jq` の存在を確認して警告する(mac は OS 同梱だが Ubuntu/WSL は既定で不在)。
 
-破れの検出: 配置後の settings.json が dotfiles 側とバイト一致することと JSON 妥当性(タスク#7)、
+破れの検出: 配置後の settings.json が JSON として妥当で、dotfiles が持つキーはすべて dotfiles の値に
+なっていること(タスク#7 — マージ配置なので「バイト一致」ではなくキー単位の照合になる)、
 原本との diff 照合(タスク#6)、`/config` 上での `remoteControlAtStartup` の目視確認(タスク#7)。
+
+### 4.7 What does the item-wise merge guarantee, and how is a breach caught?
+
+対象: アプリ自身も書くファイル(herdr の config.toml / Claude Code と WT の settings.json)。
+
+保証: **dotfiles が持つキーだけが dotfiles の値になり、dotfiles に無いキーは配置先のまま残る**。
+TOML ではコメント・空行・キー順・改行コード(CRLF 含む)も残る。JSON はオブジェクトを再帰的に
+マージし、`profiles.list` だけは `guid` 単位で要素を突き合わせる(WT が WSL ディストロごとに1要素
+書き足すため、配列を葉として置換すると他マシンのプロファイルが消える)。書き込みは同一ディレクトリの
+一時ファイル + `os.replace` で、プロセスが途中で止まっても配置先は旧内容か新内容のどちらかになる。
+
+実装は setup.sh 内の `merge_json` / `merge_toml`(実体は埋め込み python)。`jq` も `tomllib` も
+使わない — mac 同梱の python3 は 3.9 で `tomllib` が無く、`jq` は Ubuntu/WSL に既定で入らないため、
+どちらに依存しても「clone → setup 一発」が片方のOSで崩れる。TOML は行ベースで扱う(パーサで
+読み書きするとコメントと行順が消えるため)。呼び出し側をこの関数に差し替えるのは #7 / #10。
+
+結末は3つだけで、setup 全体を止めるのは1番目だけ:
+1. **src が壊れている / 非対応** — dotfiles 側のバグなので中断する(直すべきものが直る)。
+2. **dst が壊れている** — バックアップを取り、dotfiles の内容で復旧し、失ったものとバックアップの
+   位置を `WARNING:` で伝えて続行する。
+3. **マージできない**(dst が有効だが非対応の構文を含む、書き込めない、出力の自己検査に落ちた)
+   — dst を一切書かずに警告して続行する。「dst に不正な内容を書かない」は dst を触らないことで
+   完全に達成でき、1台の壊れた設定が他の全ファイルの配置を止める理由は無い。
+
+破れの検出: 書き込む前に必ず自分のパーサで読み直し、キーの重複・テーブルの二重宣言・キーとテーブルの
+衝突・値の構文エラーがあれば書かない(=結末3)。加えてタスク検証で、実物の `~/.config/herdr/config.toml`
+のコピーに対する `herdr config check` の往復、実物の WT settings.json × 別マシン想定 dst の往復、
+1バイト変異ファズ(「成功と報告したのに出力が無効」が0件であること)を記録する。
+
+境界: 保証するのは**キー構造と値の構文が TOML / JSON として合法**であることまでで、アプリがその
+**意味**を受け入れるかは保証しない(未知のキーや型違いの値は src / dst のまま運ばれる)。
+`[[array of tables]]` は非対応(管理対象の config に該当なし)。配列(`hooks` / WT の `actions` /
+`schemes` など `profiles.list` 以外)は葉として丸ごと置き換わるので、dst 固有の要素は消える —
+消えるときは警告を出す。JSONC のコメントは JSON マージを通ると失われる(同上)。
 
 ## 5. Alternatives considered
 
@@ -170,6 +211,20 @@ settings.json 側の SessionStart エントリだけを持ち、本体不在な�
   検出しづらい。採らない。
 - **herdr のフックスクリプト本体も dotfiles で持つ**: herdr の統合が再インストール時に上書きする
   ため二重管理になり、バージョン不整合を招く。
+- **アプリも書くファイルも `backup_then_copy` で上書きする**(マージしない): 実装は最小だが、
+  WSL ディストロのプロファイルや手で変えたテーマといった「そのマシンにしか無い設定」を毎回消す。
+  バックアップは残るが、復旧はユーザーの手作業になり、しかも setup.sh を再実行するたびに再発する。
+  「clone → setup 一発」を毎回実行できる形にするなら、消さないことが要る。
+- **マージに `jq` / `tomllib` を使う**: どちらも片方のOSで欠ける(mac の python3 は 3.9 で
+  `tomllib` が無く、`jq` は Ubuntu/WSL に既定で入らない)。依存を足せば README の手順が増え、
+  「clone → setup 一発」が条件付きになる。stdlib だけで書けば両OSでそのまま動く。
+- **TOML を自前のミニパーサで読み書きする(完全なパーサを目指す)**: 対応構文が増えるほど、
+  誤読のまま「成功」と報告して壊れた config を書く経路が増える。採ったのは逆で、**理解できる形
+  だけを扱い、外れたら書かずに警告して続ける**という方針 — 行ベースで「どの行がどのキーか」だけを
+  読み、書く前に自分のパーサで読み直し、通らなければ dst に触らない。コメント・行順・改行コードが
+  残るのも、文書を再生成しないこの方式の帰結。
+- **TOML を汎用パーサで読んで書き戻す**: コメント・空行・キー順が消え、diff が毎回全面的になる。
+  herdr の config は人が読み書きするファイルなので、その損失は上書きとほぼ同じ痛さ。
 
 ### 5.2 What did we trade away?
 
