@@ -153,6 +153,11 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 - [x] Acceptance criteria を1件ずつ検証した結果(README・両設定ファイルの対応表照合・setup.sh 実行結果)を提示する
 - [x] ユーザーの実機確認を依頼する: mac は iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T(実施済み: raw モード捕捉で `14 5b 14 5d 14 75 0a 14` — 全キー期待どおり)、Win は次回同期時に WT で ctrl+alt 系
+- [x] 評価中に判明した不具合に対応する(revise 1 巡目):
+      (a) herdr プロファイルが iTerm2 のデフォルトでないとキーが効かない → setup.sh に検出警告、README に手順明記
+      (b) `.bak` が DynamicProfiles 内に残り同一 Guid の二重プロファイルになる → バックアップ先を `~/.local/state/dotfiles-backups/` に変更
+      (c) herdr の UI テーマが `gruvbox-light` で端末の Gruvbox Dark と不一致 → `gruvbox` に変更(steering の Rules / Acceptance criteria も更新)
+- [ ] ユーザーが新規ウィンドウ(⌘N)で確認: ワークスペース切り替えが効くこと、herdr UI が暗い配色になること
 - [ ] verdict を /rn:ty(approve)または /rn:gm(revise → 対応して再提示)で受ける
 
 **Completion criteria**:
@@ -165,8 +170,8 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-08-24
+- **Last completed**: #1–#4 全完了。#5 は revise 1 巡目(デフォルトプロファイル検出・バックアップ先変更・herdr テーマ dark 化)まで対応済み
+- **Next**: #5 — ユーザーが ⌘N で新規ウィンドウを開き、ws 切り替えと暗い配色を確認 → verdict(/rn:ty または /rn:gm)
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。iTerm2 のデフォルトは herdr に設定済みだが既存ウィンドウは旧プロファイルのままなので新規ウィンドウが必要。Mac のキー送信は raw 捕捉で検証済み(`14 5b 14 5d 14 75 0a 14`)。Win 側(ctrl+alt 系・Ubuntu の Gruvbox 継承)は次回 Windows 同期時に未検証のまま
