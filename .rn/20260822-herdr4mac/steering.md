@@ -385,15 +385,8 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-24
-- **Last completed**: #1-#4。#6 は実装+修正ラウンドまで完了(`$HOME` 直書き化、`claude/themes/` の2ファイル追加)、初回3レビュー済み
-- **Next**: #9 — setup.sh の項目マージヘルパー(`merge_json` / `merge_toml`)を実装。並行して #6 の修正後再レビュー(QA / Craft / Verification)を回して #6 を check off する
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
-  ユーザー指示で配置方式を2種類に分割 — dotfiles でしか生成しないファイルは上書き、アプリ側も書く
-  ファイル(Claude settings.json / herdr config.toml / WT settings.json)は項目マージ。これを受けて
-  #9 / #10 を追加し、#7 / #8 / #5 の prerequisites を更新済み。
-  **未回答の確認事項2件**: (a) 完了済みの #3(WT 設定)と #4(setup.sh)を開け直すことへの明示的な
-  承認、(b) herdr の `[theme] name` をどちらの値で正とするか — dotfiles は `gruvbox`、配置先は
-  herdr が書き戻した `gruvbox-light` になっており #5 の revise (c) が効いていない。
-  Win 側(ctrl+alt 系・Ubuntu の Gruvbox 継承・WT マージ結果)は次回 Windows 同期時に未検証のまま。
+- **Status**: not suspended
+- **Date**: -
+- **Last completed**: -
+- **Next**: -
+- **Notes**: -
