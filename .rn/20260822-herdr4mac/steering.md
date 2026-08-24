@@ -240,7 +240,7 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 - [x] QA expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium)
 - [x] Verification expert review (subagent, per the task's medium)
-- [ ] 修正ラウンド後の再レビュー(QA / Craft / Verification)
+- [x] 修正ラウンド後の再レビュー(QA / Craft / Verification)
 
 **Completion criteria**:
 
