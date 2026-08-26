@@ -161,6 +161,27 @@
         "Red Component": 1.0,
         "Green Component": 1.0,
         "Blue Component": 1.0
+      },
+      "Bold Color": {
+        "Alpha Component": 1,
+        "Color Space": "sRGB",
+        "Red Component": 0.9215686274509803,
+        "Green Component": 0.8588235294117647,
+        "Blue Component": 0.6980392156862745
+      },
+      "Cursor Text Color": {
+        "Alpha Component": 1,
+        "Color Space": "sRGB",
+        "Red Component": 0.1568627450980392,
+        "Green Component": 0.1568627450980392,
+        "Blue Component": 0.1568627450980392
+      },
+      "Badge Color": {
+        "Alpha Component": 1,
+        "Color Space": "sRGB",
+        "Red Component": 0.984313725490196,
+        "Green Component": 0.28627450980392155,
+        "Blue Component": 0.20392156862745098
       }
     }
   ]
