@@ -32,7 +32,7 @@
   "effortLevel": "high",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
-  "theme": "custom:catppuccin-mocha",
+  "theme": "light",
   "agentPushNotifEnabled": true,
   "remoteControlAtStartup": false
 }

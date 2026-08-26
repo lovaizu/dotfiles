@@ -31,7 +31,8 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   あれば HackGen フォントのインストール / WSL: WT settings.json 配置)の構成で、両OSで exit 0 で
   完了する(darwin では `wslpath`/`cmd.exe` 不在で落ちない、WSL では従来と同等の配置結果)
 - herdr/config.toml は OS 共通のまま(OS 別の分岐を持ち込まない)。`[keys]` は変更しない。
-  `[theme]` は端末側テーマ(Gruvbox Dark)と揃える — herdr の UI テーマが `gruvbox`(dark)であること
+  `[theme]` は herdr の UI テーマが `gruvbox-light` であること — 端末そのものは Gruvbox Dark で、
+  herdr の UI だけ light にする(ワークスペースの選択状態を判別しやすくするためユーザーが意図した配色)
 - `claude/settings.json` が dotfiles にあり、ホーム依存の絶対パス(statusLine / hooks の command)が
   `"$HOME/..."`(ダブルクォート囲み)で書かれていて、mac(`/Users/...`)と WSL(`/home/...`)の双方で
   正しい実パスに解決される。リテラルのホームパスを含まない
@@ -41,16 +42,14 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   agentPushNotifEnabled)は現行の `~/.claude/settings.json` と同じ内容が保たれる
 - `claude/scripts/statusline.sh` が dotfiles にあり、配置後のステータスラインが従来と同じ
   `C:…k/…k 5h:…% 7d:…% | モデル/努力度 | ディレクトリ@ブランチ` 形式で表示される
-- `settings.json` が参照するカスタムテーマの実体(`claude/themes/catppuccin-mocha.json`、および
-  対になる `catppuccin-latte.json`)が dotfiles にあり、配置される。他PCでテーマ名だけが残って
-  組み込み dark に無警告フォールバックする状態にならない
-- `setup.sh` の共通部が両OSで `~/.claude/settings.json`・`~/.claude/scripts/statusline.sh`・
-  `~/.claude/themes/*.json` を配置し、既存ファイルは BACKUP_DIR に退避される。配置後の
-  settings.json が有効な JSON である
+- `claude/settings.json` の `theme` が組み込みの `light` である。カスタムテーマの実体を
+  dotfiles で抱えない(組み込みテーマなので他PCでの無警告フォールバックが起きない)
+- `setup.sh` の共通部が両OSで `~/.claude/settings.json` と `~/.claude/scripts/statusline.sh` を
+  配置し、既存ファイルは BACKUP_DIR に退避される。配置後の settings.json が有効な JSON である
 - `setup.sh` が `jq` 不在を検出して警告する(statusline.sh は jq が無いと exit 0 のまま
   ` |  | dir@branch` と壊れた表示になり、無言で失敗するため)
 - setup.sh の配置方式が2種類に分かれている: dotfiles でしか生成しないファイル
-  (`iterm2/herdr.json` / `claude/scripts/statusline.sh` / `claude/themes/*.json`)は丸ごと上書き、
+  (`iterm2/herdr.json` / `claude/scripts/statusline.sh`)は丸ごと上書き、
   アプリ側も書くファイル(`~/.claude/settings.json` / `~/.config/herdr/config.toml` /
   WT の `settings.json`)は **項目マージ** — dotfiles が持つキーは置き換え、dotfiles に無いキーは
   配置先のものを残す
@@ -236,7 +235,6 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 - [x] `claude/settings.json` を作成: 現行 `~/.claude/settings.json` の内容を写し、`remoteControlAtStartup: false` を追加
 - [x] `claude/scripts/statusline.sh` を作成: 現行 `~/.claude/scripts/statusline.sh` をそのまま複製(ホーム依存の記述がないことを確認)
 - [x] `statusLine.command` と SessionStart フックの `command` 内のホームパスを `"$HOME/..."`(ダブルクォート囲み)に書き換える。プレースホルダ方式は採らない — `command` がシェル経由で実行されることを検証済みのため
-- [x] `claude/themes/catppuccin-mocha.json` と `claude/themes/catppuccin-latte.json` を現行 `~/.claude/themes/` から複製(`theme: "custom:catppuccin-mocha"` の実体。無いと他PCで無警告フォールバックする)
 - [x] `python3 -m json.tool` で全 JSON の構文検証、`sh -n` と `dash -n` で statusline.sh の構文検証、原本との diff で意図した差分のみであることを照合
 - [x] self-check (OK/NG per completion criterion, record in checks/6.md)
 - [x] QA expert review (subagent)
@@ -252,8 +250,6 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
   「`remoteControlAtStartup: false` の追加」のみで、他のキー・値が変わっていない
 - `claude/scripts/statusline.sh` が `sh -n` / `dash -n` を通り、現行の
   `~/.claude/scripts/statusline.sh` とバイト一致する
-- `claude/themes/catppuccin-mocha.json` と `claude/themes/catppuccin-latte.json` が有効な JSON で、
-  現行 `~/.claude/themes/` の同名ファイルとバイト一致する
 - 秘密情報(APIキー・トークン等)が含まれていない
 
 ### #7: setup.sh 共通部で Claude Code 設定を配置する
@@ -265,10 +261,10 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 **Steps**:
 
-- [ ] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` と `~/.claude/themes/` を作成し、`claude/scripts/statusline.sh`(実行権付与)と `claude/themes/*.json` は `backup_then_copy` で上書き配置、`claude/settings.json` は #9 の JSON マージヘルパーで項目マージ
+- [ ] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` を作成し、`claude/scripts/statusline.sh` は実行権を付与して `backup_then_copy` で上書き配置、`claude/settings.json` は #9 の JSON マージヘルパーで項目マージ
 - [ ] `~/.claude/hooks/herdr-agent-state.sh` が無い場合に警告を出す(herdr 統合が未導入だと SessionStart フックが空振りするため)
 - [ ] `command -v jq` を確認し、不在なら警告を出す(mac は `brew install jq`、Ubuntu/WSL は `sudo apt install jq`)。既存の herdr 不在警告と同じ書式に揃える
-- [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON であること、statusline.sh が実行可能なこと、themes が配置されたことを確認。`bash -n`(+ shellcheck があれば)で構文検証
+- [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON であること、statusline.sh が実行可能なことを確認。`bash -n`(+ shellcheck があれば)で構文検証
 - [ ] Claude Code 上で `/config` を開き、"Enable Remote Control for all sessions" が `false` になっていることを目視確認する(`remoteControlAtStartup` は原本に無い追加設定で、未設定時の実効値が false とは限らないため)
 - [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
 - [ ] QA expert review (subagent)
@@ -277,9 +273,8 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 **Completion criteria**:
 
-- mac 上で `setup.sh` が exit 0 で完了し、`~/.claude/settings.json`・
-  `~/.claude/scripts/statusline.sh`(実行権あり)・`~/.claude/themes/catppuccin-{mocha,latte}.json`
-  が配置されている
+- mac 上で `setup.sh` が exit 0 で完了し、`~/.claude/settings.json` と
+  `~/.claude/scripts/statusline.sh`(実行権あり)が配置されている
 - 配置された settings.json に dotfiles 側の全キーが反映され、かつ配置前に存在した
   dotfiles 外のキー・値がそのまま残っている
 - ホームパスに空白が含まれる環境でも `command` が壊れない — 配置後の `command` 文字列内の
@@ -298,7 +293,7 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 **Steps**:
 
-- [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh` / `claude/themes/*.json`)と配置先、`claude/` 以下は `~/.claude/` の構造をそのまま写す規則、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
+- [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh`)と配置先、`claude/` 以下は `~/.claude/` の構造をそのまま写す規則、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
 - [ ] 配布時に意識が要る3点を明記: `jq` が前提(不在だとステータスラインが無言で壊れる)、`skipDangerousModePermissionPrompt: true` も配布されること、`rn@ccpm` はバージョン非固定で初回オンライン起動が要ること
 - [ ] 配置方式の表を追加: どのファイルが「丸ごと上書き」でどれが「項目マージ」か、その理由(そのファイルをアプリ側も書くかどうか)
 - [ ] 項目マージでも dotfiles にあるキーは dotfiles 側の値で置き換わるため、手元での `/config`・herdr UI での変更を残したい場合は dotfiles 側にも反映する必要がある旨を明記
@@ -378,7 +373,7 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
   しつつ dotfiles 外のキーを保っている。`herdr config check` が通る
 - 擬似的な WT 配置先(dotfiles に無い WSL ディストロのプロファイルを含むもの)に対してマージした
   結果に、そのプロファイルが残っている
-- 既存の iTerm2 / statusline.sh / themes の配置は従来どおり丸ごと上書きのままである
+- 既存の iTerm2 / statusline.sh の配置は従来どおり丸ごと上書きのままである
 - setup.sh が両OSで exit 0 のまま(WSL 経路は静的レビューまで)
 
 
@@ -409,20 +404,24 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
   選択背景に)で 4.5:1 以上のコントラストを持つ
 - README の統一仕様と矛盾しない
 
-### #12: herdr の UI テーマを light 前提に合わせる
+### #12: テーマの三層をユーザー指定どおりに揃える
 
-**Purpose**: herdr の UI テーマはワークスペースの選択が判別できるようユーザーが意図的に
-light にしている(Win でも同じ設定で読める)。dotfiles 側が `gruvbox`(dark)を持っているため
-setup のたびに巻き戻る状態を解消する。
+**Purpose**: テーマは3層ある — 端末そのもの、herdr の UI、Claude Code の UI。ユーザーの指定は
+端末 = Gruvbox Dark / herdr = `gruvbox-light` / Claude Code = 組み込み `light`。dotfiles 側が
+herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っていて setup のたびに
+指定から巻き戻る状態を解消し、参照されなくなるカスタムテーマの実体を落とす。
 
 **Prerequisites**: none
 
 **Steps**:
 
-- [ ] `herdr/config.toml` の `[theme] name` を `gruvbox-light` にする
-- [ ] steering の Acceptance criteria の「herdr の UI テーマが `gruvbox`(dark)であること」を
-      light 前提に改める(#5 の revise (c) の判断を差し戻すことになるため、評価ゲートで承認を取る)
-- [ ] README の記載を合わせる
+- [x] `herdr/config.toml` の `[theme] name` を `gruvbox-light` にする
+- [x] `claude/settings.json` の `theme` を `light`(組み込み)にする
+- [x] 参照されなくなる `claude/themes/catppuccin-{mocha,latte}.json` を削除し、steering の
+      Acceptance criteria・#6/#7/#8/#10 の themes 関連の記述を落とす
+- [x] steering の Acceptance criteria の「herdr の UI テーマが `gruvbox`(dark)であること」を
+      `gruvbox-light` に改める(#5 の revise (c) の判断を差し戻すことになるため、評価ゲートで承認を取る)
+- [ ] README と design.md の記載を3層すべてについて合わせる(端末は Win/Mac それぞれの設定箇所を明示)
 - [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -430,9 +429,10 @@ setup のたびに巻き戻る状態を解消する。
 
 **Completion criteria**:
 
-- `herdr/config.toml` の `[theme] name` が `gruvbox-light` で、setup 実行後も配置先が
-  light のまま保たれる
-- steering の Acceptance criteria と README が light 前提で一貫している
+- `herdr/config.toml` の `[theme] name` が `gruvbox-light`、`claude/settings.json` の `theme` が
+  `light`、端末側(WT の `profiles.defaults.colorScheme` / iTerm2 `herdr.json` の色)が Gruvbox Dark
+- `claude/themes/` が存在せず、dotfiles・steering・design・README のどこからも参照されていない
+- README と design.md にテーマ3層の対応が書かれていて、steering の Acceptance criteria と一貫している
 
 
 # State

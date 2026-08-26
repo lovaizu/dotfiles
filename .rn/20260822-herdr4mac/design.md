@@ -30,8 +30,8 @@ Mac では herdr の workspace / agent 切替に毎回プレフィックス2ス�
 herdr 本体・iTerm2 のインストール、Win 側フォントのインストール(WSL からは不可能 — README の
 手動手順に委ねる)、シェルの統一(Win は PowerShell / WSL bash、Mac は zsh のまま — herdr の中の
 体験が揃えば足りる)、iTerm2 のプロファイル外グローバル設定の管理、Claude Code の
-`~/.claude` 配下のうち settings.json / statusline.sh / themes 以外(プラグイン実体・履歴・
-認証情報・herdr 統合フックの本体・output-styles)。
+`~/.claude` 配下のうち settings.json / statusline.sh 以外(プラグイン実体・履歴・
+認証情報・herdr 統合フックの本体・output-styles・カスタムテーマ)。
 
 ## 2. Assumptions & Constraints
 
@@ -73,7 +73,6 @@ Dynamic Profile)。仕様を README に1か所で明文化することで、両O
 - `iterm2/herdr.json` — 統一仕様の Mac 翻訳(⌃⌘ 系 + ⇧Enter + Gruvbox Dark + HackGen)。
 - `claude/settings.json` — Claude Code のユーザー設定。ホーム依存パスは `"$HOME/…"` で記述。
 - `claude/scripts/statusline.sh` — ステータスライン生成スクリプト(ホーム非依存、そのまま配置)。
-- `claude/themes/catppuccin-{mocha,latte}.json` — `theme` が参照するカスタムテーマの実体。
 - `setup.sh` — 単一エントリ: 共通部(herdr + Claude Code)→ `uname` で分岐 → darwin(iTerm2 配置+
   brew があればフォント)/ WSL(WT 配置)。
 
@@ -127,8 +126,8 @@ OS ごとに異なっても正しい実パスを指す。
 (hook `command` スキーマの説明が "When absent [args], `command` runs through a shell (bash on POSIX,
 PowerShell on Windows without Git Bash)" と述べ、statusLine も同じランナー `Oes(…,"StatusLine",…)` を
 通る)。よって dotfiles 側は `"$HOME/…"` を直接書き、setup.sh はパスの変換をせずそのまま配置する
-(settings.json は Claude Code 自身も書くファイルなので、配置は §4.7 の `merge_json`。statusline.sh と
-themes/ は dotfiles だけが書くので `backup_then_copy`)。
+(settings.json は Claude Code 自身も書くファイルなので、配置は §4.7 の `merge_json`。statusline.sh は
+dotfiles だけが書くので `backup_then_copy`)。
 ホームパスに空白が含まれても壊れないよう、両 command のパスはダブルクォートで囲む。
 
 当初はプレースホルダ(`__HOME__`)+ setup 時の置換を採る設計だったが、`$HOME` 展開が検証できたため
@@ -141,9 +140,21 @@ settings.json 側の SessionStart エントリだけを持ち、本体不在な�
 `~/.claude/output-styles/sleek.md` も持たない — 現行 settings.json が参照していない
 (`outputStyle` は組み込みの `Concise`)ため。
 
-一方、`theme: "custom:catppuccin-mocha"` の実体 `~/.claude/themes/catppuccin-mocha.json` は
-**持つ**。無いと Claude Code は警告なく組み込み dark にフォールバックし、設定値だけが残って
-配色が別物になるため — 「設定名は運べても実体が運べていない」型の破れで、静的検証では捕まらない。
+`~/.claude/themes/` のカスタムテーマも持たない。`theme` を組み込みの `light` にしたため
+参照が無くなったからで、これは「設定名は運べても実体が運べていない」型の破れ(カスタムテーマ名だけが
+他PCに渡ると Claude Code は警告なく組み込みにフォールバックする)を、実体を運ぶのではなく
+組み込みテーマだけを使うことで回避する選択でもある。
+
+テーマは3層あり、層ごとに持ち主が違う:
+
+| 層 | 値 | 持ち主 |
+|---|---|---|
+| 端末そのものの配色 | Gruvbox Dark | Win: `windows-terminal/settings.json` の `profiles.defaults.colorScheme` / Mac: `iterm2/herdr.json` の色定義 |
+| herdr の UI | `gruvbox-light` | `herdr/config.toml` の `[theme] name` |
+| Claude Code の UI | `light`(組み込み) | `claude/settings.json` の `theme` |
+
+端末だけ暗くしても herdr / Claude Code の UI は追随しない。herdr が light なのはワークスペースの
+選択状態を判別しやすくするためで、暗い端末の上に明るい UI が乗る組み合わせは意図されたもの。
 
 前提: statusline.sh は `jq` に依存する。不在時は exit 0 のまま ` |  | dir@branch` を返して無言で
 劣化するため、setup.sh が `jq` の存在を確認して警告する(mac は OS 同梱だが Ubuntu/WSL は既定で不在)。
