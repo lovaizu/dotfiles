@@ -365,12 +365,12 @@ python としても読めない。切り出して両方を読める形にする�
 
 **Steps**:
 
-- [ ] ヒアドキュメントの中身を `lib/merge.py` に移し、`merge_config` は `python3 "$REPO/lib/merge.py" ...` を呼ぶ形にする。`$REPO` の解決は setup.sh 自身の位置から行う(`cd` されても壊れないこと)
-- [ ] `lib/merge.py` 単体が python 3.9 と 3.12 の双方で構文を通り、`python3 lib/merge.py` を引数なしで叩くと usage を返すことを確認
-- [ ] `tests/` に `suite.py` / `fuzzmut.py` / `fuzzrand.py` / `realdata.sh` / `h.py` を入れる(`h.py` の `MERGE` 既定を `lib/merge.py` に向け、`extract.sh` は不要になるので落とす)
-- [ ] `tests/README.md` に走らせ方(オラクルに 3.12 が要る旨、マージ本体は 3.9 に投げる旨、`realdata.sh` が実ファイルをコピーしか触らない旨)を書く
-- [ ] 切り出し前後で `suite.py` が同じ結果(`PASS=127 FAIL=0`)であることと、`realdata.sh` が同じ結末になることを確認
-- [ ] self-check (OK/NG per completion criterion, record in checks/13.md)
+- [x] ヒアドキュメントの中身を `lib/merge.py` に移し、`merge_config` は `python3 "$REPO/lib/merge.py" ...` を呼ぶ形にする。`$REPO` の解決は setup.sh 自身の位置から行う(`cd` されても壊れないこと)
+- [x] `lib/merge.py` 単体が python 3.9 と 3.12 の双方で構文を通り、`python3 lib/merge.py` を引数なしで叩くと usage を返すことを確認
+- [x] `tests/` に `suite.py` / `fuzzmut.py` / `fuzzrand.py` / `realdata.sh` / `h.py` を入れる(`h.py` の `MERGE` 既定を `lib/merge.py` に向け、`extract.sh` は不要になるので落とす)
+- [x] `tests/README.md` に走らせ方(オラクルに 3.12 が要る旨、マージ本体は 3.9 に投げる旨、`realdata.sh` が実ファイルをコピーしか触らない旨)を書く
+- [x] 切り出し前後で `suite.py` が同じ結果(`PASS=127 FAIL=0`)であることと、`realdata.sh` が同じ結末になることを確認
+- [x] self-check (OK/NG per completion criterion, record in checks/13.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)

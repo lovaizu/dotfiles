@@ -1,0 +1,33 @@
+# tests
+
+`lib/merge.py` の回帰スイートとファズ。`setup.sh` が設定ファイルを**項目マージ**する部分
+(dotfiles が持つキーだけを置き換え、配置先にしか無いキーは残す)を対象にする。
+
+## 走らせ方
+
+```sh
+cd tests
+python3.12 suite.py          # 回帰スイート
+python3.12 fuzzrand.py       # ランダムに組み立てた valid TOML でのファズ
+python3.12 fuzzmut.py        # 実 herdr config の 1 バイト変異ファズ(数分かかる)
+bash realdata.sh             # 実ファイルのコピーに対する往復
+```
+
+**オラクルに python 3.12 以上が要る**(`tomllib` を使って「出力が有効な TOML か」を判定するため)。
+マージ本体はそれとは別で、既定では `/usr/bin/python3`(mac 同梱の 3.9)に投げる — `lib/merge.py` が
+3.9 で動くことが要件なので、オラクルと本体をわざと別の実装に分けている。本体を別の python で
+試すときは `MERGE_PY=/path/to/python3` を渡す。
+
+`realdata.sh` は `~/.config/herdr/config.toml` と `~/.claude/settings.json` を**コピーしか触らない**。
+実ファイルの md5 と mtime を前後で表示するので、触っていないことがその場で確認できる。
+herdr の検査は `XDG_CONFIG_HOME` を差し替えて `herdr config check` に読ませる
+(`herdr config check` は位置引数を取らない)。
+
+## 何を保証しているか
+
+- **有効だった配置先が無効になって返ることはない。** 元から不正だった配置先が「マージした」で
+  返り不正なままであることは許容する — 値の綴りは検査せず、不正ならアプリ自身が言う
+- 配置先にしか無いキー・コメント・行順・改行コードが残る
+- アプリ自身が要素を書き足す配列(WT の `profiles.list` / `actions` / `schemes`、
+  Claude Code の `hooks.<Event>`)は id で1件ずつ突き合わせ、そのマシンにしか無い要素が残る
+- 冪等 — 2 回流しても同じバイト列
