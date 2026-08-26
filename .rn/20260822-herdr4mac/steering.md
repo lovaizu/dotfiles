@@ -205,7 +205,7 @@ Dynamic Profile JSON を `iterm2/herdr.json` として追加する。
 
 **Purpose**: Acceptance criteria の充足をユーザーに提示し、承認を得る。
 
-**Prerequisites**: #1, #2, #3, #4, #6, #7, #8, #9, #10
+**Prerequisites**: #1, #2, #3, #4, #6, #7, #8, #9, #10, #11, #12
 
 **Steps**:
 
@@ -326,17 +326,18 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 **Steps**:
 
-- [ ] `setup.sh` に `merge_json` を実装: python3 標準の `json` で配置先と dotfiles を読み、再帰的な dict マージ(dotfiles 優先、配列は葉として扱う)を行って書き戻す。配置先が無い/壊れている場合は dotfiles 側をそのまま書く。書き込み前に BACKUP_DIR へ退避
-- [ ] `merge_json` に `profiles.list` 用の特例を実装: 配列内オブジェクトを `guid` をキーに突き合わせ、dotfiles にある guid は置き換え、無い guid は配置先のものを残す
-- [ ] `setup.sh` に `merge_toml` を実装: 行ベースで `[section]` を追跡しつつ `key = value` を突き合わせ、dotfiles にあるキーは値を置き換え、無いキーは配置先の行(コメント・空行・順序を含む)をそのまま残す。dotfiles にしか無いキーは該当セクションの末尾に追加し、セクション自体が無ければセクションごと追加
-- [ ] 一時ファイルに書いてから `mv` する(書き込み中の中断で設定ファイルを壊さないため)
-- [ ] ユニット的な検証: スクラッチに作った擬似 JSON / TOML に対して、置換・保持・追加・セクション追加・配置先が空/不正の各ケースを実行して結果を確認する
-- [ ] `bash -n`(+ shellcheck があれば)で構文検証
-- [ ] self-check (OK/NG per completion criterion, record in checks/9.md)
-- [ ] QA expert review (subagent)
-- [ ] Design expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] `setup.sh` に `merge_json` を実装: python3 標準の `json` で配置先と dotfiles を読み、再帰的な dict マージ(dotfiles 優先、配列は葉として扱う)を行って書き戻す。配置先が無い/壊れている場合は dotfiles 側をそのまま書く。書き込み前に BACKUP_DIR へ退避
+- [x] `merge_json` に `profiles.list` 用の特例を実装: 配列内オブジェクトを `guid` をキーに突き合わせ、dotfiles にある guid は置き換え、無い guid は配置先のものを残す
+- [x] `setup.sh` に `merge_toml` を実装: 行ベースで `[section]` を追跡しつつ `key = value` を突き合わせ、dotfiles にあるキーは値を置き換え、無いキーは配置先の行(コメント・空行・順序を含む)をそのまま残す。dotfiles にしか無いキーは該当セクションの末尾に追加し、セクション自体が無ければセクションごと追加
+- [x] 一時ファイルに書いてから `mv` する(書き込み中の中断で設定ファイルを壊さないため)
+- [x] ユニット的な検証: スクラッチに作った擬似 JSON / TOML に対して、置換・保持・追加・セクション追加・配置先が空/不正の各ケースを実行して結果を確認する
+- [x] `bash -n`(+ shellcheck があれば)で構文検証
+- [x] self-check (OK/NG per completion criterion, record in checks/9.md)
+- [x] QA expert review (subagent)
+- [x] Design expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [ ] 未解決の Valid 指摘 10 件(`checks/9.md` 末尾)の扱いをユーザーと決めて反映する — 修正 3 巡の上限に達したため escalate 済み
 
 **Completion criteria**:
 
@@ -381,14 +382,76 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 - setup.sh が両OSで exit 0 のまま(WSL 経路は静的レビューまで)
 
 
+### #11: iTerm2 プロファイルの色定義の欠落を塞ぐ
+
+**Purpose**: `iterm2/herdr.json` が定義していない色キーが iTerm2 の Default プロファイル
+(Catppuccin Latte)から引き継がれ、Gruvbox Dark の背景に対して読めない色になる問題を塞ぐ。
+#2 の欠陥。完了基準が ANSI 16 色 + 前景/背景/カーソル/選択に限られていたため素通りした。
+
+**Prerequisites**: #2
+
+**Steps**:
+
+- [x] `iterm2/herdr.json` に `Bold Color`(`#ebdbb2`)・`Cursor Text Color`(`#282828`)・`Badge Color`(`#fb4934`)を追加(`c978b22`)
+- [x] 配置して実機で太字が読めることをユーザーが確認(実施済み)
+- [ ] #2 の完了基準を「Default プロファイルから引き継ぐ色を残さない」旨に更新するかをユーザーと決める
+- [ ] 残りの未定義キー(`Link Color` / `Selected Text Color` / `Cursor Guide Color` / `Match Background Color` ほか)を洗い、実際の描画先に対するコントラストで要否を判断する
+- [ ] self-check (OK/NG per completion criterion, record in checks/11.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `iterm2/herdr.json` が、iTerm2 の Default プロファイルから引き継ぐと Gruvbox Dark 上で
+  読めなくなる色キーをすべて自前で定義している
+- 各色が実際に描画される組み合わせ(太字は背景に、カーソル文字はカーソル色に、選択文字は
+  選択背景に)で 4.5:1 以上のコントラストを持つ
+- README の統一仕様と矛盾しない
+
+### #12: herdr の UI テーマを light 前提に合わせる
+
+**Purpose**: herdr の UI テーマはワークスペースの選択が判別できるようユーザーが意図的に
+light にしている(Win でも同じ設定で読める)。dotfiles 側が `gruvbox`(dark)を持っているため
+setup のたびに巻き戻る状態を解消する。
+
+**Prerequisites**: none
+
+**Steps**:
+
+- [ ] `herdr/config.toml` の `[theme] name` を `gruvbox-light` にする
+- [ ] steering の Acceptance criteria の「herdr の UI テーマが `gruvbox`(dark)であること」を
+      light 前提に改める(#5 の revise (c) の判断を差し戻すことになるため、評価ゲートで承認を取る)
+- [ ] README の記載を合わせる
+- [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `herdr/config.toml` の `[theme] name` が `gruvbox-light` で、setup 実行後も配置先が
+  light のまま保たれる
+- steering の Acceptance criteria と README が light 前提で一貫している
+
+
 # State
 
 (written by /rn:dn, read and reset to this placeholder by /rn:up. `Status` is `paused` while a
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: -
-- **Last completed**: -
-- **Next**: -
-- **Notes**: -
+- **Status**: paused
+- **Date**: 2026-08-26
+- **Last completed**: #1-#4 / #6。#9 は実装 + 修正 3 巡 + 各巡 4 軸レビューまで完了したが未チェックオフ
+- **Next**: #9 — 未解決の Valid 指摘 10 件の扱いをユーザーと決めて反映する。あわせて持ち越しの判断 3 件に答えをもらう
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
+  **#9 は修正 3 巡の上限に達し escalate 済み** — 未解決 10 件の全文は `checks/9.md` 末尾。データを
+  失う方向の欠陥はゼロ(ファズ 26,082 件で違反 0)。coordinator の推奨は「値検査層を落として
+  キー構造だけ保証する」に縮める案で、残存欠陥の多くがその層自体から出ているため。
+  **未回答の判断 3 件**: (a) `hooks.<Event>` 配列と WT の `actions` / `schemes` を要素単位マージの
+  対象にするか(#7 の完了基準に影響)、(b) 埋め込み python を `lib/merge.py` に切り出すか、
+  (c) #10 で #4 の setup.sh を書き換えることの承認。herdr テーマの件は解決し #12 として起票。
+  **要確認**: `~/.claude/settings.json` の `theme` が `"light"` に変わっている(8/24 は
+  `custom:catppuccin-mocha`)。意図的かどうか未確認。
+  Win 側(ctrl+alt 系・WT マージ結果)は次回 Windows 同期時に未検証のまま。
