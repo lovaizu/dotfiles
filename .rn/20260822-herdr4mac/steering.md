@@ -55,8 +55,9 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
   配置先のものを残す
 - 項目マージによって、配置先にしか存在しない設定(そのマシンで `/config` や herdr UI から変えた値、
   WT がそのマシンの WSL ディストロ向けに生成したプロファイル)が失われない
-- WT の `profiles.list` は `guid` をキーに1件ずつ突き合わせてマージされ、dotfiles に無い
-  プロファイルが配置先に残る
+- アプリ自身が要素を書き足す配列は id で1件ずつ突き合わせてマージされ、dotfiles に無い要素が
+  配置先に残る: WT の `profiles.list`(`guid`)・`actions`(`id`)・`schemes`(`name`)、
+  Claude Code の `hooks.<Event>`(`matcher`)
 - マージ処理が `jq` と `tomllib` のどちらにも依存しない(mac の python3 は 3.9 系で `tomllib` が無く、
   WSL 既定に `jq` が無いため)
 - README に Claude Code 設定の管理対象・herdr 統合の前提(`hooks/herdr-agent-state.sh` は herdr 側が
@@ -322,7 +323,7 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 **Steps**:
 
 - [x] `setup.sh` に `merge_json` を実装: python3 標準の `json` で配置先と dotfiles を読み、再帰的な dict マージ(dotfiles 優先、配列は葉として扱う)を行って書き戻す。配置先が無い/壊れている場合は dotfiles 側をそのまま書く。書き込み前に BACKUP_DIR へ退避
-- [x] `merge_json` に `profiles.list` 用の特例を実装: 配列内オブジェクトを `guid` をキーに突き合わせ、dotfiles にある guid は置き換え、無い guid は配置先のものを残す
+- [x] `merge_json` に id 単位の配列マージを実装: 配列内オブジェクトを id キーで突き合わせ、dotfiles にある id は置き換え、無い id は配置先のものを残す。対象は WT の `profiles.list`(`guid`)・`actions`(`id`)・`schemes`(`name`)と Claude Code の `hooks.<Event>`(`matcher`) — いずれもアプリ自身が要素を書き足す配列
 - [x] `setup.sh` に `merge_toml` を実装: 行ベースで `[section]` を追跡しつつ `key = value` を突き合わせ、dotfiles にあるキーは値を置き換え、無いキーは配置先の行(コメント・空行・順序を含む)をそのまま残す。dotfiles にしか無いキーは該当セクションの末尾に追加し、セクション自体が無ければセクションごと追加
 - [x] 一時ファイルに書いてから `mv` する(書き込み中の中断で設定ファイルを壊さないため)
 - [x] ユニット的な検証: スクラッチに作った擬似 JSON / TOML に対して、置換・保持・追加・セクション追加・配置先が空/不正の各ケースを実行して結果を確認する
@@ -332,14 +333,14 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 - [x] Design expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium)
 - [x] Verification expert review (subagent, per the task's medium)
-- [ ] 未解決の Valid 指摘 10 件(`checks/9.md` 末尾)の扱いをユーザーと決めて反映する — 修正 3 巡の上限に達したため escalate 済み
+- [x] 未解決の Valid 指摘 10 件(`checks/9.md` 末尾)の扱いを決めて反映する — 値検査層を撤去する方針で決着。U1/U3/U4 は層ごと解消、U2/U6/U7/U8/U9/U10 は個別修正、U5 は 11 形状の実測で再現せず。持ち越し 3 件も同時に決着(`checks/9.md`)
 
 **Completion criteria**:
 
 - `merge_json` が、配置先にしか無いキーを保持したまま dotfiles 側のキーを反映し、結果が有効な
   JSON である。ネストしたオブジェクト(`hooks` / `profiles.defaults` など)でも同様に動く
-- `merge_json` が `profiles.list` を `guid` 単位で突き合わせ、dotfiles に無い guid のプロファイルを
-  残す
+- `merge_json` が上記4つの配列を id 単位で突き合わせ、dotfiles に無い id の要素(他マシンの WSL
+  プロファイル、その端末で足したキー割り当てや配色、`/config` で足したフック)を残す
 - `merge_toml` が、配置先にしか無いキー・コメント・行順を保ったまま dotfiles 側のキーを反映し、
   有効だった配置先が有効な TOML のまま返る(`herdr config check` が通る。`XDG_CONFIG_HOME` で
   読み先を差し替えて検査する)
@@ -354,6 +355,33 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
   Ubuntu の python3 の双方で動く
 - 書き込みが原子的で、途中で中断しても配置先が半端な内容にならない
 
+### #13: マージャを `lib/merge.py` に切り出し、テストをリポジトリに入れる
+
+**Purpose**: `setup.sh` は 1360 行あり、その 1100 行超が埋め込み python で、シェルとしても
+python としても読めない。切り出して両方を読める形にする。あわせて #9 の根拠(回帰スイートと
+ファズ)が scratchpad にしか無く repo から再現できない状態を解消する。
+
+**Prerequisites**: #9
+
+**Steps**:
+
+- [ ] ヒアドキュメントの中身を `lib/merge.py` に移し、`merge_config` は `python3 "$REPO/lib/merge.py" ...` を呼ぶ形にする。`$REPO` の解決は setup.sh 自身の位置から行う(`cd` されても壊れないこと)
+- [ ] `lib/merge.py` 単体が python 3.9 と 3.12 の双方で構文を通り、`python3 lib/merge.py` を引数なしで叩くと usage を返すことを確認
+- [ ] `tests/` に `suite.py` / `fuzzmut.py` / `fuzzrand.py` / `realdata.sh` / `h.py` を入れる(`h.py` の `MERGE` 既定を `lib/merge.py` に向け、`extract.sh` は不要になるので落とす)
+- [ ] `tests/README.md` に走らせ方(オラクルに 3.12 が要る旨、マージ本体は 3.9 に投げる旨、`realdata.sh` が実ファイルをコピーしか触らない旨)を書く
+- [ ] 切り出し前後で `suite.py` が同じ結果(`PASS=127 FAIL=0`)であることと、`realdata.sh` が同じ結末になることを確認
+- [ ] self-check (OK/NG per completion criterion, record in checks/13.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `setup.sh` に埋め込み python が残っておらず、`lib/merge.py` が単体で読める python ファイルとして存在する
+- `setup.sh` をどのディレクトリから起動しても `lib/merge.py` を見つける
+- `tests/` から `suite.py` が repo だけで走り、`PASS=127 FAIL=0`
+- 切り出しによる挙動の変化がない(`realdata.sh` の結末と `suite.py` の結果が切り出し前と一致)
+
 ### #10: herdr と Windows Terminal の配置を項目マージに切り替える
 
 **Purpose**: 既に丸ごと上書きで配置している `~/.config/herdr/config.toml` と WT の
@@ -364,7 +392,7 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 **Steps**:
 
 - [ ] `setup.sh` の herdr ブロックを `merge_toml` 経由に切り替える
-- [ ] `setup.sh` の WT ブロックを `merge_json` 経由に切り替える(`profiles.list` 特例つき)
+- [ ] `setup.sh` の WT ブロックを `merge_json` 経由に切り替える(`profiles.list` / `actions` / `schemes` の id 単位マージつき)
 - [ ] mac 上で実行し、`~/.config/herdr/config.toml` の dotfiles 由来のキーが反映され、herdr が書き込んだ dotfiles 外のキーが残ることを確認。`herdr config check` が通ることも確認
 - [ ] WT 経路は mac で実行できないため、擬似的な配置先ファイル(別マシンを模して WSL ディストロが異なるもの)を作ってマージ結果をコードレビューで確認する。実機確認は次回 Windows 同期時
 - [ ] herdr の `[theme] name` が dotfiles の値どおりに反映されることを確認する(8/24 時点で配置先が `gruvbox-light` に書き戻されており、#5 の revise (c) が効いていない状態)

@@ -277,7 +277,34 @@ def ensure_newline(text, ending="\n"):
 # element instead of being replaced wholesale, keyed by the path of the array.
 # Windows Terminal keeps one profiles.list entry per profile and writes an
 # extra one for every WSL distro installed on that machine.
-MERGE_BY_ID = {("profiles", "list"): "guid"}
+# Arrays whose elements carry a stable id, matched element by element
+# instead of being replaced wholesale. None in a path matches any key there.
+#
+# Every one of these is an array the application itself adds to on the
+# machine it runs on: Windows Terminal writes a profile per WSL distro and
+# an action per keybinding made in its UI, and Claude Code writes a hook
+# entry per matcher set in /config. Replacing such an array whole would take
+# those with it, which is the same loss the item-wise merge exists to stop
+# one level up.
+MERGE_BY_ID = {
+    ("profiles", "list"): "guid",
+    ("actions",): "id",
+    ("schemes",): "name",
+    ("hooks", None): "matcher",
+}
+
+
+def merge_id_for(path):
+    """The id key for an array at path, or None to treat it as a leaf."""
+    if path in MERGE_BY_ID:
+        return MERGE_BY_ID[path]
+    # One wildcard position is enough for hooks, whose second element is an
+    # event name (SessionStart, PreToolUse, ...) rather than a fixed key.
+    for position in range(len(path)):
+        wild = path[:position] + (None,) + path[position + 1:]
+        if wild in MERGE_BY_ID:
+            return MERGE_BY_ID[wild]
+    return None
 
 
 def json_path(path):
@@ -402,17 +429,18 @@ def merge_objects(old, new, path=()):
     for key, value in new.items():
         here = path + (key,)
         current = merged.get(key)
+        id_key = merge_id_for(here)
         if isinstance(value, dict) and isinstance(current, dict):
             merged[key] = merge_objects(current, value, here)
         elif (isinstance(value, list) and isinstance(current, list)
-                and here in MERGE_BY_ID):
-            merged[key] = merge_by_id(current, value, MERGE_BY_ID[here], here)
+                and id_key is not None):
+            merged[key] = merge_by_id(current, value, id_key, here)
         else:
             if isinstance(current, (dict, list)) and current != value:
-                # An array not listed in MERGE_BY_ID (hooks, actions,
-                # keybindings, schemes) is a leaf: dotfiles' whole array wins
-                # and any entry only this machine had goes with it. Same when
-                # dst holds a different shape than src does for the key.
+                # An array not listed in MERGE_BY_ID is a leaf: dotfiles'
+                # whole array wins and any entry only this machine had goes
+                # with it. Same when dst holds a different shape than src
+                # does for the key.
                 warn("%s is replaced whole, so anything inside it that only "
                      "this machine had is gone" % json_path(here))
             merged[key] = value
