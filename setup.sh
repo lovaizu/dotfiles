@@ -33,8 +33,14 @@ backup_file() {
     # backup_then_copy does not, so set -e stops the setup there.
     cp "$dst" "$bak" || return 1
     LAST_BACKUP="$bak"
-    echo "Backed up existing config to $bak"
   fi
+}
+
+# Say where the backup went. Separate from backup_file because merge_config
+# only knows whether the copy was worth keeping once the merge has run.
+announce_backup() {
+  [ -n "$LAST_BACKUP" ] && echo "Backed up existing config to $LAST_BACKUP"
+  return 0
 }
 
 # One wording for "dst now holds the dotfiles copy", from every path there.
@@ -45,6 +51,7 @@ installed() { echo "Installed $1"; }
 backup_then_copy() {
   local src="$1" dst="$2"
   backup_file "$dst"
+  announce_backup
   cp "$src" "$dst"
   installed "$dst"
 }
@@ -81,7 +88,7 @@ merge_config() {
     # no configuration at all. An existing file is left alone instead -- the
     # application writes it too, and overwriting it discards what only it has.
     if [ ! -e "$dst" ]; then
-      if cp "$src" "$dst" 2>/dev/null; then
+      if cp "$src" "$dst"; then
         installed "$dst"
       else
         echo
@@ -128,17 +135,27 @@ for this file at all. Anything else is a broken SRC -- a bug in dotfiles --
 and setup.sh stops with DST untouched.
 
 What it guarantees about what it writes: the text is re-read by the parser
-below first, so no key is set twice, no table declared twice, no name used as
-both, and every value is well formed. Not that the application likes the
-*meaning* -- an unknown key, or a value of the wrong type, is carried across
-from SRC or left in DST as it was found.
+below before it goes anywhere near DST, so no key is set twice, no table is
+declared twice, no name is used as both, no string or bracket is left open,
+and no control character TOML forbids is anywhere in the file.
+
+What it deliberately does not check is the *values*. It does not ask whether
+a bare word is a real boolean, number or date, only where the value ends, and
+it copies it through byte for byte. An earlier version did check, and every
+gap in those rules -- TOML 1.1 spellings, leap seconds, a \\e escape --
+turned into this merge refusing to touch a file the application reads
+perfectly well, which left the machine on old dotfiles values indefinitely.
+herdr and Claude Code parse these files themselves and say so when they are
+wrong; keeping the key structure sound is this merge's half of the job.
+
+So a DST that was already invalid can come back rc=0 and still invalid. What
+cannot happen is a valid DST coming back invalid.
 
 Messages go to stdout, where setup.sh's own warnings go, so `./setup.sh > log`
 keeps them in order. The abort on a broken SRC goes to stderr instead: it is
 a bug report, not a note to the user.
 """
 
-import datetime
 import json
 import os
 import re
@@ -148,8 +165,7 @@ import tempfile
 
 
 class Unsupported(Exception):
-    """Not broken, but past this parser: an array of tables, a value spelled
-    in a way it has no rule for.
+    """Not broken, but past this parser: an array of tables.
 
     ValueError is the other side of that line: the document is wrong however
     it is read -- an unclosed string or bracket, a line that is neither key
@@ -207,19 +223,31 @@ def report_replaced(label, reason):
     report("%s is not usable %s (%s)." % (TARGET, label, reason), *lines)
 
 
-def report_unmerged(reason):
-    """The merge did not happen and DST was not written to at all."""
+def report_unmerged(reason, retry=True):
+    """The merge did not happen and DST was not written to at all.
+
+    retry says whether running setup.sh again could go differently. A file
+    that could not be opened is worth another go once that is fixed; a file
+    written in a way this merge cannot follow will read the same way every
+    time, and telling the user to re-run it sends them in a circle.
+    """
+    if retry:
+        advice = ["Deal with the reason above and re-run ./setup.sh."]
+    else:
+        advice = ["Re-running ./setup.sh will do the same thing. Either apply",
+                  "the dotfiles settings to this file by hand, or move it",
+                  "aside and let setup.sh write a fresh one."]
     if not DST_KEPT:
         report("%s could not be written (%s)." % (TARGET, reason),
                "The dotfiles settings for it were not applied, and there is",
                "no file there to fall back on: this machine has no settings",
                "for it at all.",
-               "Deal with the reason above and re-run ./setup.sh.")
+               *advice)
         return MISSING
     report("%s was left as it is (%s)." % (TARGET, reason),
            "The dotfiles settings for it were not applied. Nothing was",
            "written, so it still holds exactly what it held before.",
-           "Deal with the reason above and re-run ./setup.sh to apply them.")
+           *advice)
     return SKIPPED
 
 
@@ -643,54 +671,13 @@ def toml_join(path):
     return ".".join(toml_quote(part) for part in path)
 
 
-DEC_INT = r"[+-]?(?:0|[1-9](?:_?[0-9])*)"
-FRACTION = r"\.[0-9](?:_?[0-9])*"
-EXPONENT = r"[eE][+-]?[0-9](?:_?[0-9])*"
-NUMBER_RE = re.compile(r"(?:%s)\Z" % "|".join([
-    r"[+-]?(?:inf|nan)",
-    DEC_INT + "(?:" + FRACTION + "(?:" + EXPONENT + ")?|" + EXPONENT + ")",
-    DEC_INT,
-    r"0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*",
-    r"0o[0-7](?:_?[0-7])*",
-    r"0b[01](?:_?[01])*"]))
-DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
-TIME_RE = re.compile(r"\d{2}:\d{2}:\d{2}(?:\.\d+)?\Z")
-DATETIME_RE = re.compile(r"(\d{4}-\d{2}-\d{2})[Tt ](\d{2}:\d{2}:\d{2}(?:\.\d+)?)"
-                         r"(?:[Zz]|([+-])(\d{2}):(\d{2}))?\Z")
-
-
-def toml_temporal_ok(token):
-    """True for a date or time the calendar has. A leap second is not one of
-    them here: TOML allows :60, no Python datetime holds it, and reading it
-    is not worth the code -- toml_value_end says what that costs."""
-    match = DATETIME_RE.match(token)
-    date_part = time_part = None
-    if match:
-        date_part, time_part = match.group(1), match.group(2)
-    elif DATE_RE.match(token):
-        date_part = token
-    elif TIME_RE.match(token):
-        time_part = token
-    else:
-        return False
-    try:
-        if date_part:
-            datetime.date(*(int(part) for part in date_part.split("-")))
-        if time_part:
-            hour, minute, second = time_part.split(":")
-            datetime.time(int(hour), int(minute), int(float(second)))
-        if match and match.group(3) is not None:
-            if int(match.group(4)) > 23 or int(match.group(5)) > 59:
-                return False
-    except ValueError:
-        return False
-    return True
-
-
-def toml_atom_ok(token):
-    """True for an unquoted value: a boolean, a number, or a date/time."""
-    return (token in ("true", "false") or bool(NUMBER_RE.match(token))
-            or toml_temporal_ok(token))
+# A date and a time with a space between them are one value, so the tokenizer
+# has to recognise that shape to know the value did not end at the space.
+# Shape only, and deliberately so: whether the calendar has that date is not
+# this merge's business -- see toml_value_end. [0-9] rather than \d, which
+# would also match the Arabic-Indic digits, which TOML does not allow.
+DATE_SHAPE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
+TIME_SHAPE = re.compile(r"[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?")
 
 
 def toml_skip_space(text, index, newlines=False):
@@ -708,44 +695,31 @@ def toml_skip_space(text, index, newlines=False):
     return index
 
 
-def toml_check_body(body, escapes, multiline):
-    """A string's contents: no raw control characters, no escape TOML has no
-    meaning for."""
-    allowed = "\t\r\n" if multiline else "\t"
-    for char in body:
-        if (char < " " or char == "\x7f") and char not in allowed:
-            raise ValueError("a control character inside a string")
-    if escapes:
-        toml_unescape(body, multiline)
-
-
 def toml_value_end(text, index):
     """Index just past the value at index; it never returns without one.
 
-    The merge writes values through untouched, so what it accepts from DST is
-    what it writes back out. It establishes that the value is there, strings
-    are terminated and hold nothing TOML forbids, arrays and inline tables
-    are balanced and punctuated with no key set twice, and a bare word is a
-    boolean, a number, or a date or time the calendar has. Not: that an
-    integer fits in 64 bits, that a \\u escape names a character rather than a
-    surrogate half, or anything about meaning.
+    Where the value ends, not whether it is one. The merge copies DST's
+    values through byte for byte, so it only has to find their edges: a
+    string runs to its closing quote, an array or inline table to its
+    balanced bracket, anything else to the delimiter that ends the token.
+    A missing value is the one thing that is an error here, because a merge
+    cannot rewrite the value on a line that has none.
 
-    A missing value is a ValueError; one that is there but reads as none of
-    the above is Unsupported, because TOML 1.1 spells some values 1.0 does
-    not and a leap second is legal TOML no Python datetime holds -- calling
-    those broken would blame DST for this parser's vocabulary.
+    Nothing about the value's spelling is checked -- not that a bare word is
+    a boolean, a number or a real date, not that a string holds no raw
+    control character. That was tried and taken out: the rules had to cover
+    every way TOML 1.0 and 1.1 spell a value, and each gap showed up as this
+    merge refusing a file its own application reads fine. herdr and Claude
+    Code parse these files themselves and say so when they are wrong; this
+    merge's job is to keep the keys straight -- see toml_check.
     """
     char = text[index:index + 1]
     if not char or char in "\r\n":
         raise ValueError("no value after the '='")
     if text.startswith('"""', index) or text.startswith("'''", index):
-        end = toml_skip_multiline(text, index)
-        toml_check_body(text[index + 3:end - 3], char == '"', True)
-        return end
+        return toml_skip_multiline(text, index)
     if char in "\"'":
-        end = toml_skip_string(text, index)
-        toml_check_body(text[index + 1:end - 1], char == '"', False)
-        return end
+        return toml_skip_string(text, index)
     if char == "[":
         return toml_array_end(text, index)
     if char == "{":
@@ -754,19 +728,20 @@ def toml_value_end(text, index):
 
 
 def toml_atom_end(text, index):
+    """Index just past a bare token: a boolean, number, date or whatever
+    else was written there, ended by the first delimiter."""
     end = index
     while end < len(text) and text[end] not in " \t\r\n,]}#":
         end += 1
     token = text[index:end]
-    if DATE_RE.match(token) and text[end:end + 1] == " ":
-        # A date and a time with a space between them are one value.
+    if DATE_SHAPE.match(token) and text[end:end + 1] == " ":
         rest = end + 1
         while rest < len(text) and text[rest] not in " \t\r\n,]}#":
             rest += 1
-        if toml_atom_ok(token + "T" + text[end + 1:rest]):
+        if TIME_SHAPE.match(text[end + 1:rest]):
             return rest
-    if not toml_atom_ok(token):
-        raise Unsupported("%r is not a value this merge can read" % token[:40])
+    if not token:
+        raise ValueError("no value after the '='")
     return end
 
 
@@ -854,17 +829,45 @@ def toml_inline_keys(text, eq):
     return toml_table_end(text, start)[1]
 
 
+def toml_control_char(text):
+    """The offset of a character TOML allows nowhere in a document, or -1.
+
+    One sweep over the whole text, comments included -- which is the point:
+    the merge no longer reads values, so this is what is left of "is DST
+    broken", and it has to be a rule every TOML parser agrees with rather
+    than a grammar of our own. Every parser rejects a raw control character:
+    tab is the only one allowed inside a line, and CR only as half of CRLF.
+    A lone CR is in here too, since a parser reading it as a line break
+    would split the document somewhere this merge does not.
+    """
+    for index, char in enumerate(text):
+        if char == "\t" or char == "\n":
+            continue
+        if char == "\r":
+            if text[index + 1:index + 2] == "\n":
+                continue
+            return index
+        if char < " " or char == "\x7f":
+            return index
+    return -1
+
+
 def toml_parse(text):
     """Split a TOML document into sections of items. Every line lands in
-    exactly one item, so re-joining them reproduces the input byte for byte.
-    An item's path is None for comments, blanks and headers, and the full key
-    path otherwise. ValueError for anything that cannot be classified or that
-    TOML would reject: that is how a broken file and a merge that went wrong
-    are both recognised."""
+    exactly one item, so re-joining them reproduces the text this was handed
+    -- which is the input with a final newline supplied if it lacked one, the
+    single edit the parse makes. An item's path is None for comments, blanks
+    and headers, and the full key path otherwise. ValueError for anything
+    that cannot be classified or that TOML would reject: that is how a broken
+    file and a merge that went wrong are both recognised."""
     if text.endswith("\r"):
         # A file that stops halfway through a CRLF. Supplying the LF below
         # would turn a truncated file into a sound looking one.
         raise ValueError("the file ends in a stray carriage return")
+    bad = toml_control_char(text)
+    if bad >= 0:
+        raise ValueError("a control character (%s) at byte %d"
+                         % (repr(text[bad]), bad))
     sections = [{"path": (), "header": None, "items": []}]
     # A missing final newline would otherwise glue an added key or section
     # onto the last line of the file.
@@ -1002,10 +1005,11 @@ def toml_index_item(index, section, item):
 
 
 def toml_set_value(target, item, ending):
-    """dst keeps its spelling of the key, its spacing and anything it wrote
-    after the value; src supplies the value and nothing else. Rewriting the
-    whole line would carry src's end of line comment into a file it was not
-    written about, and lose the one dst had there, which was."""
+    """dst keeps its spelling of the key and anything it wrote after the
+    value; src supplies everything between the '=' and there, which is the
+    value and whatever spacing src put in front of it. Rewriting the whole
+    line would carry src's end of line comment into a file it was not written
+    about, and lose the one dst had there, which was."""
     value = toml_split_value(item["text"], item["eq"])[0]
     trailing = toml_split_value(target["text"], target["eq"])[1]
     old = toml_inline_keys(target["text"], target["eq"])
@@ -1265,7 +1269,12 @@ def main(argv):
     try:
         return merge_file(fmt, src_text, src, dst)
     except Unmergeable as err:
-        return report_unmerged(err)
+        return report_unmerged(err, retry=False)
+    except RecursionError:
+        # Arrays or objects nested deeper than the interpreter's stack. A
+        # traceback here would stop the whole setup on set -e and read as a
+        # bug in dotfiles; it is a property of dst, and dst is left alone.
+        return report_unmerged("it is nested too deeply to read", retry=False)
     except OSError as err:
         # A missing parent directory, a read-only file, a dst that is really
         # a directory. err itself names the temp file the write was going
@@ -1276,6 +1285,15 @@ def main(argv):
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
 PYTHON_MERGE
+  # A backup nobody can use is litter: re-running setup.sh with nothing to
+  # change would otherwise leave one identical .bak per run. The copy is
+  # still taken up front -- once the merger has written, the old file is
+  # gone -- so the useless ones are dropped here instead.
+  if [ -n "$LAST_BACKUP" ] && cmp -s "$LAST_BACKUP" "$dst"; then
+    rm -f "$LAST_BACKUP"
+    LAST_BACKUP=""
+  fi
+  announce_backup
   # One line per exit code the merger has. Anything else is a broken src,
   # which stops the setup.
   case "$status" in
