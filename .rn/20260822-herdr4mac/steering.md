@@ -441,17 +441,8 @@ setup のたびに巻き戻る状態を解消する。
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-26
-- **Last completed**: #1-#4 / #6。#9 は実装 + 修正 3 巡 + 各巡 4 軸レビューまで完了したが未チェックオフ
-- **Next**: #9 — 未解決の Valid 指摘 10 件の扱いをユーザーと決めて反映する。あわせて持ち越しの判断 3 件に答えをもらう
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
-  **#9 は修正 3 巡の上限に達し escalate 済み** — 未解決 10 件の全文は `checks/9.md` 末尾。データを
-  失う方向の欠陥はゼロ(ファズ 26,082 件で違反 0)。coordinator の推奨は「値検査層を落として
-  キー構造だけ保証する」に縮める案で、残存欠陥の多くがその層自体から出ているため。
-  **未回答の判断 3 件**: (a) `hooks.<Event>` 配列と WT の `actions` / `schemes` を要素単位マージの
-  対象にするか(#7 の完了基準に影響)、(b) 埋め込み python を `lib/merge.py` に切り出すか、
-  (c) #10 で #4 の setup.sh を書き換えることの承認。herdr テーマの件は解決し #12 として起票。
-  **要確認**: `~/.claude/settings.json` の `theme` が `"light"` に変わっている(8/24 は
-  `custom:catppuccin-mocha`)。意図的かどうか未確認。
-  Win 側(ctrl+alt 系・WT マージ結果)は次回 Windows 同期時に未検証のまま。
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
