@@ -146,6 +146,37 @@ fi
 mkdir -p "$HOME/.config/herdr"
 backup_then_copy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 
+# Claude Code (common)
+# statusline.sh reads its input with jq and exits 0 without it, printing
+# " |  | dir@branch" -- a status line that looks configured and is not. Say so
+# here rather than let it fail quietly.
+if ! command -v jq &>/dev/null; then
+  echo
+  echo "WARNING: jq not found, so the Claude Code status line will be blank."
+  echo "  It exits 0 without jq, so nothing else will tell you."
+  echo "  Fix: brew install jq (mac) / sudo apt install jq (Ubuntu, WSL)"
+  echo
+fi
+# The SessionStart hook in settings.json runs this. herdr's integration
+# installer writes it ("managed by herdr" at the top of the file), so dotfiles
+# carries the hook entry but not the script it points at.
+if [ ! -f "$HOME/.claude/hooks/herdr-agent-state.sh" ]; then
+  echo
+  echo "WARNING: ~/.claude/hooks/herdr-agent-state.sh is missing."
+  echo "  The SessionStart hook in settings.json points at it, so Claude Code"
+  echo "  will run a script that is not there on every session start."
+  echo "  Fix: install the herdr integration (herdr integration ...)."
+  echo
+fi
+mkdir -p "$HOME/.claude/scripts"
+backup_then_copy "$DOTFILES_DIR/claude/scripts/statusline.sh" \
+  "$HOME/.claude/scripts/statusline.sh"
+chmod +x "$HOME/.claude/scripts/statusline.sh"
+# Claude Code writes this file itself (/config, /output-style, the theme
+# picker), so the whole-file copy above would discard whatever this machine
+# set that dotfiles does not carry.
+merge_json "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
+
 # OS-specific setup
 case "$(uname -s)" in
   Darwin)

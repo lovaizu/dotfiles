@@ -262,12 +262,12 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 **Steps**:
 
-- [ ] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` を作成し、`claude/scripts/statusline.sh` は実行権を付与して `backup_then_copy` で上書き配置、`claude/settings.json` は #9 の JSON マージヘルパーで項目マージ
-- [ ] `~/.claude/hooks/herdr-agent-state.sh` が無い場合に警告を出す(herdr 統合が未導入だと SessionStart フックが空振りするため)
-- [ ] `command -v jq` を確認し、不在なら警告を出す(mac は `brew install jq`、Ubuntu/WSL は `sudo apt install jq`)。既存の herdr 不在警告と同じ書式に揃える
-- [ ] mac 上で実行し exit 0、配置された settings.json が有効な JSON であること、statusline.sh が実行可能なことを確認。`bash -n`(+ shellcheck があれば)で構文検証
+- [x] `setup.sh` の共通部(OS 判定より前)に Claude Code ブロックを追加: `~/.claude/scripts/` を作成し、`claude/scripts/statusline.sh` は実行権を付与して `backup_then_copy` で上書き配置、`claude/settings.json` は #9 の JSON マージヘルパーで項目マージ
+- [x] `~/.claude/hooks/herdr-agent-state.sh` が無い場合に警告を出す(herdr 統合が未導入だと SessionStart フックが空振りするため)
+- [x] `command -v jq` を確認し、不在なら警告を出す(mac は `brew install jq`、Ubuntu/WSL は `sudo apt install jq`)。既存の herdr 不在警告と同じ書式に揃える
+- [x] mac 上で実行し exit 0、配置された settings.json が有効な JSON であること、statusline.sh が実行可能なことを確認。`bash -n`(+ shellcheck があれば)で構文検証
 - [ ] Claude Code 上で `/config` を開き、"Enable Remote Control for all sessions" が `false` になっていることを目視確認する(`remoteControlAtStartup` は原本に無い追加設定で、未設定時の実効値が false とは限らないため)
-- [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
+- [x] self-check (OK/NG per completion criterion, record in checks/7.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
