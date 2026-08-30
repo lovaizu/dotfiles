@@ -49,6 +49,50 @@ def json_ok(text):
         return False
 
 
+def dig(name, got, *path, default=None):
+    """The value at path inside the JSON text got, or default with a red
+    check when it is not there.
+
+    A merger that wrote invalid JSON, or dropped the element a case is about,
+    used to end the whole run right here with a traceback -- and a traceback
+    is not a failure report: every check below it went unrun and unseen. A
+    bad result has to be a red check like any other.
+    """
+    try:
+        value = json.loads(got)
+    except Exception as err:
+        check(name + " [valid JSON]", False, "%s: %r" % (err, got))
+        return default
+    for step in path:
+        try:
+            value = value[step]
+        except (KeyError, IndexError, TypeError):
+            check(name + " [has %r]" % (step,), False, repr(got))
+            return default
+    return value
+
+
+def commands(entry):
+    """Every hook command of one event entry, whatever shape it turned out
+    to have. Missing and non-string commands come through as they are: the
+    cases below are about what the merge did with them."""
+    if not isinstance(entry, dict):
+        return []
+    hooks = entry.get("hooks")
+    if not isinstance(hooks, list):
+        return []
+    return [hook.get("command") for hook in hooks if isinstance(hook, dict)]
+
+
+def before(got, first, second):
+    """Both texts are in got, first one before the other. False rather than
+    a ValueError when one of them is missing -- that is a failed check, not
+    a broken harness."""
+    if got is None or first not in got or second not in got:
+        return False
+    return got.index(first) < got.index(second)
+
+
 def never_lies(name, fmt, src, dst):
     """The one invariant every case shares: the merge never makes a file
     worse. A valid dst that comes back rc=0 is still valid; an already
@@ -122,7 +166,7 @@ for name, src, dst, keep in CASES2:
     if rc == 0:
         check(name + " [src applied]", got is not None and "1" in got, repr(got))
         if keep:
-            check(name + " [dst key kept]", keep in got, repr(got))
+            check(name + " [dst key kept]", keep in (got or ""), repr(got))
 
 # False positives: valid documents that must merge cleanly.
 CASES2FP = [
@@ -198,10 +242,9 @@ SRC7 = '[ui]\nshow_agent_labels = true\nagent_panel_sort = "priority"\n'
 rc, out, err, got = never_lies("7-comment-block", "toml", SRC7, DST7)
 check("7-comment-block [merged]", rc == 0, "rc=%s" % rc)
 check("7-comment-block [above the comment]",
-      got is not None and got.index("agent_panel_sort") < got.index("# theme"),
-      repr(got))
+      before(got, "agent_panel_sort", "# theme"), repr(got))
 check("7-comment-block [comment still above theme]",
-      got is not None and got.index("# theme") < got.index("[theme]"), repr(got))
+      before(got, "# theme", "[theme]"), repr(got))
 check("7-comment-block [dst key kept]", "my_own_key = 42" in (got or ""),
       repr(got))
 # ... and a section that is nothing but comments still gets the key.
@@ -239,11 +282,11 @@ rc, out, err, got = never_lies(
     '{"model": "opus", "hooks": {"SessionStart": [{"x": 1}]}}\n',
     '{"model": "sonnet", "localOnly": true,'
     ' "hooks": {"Stop": [{"y": 2}]}}\n')
-doc = json.loads(got)
-check("R-json-nested [src wins]", doc["model"] == "opus", got)
-check("R-json-nested [dst kept]", doc["localOnly"] is True, got)
-check("R-json-nested [nested kept]", "Stop" in doc["hooks"], got)
-check("R-json-nested [nested added]", "SessionStart" in doc["hooks"], got)
+doc = dig("R-json-nested", got, default={})
+check("R-json-nested [src wins]", doc.get("model") == "opus", got)
+check("R-json-nested [dst kept]", doc.get("localOnly") is True, got)
+check("R-json-nested [nested kept]", "Stop" in doc.get("hooks", {}), got)
+check("R-json-nested [nested added]", "SessionStart" in doc.get("hooks", {}), got)
 
 # The inner hooks array of a matched matcher is merged item-wise too, keyed
 # on the command: Claude Code's /config writes into that array, so a matcher
@@ -253,9 +296,9 @@ HSRC = ('{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
 HDST = ('{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
         '{"type": "command", "command": "echo my-own-machine-hook"}]}]}}\n')
 rc, out, err, got = never_lies("R-json-hook-same-matcher", "json", HSRC, HDST)
-ev = json.loads(got)["hooks"]["SessionStart"]
+ev = dig("R-json-hook-same-matcher", got, "hooks", "SessionStart", default=[])
 check("R-json-hook-same-matcher [one matcher]", len(ev) == 1, got)
-cmds = [h.get("command") for h in ev[0]["hooks"]]
+cmds = commands(ev[0]) if ev else []
 check("R-json-hook-same-matcher [machine hook kept]",
       "echo my-own-machine-hook" in cmds, got)
 check("R-json-hook-same-matcher [dotfiles hook applied]",
@@ -269,13 +312,14 @@ check("R-json-hook-same-matcher [idempotent]", got2 == got, repr(got2))
 NDST = ('{"hooks": {"SessionStart": [{"matcher": "mine", "hooks": ['
         '{"type": "command", "command": "echo mine"}]}]}}\n')
 rc, out, err, got = never_lies("R-json-hook-other-matcher", "json", HSRC, NDST)
-ev = json.loads(got)["hooks"]["SessionStart"]
+ev = dig("R-json-hook-other-matcher", got, "hooks", "SessionStart", default=[])
 check("R-json-hook-other-matcher [both matchers]", len(ev) == 2, got)
-by = dict((entry["matcher"], entry) for entry in ev)
+by = dict((entry.get("matcher"), entry) for entry in ev
+          if isinstance(entry, dict))
 check("R-json-hook-other-matcher [machine matcher kept]",
-      [h["command"] for h in by["mine"]["hooks"]] == ["echo mine"], got)
+      commands(by.get("mine")) == ["echo mine"], got)
 check("R-json-hook-other-matcher [dotfiles matcher added]",
-      [h["command"] for h in by["*"]["hooks"]] == ["bash dotfiles.sh"], got)
+      commands(by.get("*")) == ["bash dotfiles.sh"], got)
 rc2, out2, err2, got2, _ = run("json", HSRC, got)
 check("R-json-hook-other-matcher [idempotent]", got2 == got, repr(got2))
 
@@ -286,41 +330,101 @@ CSRC = ('{"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": ['
 CDST = ('{"hooks": {"PreToolUse": [{"matcher": "bash", "hooks": ['
         '{"type": "command", "command": "echo hello"}]}]}}\n')
 rc, out, err, got = never_lies("R-json-hook-case", "json", CSRC, CDST)
-ev = json.loads(got)["hooks"]["PreToolUse"]
+ev = dig("R-json-hook-case", got, "hooks", "PreToolUse", default=[])
 check("R-json-hook-case [matcher case kept apart]", len(ev) == 2,
       json.dumps(ev))
-mine = [entry for entry in ev if entry["matcher"] == "bash"]
+mine = [entry for entry in ev
+        if isinstance(entry, dict) and entry.get("matcher") == "bash"]
 check("R-json-hook-case [machine matcher untouched]",
-      len(mine) == 1 and [h["command"] for h in mine[0]["hooks"]]
-      == ["echo hello"], json.dumps(ev))
+      len(mine) == 1 and commands(mine[0]) == ["echo hello"], json.dumps(ev))
 rc, out, err, got = never_lies("R-json-hook-cmd-case", "json", CSRC, CSRC)
-ev = json.loads(got)["hooks"]["PreToolUse"]
+ev = dig("R-json-hook-cmd-case", got, "hooks", "PreToolUse", default=[])
 check("R-json-hook-cmd-case [same matcher merged]", len(ev) == 1,
       json.dumps(ev))
 rc, out, err, got = never_lies(
     "R-json-hook-cmd-case2", "json", CSRC,
     ('{"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": ['
      '{"type": "command", "command": "echo hello"}]}]}}\n'))
-cmds = [h["command"] for h in json.loads(got)["hooks"]["PreToolUse"][0]["hooks"]]
+ev = dig("R-json-hook-cmd-case2", got, "hooks", "PreToolUse", default=[])
 check("R-json-hook-cmd-case2 [command case kept apart]",
-      sorted(cmds) == ["echo Hello", "echo hello"], got)
+      sorted(commands(ev[0]) if ev else []) == ["echo Hello", "echo hello"],
+      got)
+
+# --- shapes Claude Code writes that carry no id ---------------------------
+# The item-wise merge matches on one key, so an entry that has not got it is
+# an entry it cannot speak about. It keeps such an entry where it is and puts
+# the dotfiles one beside it: two entries that both fire, which is what a
+# merge with no notion of deletion can honestly do. All of this is rc=0 and
+# stable on a second pass; pinned here so a change to any of it is visible
+# rather than something a user finds in a hook that runs twice.
+NOID = [
+    # (name, dst, how many entries after, how many commands under matcher *)
+    ("K-no-matcher",
+     '{"hooks": {"SessionStart": [{"hooks": ['
+     '{"type": "command", "command": "echo mine"}]}]}}\n', 2, 1),
+    ("K-no-command",
+     '{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
+     '{"type": "command"}]}]}}\n', 1, 2),
+    ("K-command-not-a-string",
+     '{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
+     '{"type": "command", "command": 123}]}]}}\n', 1, 2),
+    ("K-duplicate-commands",
+     '{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
+     '{"type": "command", "command": "echo dup"},'
+     '{"type": "command", "command": "echo dup"}]}]}}\n', 1, 3),
+]
+for name, dst, entries, under_star in NOID:
+    rc, out, err, got = never_lies(name, "json", HSRC, dst)
+    check(name + " [merged]", rc == 0, "rc=%s %s" % (rc, out.strip()[:70]))
+    # Nothing to say about any of them: no id to match on is not a fault.
+    check(name + " [says nothing]", out.strip() == "", out.strip()[:90])
+    ev = dig(name, got, "hooks", "SessionStart", default=[])
+    check(name + " [entry count]", len(ev) == entries, got)
+    star = [e for e in ev if isinstance(e, dict) and e.get("matcher") == "*"]
+    check(name + " [dotfiles hook applied]",
+          len(star) == 1 and "bash dotfiles.sh" in commands(star[0]), got)
+    check(name + " [commands under *]",
+          len(commands(star[0])) == under_star if star else False, got)
+    rc2, out2, err2, got2, _ = run("json", HSRC, got)
+    check(name + " [idempotent]", got2 == got, repr(got2))
+    if name == "K-no-matcher":
+        # Kept exactly as it was: unmatched means unmerged, not rewritten.
+        check(name + " [machine entry kept whole]",
+              {"hooks": [{"type": "command", "command": "echo mine"}]} in ev,
+              got)
+
+# The other side of the same rule: an entry dotfiles carries without the id
+# cannot be appended, because the next run would append it again. It is
+# skipped, out loud.
+NOIDSRC = ('{"hooks": {"SessionStart": [{"hooks": ['
+           '{"type": "command", "command": "echo dotfiles"}]}]}}\n')
+rc, out, err, got = never_lies("K-src-no-matcher", "json", NOIDSRC, HDST)
+check("K-src-no-matcher [merged]", rc == 0, "rc=%s" % rc)
+check("K-src-no-matcher [says it skipped one]",
+      "no usable matcher" in out, out.strip()[:90])
+ev = dig("K-src-no-matcher", got, "hooks", "SessionStart", default=[])
+check("K-src-no-matcher [dst entry alone]", len(ev) == 1, got)
+rc2, out2, err2, got2, _ = run("json", NOIDSRC, got)
+check("K-src-no-matcher [idempotent]", got2 == got, repr(got2))
 
 SRCJ = ('{"profiles": {"list": [{"guid": "{AAAA}", "font": {"face": "HackGen"}},'
         ' {"guid": "{cccc}"}]}}\n')
 DSTJ = ('{"profiles": {"list": [{"guid": "{aaaa}", "font": {"size": 12},'
         ' "startingDirectory": "/x"}, {"guid": "{bbbb}"}]}}\n')
 rc, out, err, got = never_lies("R-json-guid", "json", SRCJ, DSTJ)
-lst = json.loads(got)["profiles"]["list"]
+lst = dig("R-json-guid", got, "profiles", "list", default=[])
 check("R-json-guid [three entries]", len(lst) == 3, got)
 check("R-json-guid [dst-only kept]",
-      any(p["guid"] == "{bbbb}" for p in lst), got)
+      any(p.get("guid") == "{bbbb}" for p in lst), got)
+first = lst[0] if lst else {}
 check("R-json-guid [matched recursively]",
-      lst[0]["startingDirectory"] == "/x"
-      and lst[0]["font"] == {"size": 12, "face": "HackGen"}, got)
+      first.get("startingDirectory") == "/x"
+      and first.get("font") == {"size": 12, "face": "HackGen"}, got)
 
 rc, out, err, got = never_lies("R-jsonc", "json", '{"a": 1}\n',
                                '{\n  // note\n  "a": 2,\n  "b": 3,\n}\n')
-check("R-jsonc [merged]", rc == 0 and json.loads(got) == {"a": 1, "b": 3}, got)
+check("R-jsonc [merged]",
+      rc == 0 and dig("R-jsonc", got, default={}) == {"a": 1, "b": 3}, got)
 check("R-jsonc [warns about both]",
       "comments and trailing commas" in out, out.strip())
 
@@ -328,7 +432,8 @@ check("R-jsonc [warns about both]",
 # comes back LF. tests/README.md says so, and this is what says it is true.
 rc, out, err, got = never_lies("R-json-crlf", "json", '{"a": 1}\n',
                                '{\r\n  "a": 2,\r\n  "b": 3\r\n}\r\n')
-check("R-json-crlf [merged]", rc == 0 and json.loads(got) == {"a": 1, "b": 3},
+check("R-json-crlf [merged]",
+      rc == 0 and dig("R-json-crlf", got, default={}) == {"a": 1, "b": 3},
       repr(got))
 check("R-json-crlf [written LF]", "\r" not in (got or ""), repr(got))
 

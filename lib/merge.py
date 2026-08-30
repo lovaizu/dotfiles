@@ -177,17 +177,27 @@ MERGE_BY_ID = {
 }
 
 
+def path_keys(path):
+    """path itself, then each spelling of it with one segment wildcarded.
+
+    One wildcard is the whole of it, so nothing deeper than the tables it
+    serves can ever match: hooks.<Event>.[].hooks is four segments and that
+    is as deep as the shape goes -- the event name is the one segment the
+    machine chooses, every other segment is a fixed key. Should Claude Code
+    ever nest a hooks array one level further, merge_id_for would return None
+    for it and the array would go back to being replaced whole with only the
+    generic warning to show for it; this scan is what would have to grow.
+    """
+    yield path
+    for position in range(len(path)):
+        yield path[:position] + (None,) + path[position + 1:]
+
+
 def merge_id_for(path):
     """The id key for an array at path, or None to treat it as a leaf."""
-    if path in MERGE_BY_ID:
-        return MERGE_BY_ID[path]
-    # One wildcard position is enough for both hooks paths: the only part of
-    # either that varies is the event name (SessionStart, PreToolUse, ...),
-    # which is a name the machine chooses rather than a fixed key.
-    for position in range(len(path)):
-        wild = path[:position] + (None,) + path[position + 1:]
-        if wild in MERGE_BY_ID:
-            return MERGE_BY_ID[wild]
+    for key in path_keys(path):
+        if key in MERGE_BY_ID:
+            return MERGE_BY_ID[key]
     return None
 
 
@@ -267,35 +277,47 @@ def json_parse(text):
     return value
 
 
-# Ids where two spellings that differ only in case name the same thing.
-# Windows Terminal writes GUIDs as "{0caa0dad-...}" and hex digits mean the
-# same in either case, so those are matched case-folded and the dotfiles
-# spelling then wins, like every other value it owns. Nothing else is: a
-# hook matcher is a tool name Claude Code compares literally (Bash is not
-# bash) and a hook command is a shell command line, so folding either would
-# merge two entries this machine deliberately keeps apart.
-CASE_INSENSITIVE_IDS = frozenset(["guid"])
+# Arrays whose ids mean the same thing in either case, keyed by path like
+# MERGE_BY_ID rather than by the name of the id -- a rule this narrow has to
+# name the array it is about, or the next entry to call its id "guid" would
+# inherit it in silence. Windows Terminal writes GUIDs as "{0caa0dad-...}"
+# and hex digits mean the same either way, so those are matched case-folded
+# and the dotfiles spelling then wins, like every other value it owns.
+# Nothing else is: a hook matcher is a tool name Claude Code compares
+# literally (Bash is not bash) and a hook command is a shell command line, so
+# folding either would merge two entries this machine keeps apart on purpose.
+CASE_INSENSITIVE_IDS = frozenset([
+    ("profiles", "list"),
+])
 
 
-def element_id(item, id_key):
+def folds_id_case(path):
+    """Whether ids of the array at path are matched without regard to case."""
+    return any(key in CASE_INSENSITIVE_IDS for key in path_keys(path))
+
+
+def element_id(item, id_key, fold=False):
     """Identity of an array element, or None when it has no usable id."""
     if not isinstance(item, dict):
         return None
     value = item.get(id_key)
     if not isinstance(value, str):
         return None
-    return value.lower() if id_key in CASE_INSENSITIVE_IDS else value
+    # lower(), not casefold(): the only ids folded here are hex GUIDs, where
+    # the two agree, and casefold's extra mappings are for prose.
+    return value.lower() if fold else value
 
 
 def merge_by_id(old, new, id_key, path):
     merged = list(old)
+    fold = folds_id_case(path)
     at = {}
     for position, item in enumerate(merged):
-        key = element_id(item, id_key)
+        key = element_id(item, id_key, fold)
         if key is not None:
             at.setdefault(key, position)
     for item in new:
-        key = element_id(item, id_key)
+        key = element_id(item, id_key, fold)
         if key is None:
             # Nothing to match it against, so appending it would append it
             # again on the next run and the one after that. setup.sh is meant
@@ -320,11 +342,14 @@ def merge_objects(old, new, path=()):
     for key, value in new.items():
         here = path + (key,)
         current = merged.get(key)
-        id_key = merge_id_for(here)
+        # Only two arrays can be matched item by item, so only two arrays are
+        # worth looking up: every scalar and every dict skips the scan.
+        id_key = (merge_id_for(here)
+                  if isinstance(value, list) and isinstance(current, list)
+                  else None)
         if isinstance(value, dict) and isinstance(current, dict):
             merged[key] = merge_objects(current, value, here)
-        elif (isinstance(value, list) and isinstance(current, list)
-                and id_key is not None):
+        elif id_key is not None:
             merged[key] = merge_by_id(current, value, id_key, here)
         else:
             if isinstance(current, (dict, list)) and current != value:

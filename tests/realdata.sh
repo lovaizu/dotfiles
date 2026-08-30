@@ -221,6 +221,110 @@ then
   fail "the merged WT settings.json is not what it should be"
 fi
 
+# --- Claude Code settings.json against this machine's own copy ------------
+# The document the merge exists for on a mac, and the only one with a hooks
+# array inside a hooks array. A straight copy of the real file merges to
+# itself, which proves nothing, so the copy is given the three kinds of
+# machine-only material Claude Code writes: a key of its own, a whole event
+# dotfiles has not got, and a command of its own under the very matcher
+# dotfiles does carry -- the shape whose loss was the round-1 regression.
+mkdir -p "$W/claude"
+cp "$HOME/.claude/settings.json" "$W/claude/settings.json"
+python3 - "$W/claude/settings.json" <<'EOF'
+import json, sys
+
+path = sys.argv[1]
+with open(path) as handle:
+    doc = json.load(handle)
+doc["machineOnlyKey"] = "keep me"
+doc["theme"] = "dark"  # a key dotfiles owns, spelled differently here
+hooks = doc.setdefault("hooks", {})
+hooks["PreToolUse"] = [{"matcher": "Bash", "hooks": [
+    {"type": "command", "command": "echo machine-only-pretooluse"}]}]
+for entry in hooks.get("SessionStart", []):
+    if entry.get("matcher") == "*":
+        # Only the machine's own hook under the matcher dotfiles also carries,
+        # so the merge has to put its own back beside it rather than pass a
+        # check the real file already satisfied.
+        entry["hooks"] = [
+            {"type": "command", "command": "echo machine-only-sessionstart"}]
+        break
+else:
+    sys.exit("no SessionStart '*' entry in the real file to hang a hook on")
+with open(path, "w") as handle:
+    json.dump(doc, handle, indent=2)
+EOF
+[ $? -eq 0 ] || fail "the Claude dst was not set up with machine-only material"
+
+run_claude() {
+  ( set -euo pipefail
+    XDG_STATE_HOME="$W/state"
+    load_helpers
+    merge_json "$REPO/claude/settings.json" "$W/claude/settings.json" )
+}
+echo "=== Claude merge pass 1"
+run_claude > "$W/claude-pass1.log" 2>&1; rc=$?
+cat "$W/claude-pass1.log"
+want_rc 0 $rc "Claude merge pass 1"
+# The inner hooks array is matched item by item now, so nothing under
+# SessionStart is replaced whole. That line reappearing is the regression.
+grep -q "replaced whole" "$W/claude-pass1.log" \
+  && fail "the Claude merge replaced an array whole"
+cp "$W/claude/settings.json" "$W/claude1.json"
+echo "=== Claude merge pass 2"; run_claude; want_rc 0 $? "Claude merge pass 2"
+if cmp -s "$W/claude1.json" "$W/claude/settings.json"; then
+  echo "CLAUDE IDEMPOTENT: yes"
+else
+  echo "CLAUDE IDEMPOTENT: no"; diff "$W/claude1.json" "$W/claude/settings.json"
+  fail "the Claude merge is not idempotent"
+fi
+if ! python3 - "$W/claude/settings.json" "$REPO/claude/settings.json" <<'EOF'
+import json, sys
+
+def load(path):
+    with open(path) as handle:
+        return json.load(handle)
+
+try:
+    doc = load(sys.argv[1])
+except Exception as err:
+    print("  not valid JSON: %s" % err)
+    sys.exit(1)
+src = load(sys.argv[2])
+bad = []
+def want(label, got, expected):
+    print("  %s: %r" % (label, got))
+    if got != expected:
+        bad.append("%s is %r, expected %r" % (label, got, expected))
+
+def commands(entries, matcher):
+    for entry in entries:
+        if entry.get("matcher") == matcher:
+            return [hook.get("command") for hook in entry.get("hooks", [])]
+    return None
+
+want("dst-only key kept", doc.get("machineOnlyKey"), "keep me")
+want("dotfiles theme applied", doc.get("theme"), src["theme"])
+want("dotfiles statusLine applied", doc.get("statusLine"), src["statusLine"])
+want("dotfiles plugins applied", doc.get("enabledPlugins"), src["enabledPlugins"])
+hooks = doc.get("hooks", {})
+want("dst-only event kept", commands(hooks.get("PreToolUse", []), "Bash"),
+     ["echo machine-only-pretooluse"])
+starts = hooks.get("SessionStart", [])
+want("SessionStart entries", len(starts), 1)
+got = commands(starts, "*") or []
+want("dotfiles hook applied",
+     commands(src["hooks"]["SessionStart"], "*")[0] in got, True)
+want("dst-only hook beside it", "echo machine-only-sessionstart" in got, True)
+want("no third hook", len(got), 2)
+for line in bad:
+    print("  FAILED: %s" % line)
+sys.exit(1 if bad else 0)
+EOF
+then
+  fail "the merged Claude settings.json is not what it should be"
+fi
+
 echo "=== originals AFTER"
 snapshot | tee "$W/after.txt"
 cmp -s "$W/before.txt" "$W/after.txt" \

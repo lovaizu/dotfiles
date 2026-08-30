@@ -20,7 +20,9 @@ backup_file() {
   local dst="$1" stem bak count=1
   LAST_BACKUP=""
   if [ -e "$dst" ]; then
-    mkdir -p "$BACKUP_DIR"
+    # No directory, no backup, and a backup is what the caller is about to
+    # promise the user -- so this is a failure like any other here.
+    mkdir -p "$BACKUP_DIR" || return 1
     stem="$BACKUP_DIR/$(basename "$dst").$(date +%Y%m%d%H%M%S)"
     bak="$stem.bak"
     while [ -e "$bak" ]; do
@@ -28,12 +30,20 @@ backup_file() {
       count=$((count + 1))
     done
     # Non-zero when there is a dst but it cannot be copied -- a directory in
-    # its place, a file that cannot be read. cp says why on stderr and the
-    # caller decides what that means: merge_config warns and carries on,
-    # backup_then_copy hands the non-zero on to whoever called it, where
-    # set -e stops the setup for most of them and the Claude Code status
-    # line warns and carries on like the rest of that block.
-    cp "$dst" "$bak" || return 1
+    # its place, a file that cannot be read, a disk that fills up. cp says why
+    # on stderr and the caller decides what that means: merge_config warns and
+    # carries on, backup_then_copy hands the non-zero on to whoever called it,
+    # where set -e stops the setup for most of them and install_statusline
+    # turns it into a warning.
+    #
+    # A cp that dies partway leaves a half-written file under a name that says
+    # it is a whole backup, and nothing else would ever remove it: LAST_BACKUP
+    # stays empty, so drop_identical_backup never sees it and no message ever
+    # names it. Better no backup than a plausible-looking wrong one.
+    if ! cp "$dst" "$bak"; then
+      rm -f "$bak"
+      return 1
+    fi
     LAST_BACKUP="$bak"
   fi
 }
@@ -165,47 +175,45 @@ mkdir -p "$HOME/.config/herdr"
 backup_then_copy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 
 # Claude Code (common)
-# statusline.sh reads its input with jq and exits 0 without it, printing
-# " |  | dir@branch" -- a status line that looks configured and is not. Say so
-# here rather than let it fail quietly.
+# statusline.sh reads its input with jq and exits 0 without it, so the status
+# line looks configured and is nearly empty. Say so rather than let it fail
+# quietly.
 if ! command -v jq &>/dev/null; then
   echo
   echo "WARNING: jq not found, so the Claude Code status line will be nearly empty."
-  echo "  It exits 0 either way and prints \" |  | dir@branch\" -- a line that"
-  echo "  looks configured, with the context, model and effort segments blank."
-  echo "  The only other sign is jq's \"command not found\" on stderr, once for"
-  echo "  every value the script tries to read, wherever Claude Code sends that."
+  echo "  Only the directory and branch survive; the script still exits 0, so the"
+  echo "  other sign is jq's \"command not found\" on stderr, once per value read."
   echo "  Fix: brew install jq (mac) / sudo apt install jq (Ubuntu, WSL)"
   echo
 fi
-# The SessionStart hook in settings.json runs this. herdr's integration
-# installer writes it ("managed by herdr" at the top of the file), so dotfiles
-# carries the hook entry but not the script it points at. Said here, before
-# the merge below, because it is about this machine rather than about what
-# the merge does -- so the wording talks about the hook dotfiles carries, not
-# about a settings.json that may not have it yet or may be left as it is.
+# herdr's integration installer writes the hook script, so dotfiles carries
+# the hook entry but not the script it points at. Said before the merge, so
+# the wording is about the entry dotfiles carries rather than about a
+# settings.json that may not have it yet or may be left as it is.
 if [ ! -f "$HOME/.claude/hooks/herdr-agent-state.sh" ]; then
   echo
   echo "WARNING: ~/.claude/hooks/herdr-agent-state.sh is missing."
   echo "  The SessionStart hook dotfiles carries points at it, so once the"
-  echo "  settings.json below is in place, Claude Code will run a script that"
-  echo "  is not there on every session start. (The merge below can also leave"
-  echo "  this machine's settings.json as it is; it says so when it does.)"
+  echo "  settings.json below is in place Claude Code runs a script that is"
+  echo "  not there, every session -- unless the merge leaves the file as it"
+  echo "  is, which it says when it does."
   echo "  Fix: install the herdr integration (herdr integration ...)."
   echo
 fi
 
 # The status line, as a step of its own so that a home directory this machine
-# will not let us write is a warning like every other one in this file rather
-# than an abort. The settings.json merge below and the terminal profile after
-# it have nothing to do with the status line, and dying here would take both
-# with them -- while every neighbouring failure, the merge's included, warns
-# and carries on. Each command carries its own || return: set -e does not
-# apply inside a function whose result the caller tests.
+# will not let us write is a warning rather than an abort. Not the file's
+# habit -- the herdr and iTerm2 blocks around it do stop the setup, and the
+# merge is the one neighbour that warns and carries on. It is the position
+# that earns it: this block sits between the settings.json merge and the
+# terminal profile, so dying here would cost two deployments that have
+# nothing to do with the status line. set -e does not apply inside a function
+# whose result the caller tests, so each command carries its own || return.
 #
-# Two ways to fall short, and they do not mean the same thing to the reader,
-# so the exit code tells them apart: 1, nothing was deployed; 2, the file is
-# there and only the exec bit is missing.
+# 1 means nothing was deployed; 2, the copy is there but chmod on it failed.
+# cp gives a dst it creates the source's mode, so a fresh statusline.sh is
+# executable already and 2 needs a dst that existed without the bit and a
+# chmod that then fails on it -- reachable in testing only with a stub.
 install_statusline() {
   local dst="$HOME/.claude/scripts/statusline.sh"
   # Made here rather than earlier because this is the copy that needs it.
@@ -221,22 +229,22 @@ case "$statusline_status" in
   1)
     echo
     echo "WARNING: the Claude Code status line script was not deployed."
-    echo "  The command that failed said why just above. ~/.claude/scripts/"
-    echo "  statusline.sh is missing, or still the copy this machine had, so"
-    echo "  the status line is not the one dotfiles carries. Nothing else here"
-    echo "  depends on it, and the rest of the setup carries on below."
-    echo "  Fix: make ~/.claude writable (or move whatever is in its place),"
-    echo "  then re-run ./setup.sh."
+    echo "  The command that failed said why just above. statusline.sh is now"
+    echo "  missing, this machine's own copy, or -- if the copy died partway --"
+    echo "  a truncated mix of the two that settings.json still feeds to sh."
+    echo "  Nothing else here needs it, and the rest of the setup runs below."
+    echo "  Fix: make writable whatever that message names (the file, the"
+    echo "  directory holding it, or $BACKUP_DIR), then re-run ./setup.sh."
     echo
     ;;
   *)
     echo
-    echo "WARNING: ~/.claude/scripts/statusline.sh could not be made executable."
-    echo "  The command that failed said why just above. The script itself is"
-    echo "  in place and the status line works without the bit: settings.json"
-    echo "  runs it as \`sh \"\$HOME/...\"\`. Only running the file directly, by"
-    echo "  its own path, needs it."
-    echo "  Fix: nothing, unless you run it by hand -- then chmod +x it."
+    echo "WARNING: chmod on ~/.claude/scripts/statusline.sh failed."
+    echo "  The command that failed said why just above. The dotfiles script is"
+    echo "  in place; only its mode is in doubt -- a dst cp had to create has the"
+    echo "  source's mode already, one that was there keeps its own. Either way"
+    echo "  the status line works: settings.json runs it as \`sh \"\$HOME/...\"\`."
+    echo "  Fix: nothing, unless you run it by its own path -- then chmod +x it."
     echo
     ;;
 esac
@@ -245,14 +253,9 @@ esac
 # picker), so a whole-file copy would discard whatever this machine set that
 # dotfiles does not carry.
 #
-# ~/.claude has to exist for the merge to write into it. install_statusline
-# above happens to make it while making scripts/ underneath, but a merge that
-# leaned on that would break the day the two statements moved apart and
-# nothing would say so -- so it is made here too, next to the write that
-# needs it, the way the herdr block does it. Neither fatal nor reported when
-# it fails: merge_json says in its own words which file it could not write
-# and why, and mkdir's "File exists" for a ~/.claude that is a plain file
-# would only muddle that.
+# ~/.claude is made next to the write that needs it rather than left to
+# install_statusline above, and quietly, because merge_json names the file it
+# could not write anyway.
 mkdir -p "$HOME/.claude" 2>/dev/null || true
 merge_json "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
 
