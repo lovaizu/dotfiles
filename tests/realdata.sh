@@ -93,8 +93,20 @@ import sys
 p = sys.argv[1]
 t = open(p).read().replace('dark_name = "gruvbox"',
                            'dark_name = "nord" # hand set, keep')
-open(p, "w").write(t)
+# What herdr's own theme picker does to this file: [theme] name is the one
+# key the two of them fight over, and the merge is what makes the dotfiles
+# value stick. Line-exact so that light_name, which holds the same string,
+# is left where it is.
+lines = t.split("\n")
+for i, line in enumerate(lines):
+    if line.strip() == 'name = "gruvbox-light"':
+        lines[i] = 'name = "gruvbox" # herdr wrote this back'
+        break
+else:
+    sys.exit('no [theme] name = "gruvbox-light" line in the real config')
+open(p, "w").write("\n".join(lines))
 EOF
+[ $? -eq 0 ] || fail "the dst was not set up with a written-back theme name"
 grep -q 'dark_name = "nord" # hand set, keep' "$W/xdg/herdr/config.toml" \
   || fail "the dst was not set up with a hand-edited dark_name"
 
@@ -128,6 +140,7 @@ grep -q "parse error" "$W/check-after.txt" \
 echo "--- dotfiles values applied / machine-only kept:"
 want_in "$W/xdg/herdr/config.toml" \
   'prefix = "ctrl+t"' \
+  'name = "gruvbox-light" # herdr wrote this back' \
   'dark_name = "gruvbox" # hand set, keep' \
   '# only on this machine' \
   'label = "kiyo-mac"'
@@ -143,12 +156,31 @@ echo "  rc=$rc"
 cp "$W/good.toml" "$W/xdg/herdr/config.toml"
 
 # --- Windows Terminal settings.json against another machine's copy --------
+# Everything Windows Terminal writes into this file by itself, on a machine
+# dotfiles has not been to: a profile for a WSL distro this one does not have,
+# a colour scheme, and a key binding made in the settings UI -- which WT
+# records in two places at once, an entry in `actions` carrying the command
+# and one in `keybindings` tying a chord to its id.
 mkdir -p "$W/wt"
 cat > "$W/wt/settings.json" <<'EOF'
 {
     // this machine's own notes
     "$help": "https://aka.ms/terminal-documentation",
     "launchMode": "maximized",
+    "actions":
+    [
+        {
+            "command": { "action": "sendInput", "input": "machine only" },
+            "id": "User.machineOnly.AB12CD34"
+        }
+    ],
+    "keybindings":
+    [
+        {
+            "id": "User.machineOnly.AB12CD34",
+            "keys": "ctrl+alt+m"
+        }
+    ],
     "profiles":
     {
         "defaults":
@@ -163,7 +195,15 @@ cat > "$W/wt/settings.json" <<'EOF'
                 "startingDirectory": "//wsl$/Ubuntu-22.04/home/kiyo",
             }
         ]
-    }
+    },
+    "schemes":
+    [
+        {
+            "background": "#002B36",
+            "foreground": "#839496",
+            "name": "Solarized Dark"
+        }
+    ]
 }
 EOF
 run_wt() {
@@ -172,7 +212,18 @@ run_wt() {
     load_helpers
     merge_json "$REPO/windows-terminal/settings.json" "$W/wt/settings.json" )
 }
-echo "=== WT merge pass 1"; run_wt; want_rc 0 $? "WT merge pass 1"
+echo "=== WT merge pass 1"
+run_wt > "$W/wt-pass1.log" 2>&1; rc=$?
+cat "$W/wt-pass1.log"
+want_rc 0 $rc "WT merge pass 1"
+# keybindings is not one of the arrays matched by id, so the chord this
+# machine bound goes -- and the merge has to say so. Both halves are asserted
+# because both are the promise: silence here would mean a loss nobody was
+# told about, and the assertion below would then be describing a bug rather
+# than a boundary. Should keybindings ever join the id-matched arrays, these
+# two go red together and design.md is what needs revising with them.
+grep -q "keybindings is replaced whole" "$W/wt-pass1.log" \
+  || fail "the WT merge dropped the dst keybindings without warning"
 cp "$W/wt/settings.json" "$W/wt1.json"
 echo "=== WT merge pass 2"; run_wt; want_rc 0 $? "WT merge pass 2"
 if cmp -s "$W/wt1.json" "$W/wt/settings.json"; then
@@ -213,6 +264,17 @@ want("dst-only WSL profile kept", len(wsl), 1)
 if wsl:
     want("  its startingDirectory", wsl[0].get("startingDirectory"),
          "//wsl$/Ubuntu-22.04/home/kiyo")
+schemes = [scheme.get("name") for scheme in doc.get("schemes", [])]
+want("dst-only scheme kept", "Solarized Dark" in schemes, True)
+want("dotfiles scheme applied", "Gruvbox Dark" in schemes, True)
+ids = [action.get("id") for action in doc.get("actions", [])]
+want("dst-only action kept", "User.machineOnly.AB12CD34" in ids, True)
+want("dotfiles action applied", "User.sendInput.DFCDAF06" in ids, True)
+chords = [binding.get("keys") for binding in doc.get("keybindings", [])]
+# The documented boundary, not a wish: keybindings is a leaf, so the chord
+# is gone and the run above warned that it would be.
+want("dst-only chord gone, as warned", "ctrl+alt+m" in chords, False)
+want("dotfiles chord applied", "ctrl+alt+u" in chords, True)
 for line in bad:
     print("  FAILED: %s" % line)
 sys.exit(1 if bad else 0)

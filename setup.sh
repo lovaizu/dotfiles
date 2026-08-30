@@ -168,11 +168,18 @@ merge_config() {
 }
 
 # herdr (common)
+# herdr writes this file itself -- the onboarding flag and the theme name are
+# both saved back by it -- so a whole-file copy would discard what only this
+# machine has, and with it the comments and key order of a file the user
+# edits by hand as well.
 if ! command -v herdr &>/dev/null; then
-  echo "herdr not found. Copying config anyway."
+  echo "herdr not found. Installing its config anyway."
 fi
-mkdir -p "$HOME/.config/herdr"
-backup_then_copy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+# Quietly, and without stopping the setup: merge_toml names the file it could
+# not write, and this is the first deployment of the run -- dying here would
+# cost every one below it over a directory only this file needs.
+mkdir -p "$HOME/.config/herdr" 2>/dev/null || true
+merge_toml "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 
 # Claude Code (common)
 # statusline.sh reads its input with jq and exits 0 without it, so the status
@@ -296,7 +303,11 @@ case "$(uname -s)" in
     # Windows Terminal (Windows side)
     WT_DIR="$(wslpath "$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')")/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
     if [ -d "$WT_DIR" ]; then
-      backup_then_copy "$DOTFILES_DIR/windows-terminal/settings.json" "$WT_DIR/settings.json"
+      # Windows Terminal writes this file itself, and writes into the very
+      # arrays dotfiles carries: a profile per WSL distro, an action and a
+      # scheme per thing set in its settings UI. Those three are matched by
+      # id, so this machine's own keep their place beside the dotfiles ones.
+      merge_json "$DOTFILES_DIR/windows-terminal/settings.json" "$WT_DIR/settings.json"
     else
       echo "Windows Terminal not found. Skipping."
     fi
