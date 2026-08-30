@@ -455,7 +455,7 @@ herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っ�
       Acceptance criteria・#6/#7/#8/#10 の themes 関連の記述を落とす
 - [x] steering の Acceptance criteria の「herdr の UI テーマが `gruvbox`(dark)であること」を
       `gruvbox-light` に改める(#5 の revise (c) の判断を差し戻すことになるため、評価ゲートで承認を取る)
-- [ ] README と design.md の記載を3層すべてについて合わせる(端末は Win/Mac それぞれの設定箇所を明示)
+- [x] README と design.md の記載を3層すべてについて合わせる(端末は Win/Mac それぞれの設定箇所を明示)
 - [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -475,19 +475,8 @@ herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-26
-- **Last completed**: #7(実装・self-check まで)。#9 #13 も実装と self-check 済み
-- **Next**: #8 — README に Claude Code 設定の管理範囲と手順を追記する
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
-  **ユーザー確認待ち 1 件**: cc 再起動後に `/config` の "Enable Remote Control for all sessions" が
-  `false` か(#7 の残ステップ。`remoteControlAtStartup` は原本に無い追加設定なので表示で見るしかない)。
-  **専門家レビュー(subagent)が #7 / #9 / #13 で未実施** — 本セッションでは Agent 呼び出しを
-  禁じられていたため self-check と実測で代替した(`checks/7.md` `checks/9.md` `checks/13.md`)。
-  再開時に回すか、実測で足りるとするかを決める。
-  #9 は 4 巡目で値検査層を撤去して決着(未解決 10 件 → U1/U3/U4 は層ごと解消、U2/U6/U7/U8/U9/U10 は
-  個別修正、U5 は 11 形状の実測で再現せず)。持ち越し 3 件も決着済み(a=要素単位マージにした /
-  b=#13 として実施済み / c=不要だった)。
-  テーマ 3 層はユーザー指定どおりに確定: 端末 Gruvbox Dark / herdr `gruvbox-light` /
-  Claude Code 組み込み `light`。#12 は README・design まで済みでレビューのみ残る。
-  Win 側(ctrl+alt 系・WT マージ結果)は次回 Windows 同期時に未検証のまま。
+- **Status**: not suspended
+- **Date**: -
+- **Last completed**: -
+- **Next**: -
+- **Notes**: -
