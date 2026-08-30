@@ -19,7 +19,9 @@ bash realdata.sh             # 実ファイルのコピーに対する往復
 試すときは `MERGE_PY=/path/to/python3` を渡す。
 
 `realdata.sh` は `~/.config/herdr/config.toml` と `~/.claude/settings.json` を**コピーしか触らない**。
-実ファイルの md5 と mtime を前後で表示するので、触っていないことがその場で確認できる。
+実ファイルの md5 と mtime を前後で表示して突き合わせるので、触っていないことがその場で確認できる。
+各マージが実際に走ったか・値が期待どおりかを1件ずつ検査し、1つでも外れたら `REALDATA: FAIL (n)` と
+出して終了コード 1 で終わる(以前は何も走らなくても成功と読める出力を出していた)。
 herdr の検査は `XDG_CONFIG_HOME` を差し替えて `herdr config check` に読ませる
 (`herdr config check` は位置引数を取らない)。
 
@@ -27,7 +29,10 @@ herdr の検査は `XDG_CONFIG_HOME` を差し替えて `herdr config check` に
 
 - **有効だった配置先が無効になって返ることはない。** 元から不正だった配置先が「マージした」で
   返り不正なままであることは許容する — 値の綴りは検査せず、不正ならアプリ自身が言う
-- 配置先にしか無いキー・コメント・行順・改行コードが残る
+- 配置先にしか無いキーが残る。**コメント・行順・改行コードが残るのは TOML だけ** — JSON は
+  文書を組み直して書き出すので、JSONC のコメントは落ち(マージが警告する)、改行は元が CRLF でも
+  常に LF になる(こちらは警告しない)
 - アプリ自身が要素を書き足す配列(WT の `profiles.list` / `actions` / `schemes`、
-  Claude Code の `hooks.<Event>`)は id で1件ずつ突き合わせ、そのマシンにしか無い要素が残る
+  Claude Code の `hooks.<Event>` と、その要素の中の `hooks`)は id で1件ずつ突き合わせ、
+  そのマシンにしか無い要素が残る
 - 冪等 — 2 回流しても同じバイト列

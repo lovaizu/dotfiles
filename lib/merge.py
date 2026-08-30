@@ -155,24 +155,25 @@ def ensure_newline(text, ending="\n"):
 
 # --- JSON ------------------------------------------------------------------
 
-# Arrays whose elements carry a stable id and so are matched element by
-# element instead of being replaced wholesale, keyed by the path of the array.
-# Windows Terminal keeps one profiles.list entry per profile and writes an
-# extra one for every WSL distro installed on that machine.
 # Arrays whose elements carry a stable id, matched element by element
 # instead of being replaced wholesale. None in a path matches any key there.
 #
 # Every one of these is an array the application itself adds to on the
 # machine it runs on: Windows Terminal writes a profile per WSL distro and
 # an action per keybinding made in its UI, and Claude Code writes a hook
-# entry per matcher set in /config. Replacing such an array whole would take
-# those with it, which is the same loss the item-wise merge exists to stop
-# one level up.
+# entry per matcher set in /config -- and, under a matcher dotfiles happens
+# to carry as well, one more command inside that entry's own hooks array,
+# which is why that array is here too rather than a leaf dotfiles owns.
+# "*" is the ordinary spelling of a SessionStart matcher, so sharing one
+# with the machine is the normal case, not the odd one. Replacing any of
+# these whole would take the machine's entries with it, which is the same
+# loss the item-wise merge exists to stop one level up.
 MERGE_BY_ID = {
     ("profiles", "list"): "guid",
     ("actions",): "id",
     ("schemes",): "name",
     ("hooks", None): "matcher",
+    ("hooks", None, "[]", "hooks"): "command",
 }
 
 
@@ -180,8 +181,9 @@ def merge_id_for(path):
     """The id key for an array at path, or None to treat it as a leaf."""
     if path in MERGE_BY_ID:
         return MERGE_BY_ID[path]
-    # One wildcard position is enough for hooks, whose second element is an
-    # event name (SessionStart, PreToolUse, ...) rather than a fixed key.
+    # One wildcard position is enough for both hooks paths: the only part of
+    # either that varies is the event name (SessionStart, PreToolUse, ...),
+    # which is a name the machine chooses rather than a fixed key.
     for position in range(len(path)):
         wild = path[:position] + (None,) + path[position + 1:]
         if wild in MERGE_BY_ID:
@@ -265,6 +267,16 @@ def json_parse(text):
     return value
 
 
+# Ids where two spellings that differ only in case name the same thing.
+# Windows Terminal writes GUIDs as "{0caa0dad-...}" and hex digits mean the
+# same in either case, so those are matched case-folded and the dotfiles
+# spelling then wins, like every other value it owns. Nothing else is: a
+# hook matcher is a tool name Claude Code compares literally (Bash is not
+# bash) and a hook command is a shell command line, so folding either would
+# merge two entries this machine deliberately keeps apart.
+CASE_INSENSITIVE_IDS = frozenset(["guid"])
+
+
 def element_id(item, id_key):
     """Identity of an array element, or None when it has no usable id."""
     if not isinstance(item, dict):
@@ -272,10 +284,7 @@ def element_id(item, id_key):
     value = item.get(id_key)
     if not isinstance(value, str):
         return None
-    # Windows Terminal writes GUIDs as "{0caa0dad-...}" and hex digits are
-    # case insensitive, so elements are matched on the case-folded id. The
-    # dotfiles spelling then wins, the same as every other value it owns.
-    return value.lower()
+    return value.lower() if id_key in CASE_INSENSITIVE_IDS else value
 
 
 def merge_by_id(old, new, id_key, path):

@@ -245,6 +245,66 @@ check("R-json-nested [dst kept]", doc["localOnly"] is True, got)
 check("R-json-nested [nested kept]", "Stop" in doc["hooks"], got)
 check("R-json-nested [nested added]", "SessionStart" in doc["hooks"], got)
 
+# The inner hooks array of a matched matcher is merged item-wise too, keyed
+# on the command: Claude Code's /config writes into that array, so a matcher
+# dotfiles also carries is not dotfiles' alone.
+HSRC = ('{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
+        '{"type": "command", "command": "bash dotfiles.sh", "timeout": 10}]}]}}\n')
+HDST = ('{"hooks": {"SessionStart": [{"matcher": "*", "hooks": ['
+        '{"type": "command", "command": "echo my-own-machine-hook"}]}]}}\n')
+rc, out, err, got = never_lies("R-json-hook-same-matcher", "json", HSRC, HDST)
+ev = json.loads(got)["hooks"]["SessionStart"]
+check("R-json-hook-same-matcher [one matcher]", len(ev) == 1, got)
+cmds = [h.get("command") for h in ev[0]["hooks"]]
+check("R-json-hook-same-matcher [machine hook kept]",
+      "echo my-own-machine-hook" in cmds, got)
+check("R-json-hook-same-matcher [dotfiles hook applied]",
+      "bash dotfiles.sh" in cmds, got)
+check("R-json-hook-same-matcher [no replaced-whole warning]",
+      "replaced whole" not in out, out.strip())
+rc2, out2, err2, got2, _ = run("json", HSRC, got)
+check("R-json-hook-same-matcher [idempotent]", got2 == got, repr(got2))
+
+# A matcher only this machine has is a separate element and stays whole.
+NDST = ('{"hooks": {"SessionStart": [{"matcher": "mine", "hooks": ['
+        '{"type": "command", "command": "echo mine"}]}]}}\n')
+rc, out, err, got = never_lies("R-json-hook-other-matcher", "json", HSRC, NDST)
+ev = json.loads(got)["hooks"]["SessionStart"]
+check("R-json-hook-other-matcher [both matchers]", len(ev) == 2, got)
+by = dict((entry["matcher"], entry) for entry in ev)
+check("R-json-hook-other-matcher [machine matcher kept]",
+      [h["command"] for h in by["mine"]["hooks"]] == ["echo mine"], got)
+check("R-json-hook-other-matcher [dotfiles matcher added]",
+      [h["command"] for h in by["*"]["hooks"]] == ["bash dotfiles.sh"], got)
+rc2, out2, err2, got2, _ = run("json", HSRC, got)
+check("R-json-hook-other-matcher [idempotent]", got2 == got, repr(got2))
+
+# A matcher and a command are compared literally, unlike a WT guid: two that
+# differ only in case are two entries, and neither is written over the other.
+CSRC = ('{"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": ['
+        '{"type": "command", "command": "echo Hello"}]}]}}\n')
+CDST = ('{"hooks": {"PreToolUse": [{"matcher": "bash", "hooks": ['
+        '{"type": "command", "command": "echo hello"}]}]}}\n')
+rc, out, err, got = never_lies("R-json-hook-case", "json", CSRC, CDST)
+ev = json.loads(got)["hooks"]["PreToolUse"]
+check("R-json-hook-case [matcher case kept apart]", len(ev) == 2,
+      json.dumps(ev))
+mine = [entry for entry in ev if entry["matcher"] == "bash"]
+check("R-json-hook-case [machine matcher untouched]",
+      len(mine) == 1 and [h["command"] for h in mine[0]["hooks"]]
+      == ["echo hello"], json.dumps(ev))
+rc, out, err, got = never_lies("R-json-hook-cmd-case", "json", CSRC, CSRC)
+ev = json.loads(got)["hooks"]["PreToolUse"]
+check("R-json-hook-cmd-case [same matcher merged]", len(ev) == 1,
+      json.dumps(ev))
+rc, out, err, got = never_lies(
+    "R-json-hook-cmd-case2", "json", CSRC,
+    ('{"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": ['
+     '{"type": "command", "command": "echo hello"}]}]}}\n'))
+cmds = [h["command"] for h in json.loads(got)["hooks"]["PreToolUse"][0]["hooks"]]
+check("R-json-hook-cmd-case2 [command case kept apart]",
+      sorted(cmds) == ["echo Hello", "echo hello"], got)
+
 SRCJ = ('{"profiles": {"list": [{"guid": "{AAAA}", "font": {"face": "HackGen"}},'
         ' {"guid": "{cccc}"}]}}\n')
 DSTJ = ('{"profiles": {"list": [{"guid": "{aaaa}", "font": {"size": 12},'
@@ -263,6 +323,14 @@ rc, out, err, got = never_lies("R-jsonc", "json", '{"a": 1}\n',
 check("R-jsonc [merged]", rc == 0 and json.loads(got) == {"a": 1, "b": 3}, got)
 check("R-jsonc [warns about both]",
       "comments and trailing commas" in out, out.strip())
+
+# JSON keeps the keys, not the layout: the document is rebuilt, so a CRLF dst
+# comes back LF. tests/README.md says so, and this is what says it is true.
+rc, out, err, got = never_lies("R-json-crlf", "json", '{"a": 1}\n',
+                               '{\r\n  "a": 2,\r\n  "b": 3\r\n}\r\n')
+check("R-json-crlf [merged]", rc == 0 and json.loads(got) == {"a": 1, "b": 3},
+      repr(got))
+check("R-json-crlf [written LF]", "\r" not in (got or ""), repr(got))
 
 DSTT = ('# top\nprefix = "ctrl+b"\nmine = 7\n\n[ui]\n'
         'dark_name = "nord" # hand set\n')
