@@ -40,25 +40,34 @@ seg1=$(printf '%s\n' "$input" | jq -r '
 # name; the C: segment above is where context size belongs.
 # display_name can arrive empty as well as absent, so pick the first non-empty
 # of display_name / id rather than relying on jq's // (empty string is truthy).
-display=$(printf '%s\n' "$input" | jq -r '
+# The normalisation lives in jq, not sed, because jq is already a hard
+# dependency and its regex engine (Oniguruma) is the same build on both hosts,
+# whereas sed is BSD on macOS and GNU on WSL — and the two really do disagree
+# about whether [[:space:]] covers a non-breaking space (GNU/glibc does not).
+# Doing it here also makes the result locale-independent.
+# The notes go first so the anchor below sees the real start of the name.
+# "Claude " is then stripped at the front only, so a name that merely contains
+# it ("Foo Claude 5") is not cut in half; the leading-whitespace tolerance is
+# there because a note removed from the front ("(beta) Claude Opus 5") leaves a
+# space the anchor would otherwise miss.
+# [\p{Z}\s] is the whitespace class throughout. Measured against jq 1.6, 1.7
+# and 1.7.1-apple: \p{Z} takes the Unicode separators (U+00A0, U+3000) but not
+# the tab or the newline, which are control characters rather than separators;
+# \s takes those two, and in these builds the separators as well. The union is
+# what keeps the class from depending on how Unicode-aware a given Oniguruma
+# build's \s happens to be. \s reaching the newline also means a name with one
+# embedded can no longer split the status line in two.
+model_name=$(printf '%s\n' "$input" | jq -r '
   [.model.display_name, .model.id, "unknown"]
   | map(select(. != null and . != ""))
   | first
+  | gsub("\\([^)]*\\)"; "")
+  | sub("^[\\p{Z}\\s]*Claude[\\p{Z}\\s]"; "")
+  | gsub("[\\p{Z}\\s]"; "")
 ')
-# The notes go first so the anchor below sees the real start of the name.
-# "Claude " is then stripped at the front only, so a name that merely contains
-# it ("Foo Claude 5") is not cut in half; the leading-space tolerance is there
-# because a note removed from the front ("(beta) Claude Opus 5") leaves a space
-# the anchor would otherwise miss.
-# Whitespace is squeezed by the POSIX class rather than a literal space, so a
-# tab — or, under a UTF-8 locale, a non-breaking / ideographic space — is closed
-# up too.
-model_name=$(printf '%s\n' "$display" | sed -E \
-  -e 's/[(][^)]*[)]//g' \
-  -e 's/^ *Claude //' \
-  -e 's/[[:space:]]//g')
 # A name that is nothing but a note or blanks ("(1M context)", "   ") is emptied
-# by the rules above; without this the segment would degrade to a bare "/h".
+# by the rules above; jq printing nothing at all (no jq on PATH, unparsable
+# input) lands here too. Without this the segment would degrade to a bare "/h".
 [ -n "$model_name" ] || model_name=unknown
 
 # Effort level first letter
