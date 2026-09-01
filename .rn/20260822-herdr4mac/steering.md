@@ -518,6 +518,40 @@ herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っ�
 - README と design.md にテーマ3層の対応が書かれていて、steering の Acceptance criteria と一貫している
 
 
+### #15: ステータスラインのモデル名表示を家族名+版に統一する
+
+**Purpose**: 現行の1文字略記(`O5`)は読み手が対応表を覚えていないと判別できず、節約は数文字しかない。
+さらに置換規則が `Opus` / `Sonnet` / `Haiku` の列挙なので `Fable` が素通りし、`(1M context)` の注記も
+そのまま出る。注記はコンテキスト量を `C:` セグメントで既に出しているため重複でもある。家族名を
+列挙しない1本の規則に置き換え、`Opus5` / `Sonnet5` / `Fable5` / `Haiku4.5` の形にする。
+
+**Prerequisites**: none
+
+**Steps**:
+
+- [ ] `claude/scripts/statusline.sh` のモデル略記処理を、括弧注記の除去 → `Claude ` 接頭辞の除去 →
+      空白の除去、という家族名に依存しない規則に置き換える
+- [ ] 実際の入力形状で確認する: `Opus 5 (1M context)` / `Sonnet 5` / `Fable 5` / `Haiku 4.5` /
+      `Claude Sonnet 4.5`、および `display_name` が無く `model.id` にフォールバックする形状と、
+      `effort.level` の有無の両方
+- [ ] `sh -n` と `dash -n` で構文検証し、`~/.claude/scripts/statusline.sh` に配置して実表示を確認する
+- [ ] self-check (OK/NG per completion criterion, record in checks/15.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `display_name` が `Opus 5 (1M context)` のとき第2セグメントのモデル部が `Opus5` になり、
+  `Sonnet 5` → `Sonnet5`、`Fable 5` → `Fable5`、`Haiku 4.5` → `Haiku4.5` になる。
+  括弧の注記は表示に残らない
+- 置換規則が特定の家族名を列挙していない — 新しい家族名が来ても素通りせず同じ形に整う
+- 第1・第3セグメントと `/努力度` の付き方は従来どおりで、区切りは `|` のまま。
+  steering の Acceptance criteria が書く表示形式(`C:…k/…k 5h:…% 7d:…% | モデル/努力度 |
+  ディレクトリ@ブランチ`)から外れない
+- `sh -n` / `dash -n` が通り、`display_name` 不在(`model.id` フォールバック)や `effort.level`
+  不在でも壊れない
+
 # State
 
 (written by /rn:dn, read and reset to this placeholder by /rn:up. `Status` is `paused` while a
