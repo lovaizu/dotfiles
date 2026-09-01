@@ -524,8 +524,15 @@ herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: -
-- **Last completed**: -
-- **Next**: -
-- **Notes**: -
+- **Status**: paused
+- **Date**: 2026-09-01
+- **Last completed**: #7(レビュー2巡・修正2ラウンドを経てチェックオフ済み)
+- **Next**: #10 — 項目マージ機構の撤去(実装エージェントは着手前に停止済み。作業ツリーは無傷)
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
+  **方針が変わった**: dotfiles が正で全部丸ごと上書き。#9 #13 は撤回、#10 はその撤去タスクに
+  差し替え済み(`f672480`)。判断の根拠は同 commit のメッセージ。
+  実施順は #10 → #14(フォント14) → #8(README 書き直し) → #11 → #12 → #5。
+  #8 は「README に設定値を書かない」規則で書き直す — 値は設定ファイル側にしか置かない。
+  **次回 Windows 同期時にやること**: `04aa312` で WT を項目マージにした状態が push 済みだが
+  #10 で上書きに戻る。Windows 機では ctrl+alt 系のキーと WT のマージ結果が未検証のまま。
+  #11 は iTerm2 の未定義色の洗い出しと #2 完了基準の更新可否、#12 は self-check とレビューのみ残る。
