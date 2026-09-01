@@ -9,12 +9,36 @@ DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
 
 # What this run could not deploy, one entry per file. A deployment that fails
-# is a warning and the setup carries on -- nothing deployed here is needed by
-# anything else in this script, and a home directory that will not take one
-# file is no reason to skip the ones that would have worked. This list is what
-# keeps that from passing for success: the run names every entry at the end and
-# exits non-zero.
+# is a warning and the setup carries on -- nothing deployed here is read by
+# anything later in this script, so one refusal cannot derail the deployments
+# after it, and a home directory that will not take one file is no reason to
+# skip the ones that would have worked. That is about this script's order of
+# work, not about the files fitting each other once they are in place: a
+# settings.json that lands while statusline.sh is refused leaves a new setting
+# pointing at an old script (measured). What makes that safe to leave is the
+# retry -- the next run makes the same judgement again and either quietly
+# agrees or names the same file. This list is what keeps a partial run from
+# passing for success: the run names every entry at the end and exits non-zero.
 FAILURES=()
+
+# Every half-written file this script makes is a dot file named after where it
+# is going, in the directory it is going to, and is renamed into place once it
+# is whole. $$ keeps two runs from writing the same name.
+tmp_for() {
+  printf '%s/.%s.dotfiles-tmp.%s' "$(dirname "$1")" "$(basename "$1")" "$$"
+}
+
+# Remove the temp files earlier runs left beside a destination. A run killed
+# outright (SIGKILL, a power cut) leaves one, and since the name carries that
+# run's pid no later run ever writes over it -- without this sweep nothing would
+# ever remove it (measured). Leftovers matter most in iTerm2's DynamicProfiles,
+# where every file in the directory is read: that is the same reason backups are
+# kept in a directory of their own, and the temp file must not undo it. A
+# concurrent run's temp file would be swept too; two setup.sh at once is not a
+# case this script serves.
+sweep_tmp_files() {
+  rm -f "$(dirname "$1")/.$(basename "$1").dotfiles-tmp."* 2>/dev/null || true
+}
 
 # The temp file deploy is writing, so an interrupt does not leave it behind.
 # Empty whenever there is none.
@@ -33,10 +57,6 @@ trap remove_deploy_tmp EXIT
 trap 'remove_deploy_tmp; exit 130' INT
 trap 'remove_deploy_tmp; exit 143' TERM
 
-# Set by backup_file to the copy it has just taken, so a caller can point a
-# message at it. Empty when there was nothing to back up.
-LAST_BACKUP=""
-
 # Say that something was not deployed and remember it for the summary. The
 # detail lines are the caller's, because what to do about it differs; what is
 # the same everywhere is that the run goes on and ends non-zero.
@@ -52,36 +72,46 @@ record_failure() {
   echo
 }
 
-# Copy an existing dst into BACKUP_DIR. Does nothing when dst is not there yet.
-# One run backs up several files with the same basename and a timestamp counts
-# whole seconds, so the name is made unique by counting up: the message deploy
-# prints promises the user a file at that path.
+# Copy an existing dst into BACKUP_DIR and print where it went. Prints nothing
+# when dst is not there yet. One run backs up several files with the same
+# basename and a timestamp counts whole seconds, so the name is made unique by
+# counting up: the message deploy prints promises the user a file at that path.
+#
+# The path goes back to the caller on stdout rather than through a global. A
+# global outlives the call: it was still holding one file's backup when a later
+# deploy failed before ever reaching here, and that deploy's cleanup deleted a
+# backup the run had already promised the user (measured, three ways -- the
+# plainest being a second run that only changes a key in settings.json).
 backup_file() {
-  local dst="$1" stem bak count=1
-  LAST_BACKUP=""
-  if [ -e "$dst" ]; then
-    # No directory, no backup, and a backup is what the caller is about to
-    # promise the user -- so this is a failure like any other here.
-    mkdir -p "$BACKUP_DIR" || return 1
-    stem="$BACKUP_DIR/$(basename "$dst").$(date +%Y%m%d%H%M%S)"
-    bak="$stem.bak"
-    while [ -e "$bak" ]; do
-      bak="$stem-$count.bak"
-      count=$((count + 1))
-    done
-    # Non-zero when there is a dst that cannot be copied: a directory in its
-    # place, a file that cannot be read, a disk that fills up. cp says why on
-    # stderr and deploy turns it into a warning.
-    #
-    # A cp that dies partway leaves a half-written file under a name that says
-    # it is a whole backup, and nothing else would ever remove it. Better no
-    # backup than a plausible-looking wrong one.
-    if ! cp "$dst" "$bak"; then
-      rm -f "$bak"
-      return 1
-    fi
-    LAST_BACKUP="$bak"
+  local dst="$1" base stem bak count=1 tmp
+  [ -e "$dst" ] || return 0
+  # No directory, no backup, and a backup is what the caller is about to
+  # promise the user -- so this is a failure like any other here.
+  mkdir -p "$BACKUP_DIR" || return 1
+  base="$(basename "$dst")"
+  stem="$BACKUP_DIR/$base.$(date +%Y%m%d%H%M%S)"
+  bak="$stem.bak"
+  while [ -e "$bak" ]; do
+    bak="$stem-$count.bak"
+    count=$((count + 1))
+  done
+  # Written to a temp file and renamed, the way a deployment is. A copy that
+  # dies partway must not be left under a name that says it is a whole backup,
+  # and checking cp's exit status cannot do that alone: a Ctrl-C during the copy
+  # leaves the script through the INT trap before any test of it could run, and
+  # a part-written .bak stayed behind under that name (measured). Under a temp
+  # name a half-written copy claims nothing and the next run sweeps it.
+  #
+  # Non-zero when there is a dst that cannot be copied: a directory in its
+  # place, a file that cannot be read, a disk that fills up. cp says why on
+  # stderr and deploy turns it into a warning.
+  tmp="$(tmp_for "$BACKUP_DIR/$base")"
+  sweep_tmp_files "$BACKUP_DIR/$base"
+  if ! cp "$dst" "$tmp" || ! mv -f "$tmp" "$bak"; then
+    rm -f "$tmp"
+    return 1
   fi
+  printf '%s\n' "$bak"
 }
 
 # Every managed file is deployed by this one call, and by nothing else.
@@ -109,17 +139,24 @@ backup_file() {
 # a dst whose directory is read-only is a failure here even where writing
 # through the existing file would have worked, and a dst that is replaced comes
 # out with the repository's mode rather than its own. A dst that is a symlink
-# is replaced by the file itself and the link's target is left alone (measured)
-# -- the opposite of writing through it, and the safer way round, since the
-# target is somewhere this script does not manage. The mode a rewritten dst
-# ends up with is the repository's less the umask (measured: under umask 077,
-# a 755 statusline.sh lands as 700).
+# whose target differs is replaced by the file itself and the link's target is
+# left alone (measured) -- the opposite of writing through it, and the safer way
+# round, since the target is somewhere this script does not manage. A symlink
+# whose target already holds the dotfiles copy never gets that far: the check
+# above reads through the link, finds no difference and returns, so that link
+# stays a link (measured). The mode a rewritten dst ends up with is the
+# repository's less the umask (measured: under umask 077, a 755 statusline.sh
+# lands as 700).
 #
 # Returns non-zero, having already warned and recorded it, when the file was
 # not deployed. Callers add `|| true` so that set -e does not turn the warning
 # back into an abort.
 deploy() {
-  local src="$1" dst="$2" dir
+  local src="$1" dst="$2" dir backup=""
+  # Before the check below rather than after it: a dst that is already correct
+  # still has to come out of a directory with no leftovers standing in it, and
+  # a run killed before the rename leaves both an old dst and a temp file.
+  sweep_tmp_files "$dst"
   # cmp -s keeps quiet about a difference but not about a dst it cannot open,
   # and a lone "Is a directory" naming neither the managed file nor what to do
   # about it is worse than no message. One of the commands below runs into the
@@ -129,15 +166,23 @@ deploy() {
     return 0
   fi
   dir="$(dirname "$dst")"
-  DEPLOY_TMP="$dir/.$(basename "$dst").dotfiles-tmp.$$"
-  if mkdir -p "$dir" && cp "$src" "$DEPLOY_TMP" && backup_file "$dst"; then
-    if mv "$DEPLOY_TMP" "$dst"; then
+  DEPLOY_TMP="$(tmp_for "$dst")"
+  # backup is local, and empty until backup_file has actually taken one, so the
+  # cleanup below can only ever remove this file's own backup.
+  if mkdir -p "$dir" && cp "$src" "$DEPLOY_TMP" && backup="$(backup_file "$dst")"; then
+    # -f because a read-only dst makes mv ask -- but only when stdin is a tty,
+    # which is exactly how a person runs this. The prompt defaults to "no" and
+    # mv then exits 0 having replaced nothing, so the run announced a file it
+    # had not written and left the temp file behind (measured under a pty). -f
+    # is also what mv already did with no tty, so this is the behaviour every
+    # earlier measurement of this script saw.
+    if mv -f "$DEPLOY_TMP" "$dst"; then
       # The rename took the temp file away, so there is nothing left to clean.
       DEPLOY_TMP=""
       # Announced after the rename, so the run only ever promises a backup of
       # contents that have actually been replaced.
-      if [ -n "$LAST_BACKUP" ]; then
-        echo "Backed up existing config to $LAST_BACKUP"
+      if [ -n "$backup" ]; then
+        echo "Backed up existing config to $backup"
       fi
       echo "Installed $dst"
       return 0
@@ -147,9 +192,8 @@ deploy() {
   # Nothing above reached the rename, so dst is as it was and this backup is a
   # copy of a file that is still there. Keeping it would add one more identical
   # .bak per run for as long as the cause lasts.
-  if [ -n "$LAST_BACKUP" ]; then
-    rm -f "$LAST_BACKUP"
-    LAST_BACKUP=""
+  if [ -n "$backup" ]; then
+    rm -f "$backup"
   fi
   record_failure "$dst was not deployed." \
     "The command that failed said why just above. The file still holds what" \
@@ -168,7 +212,10 @@ deploy() {
 # the values this machine is meant to have, so a theme picked in herdr's UI
 # goes back to the dotfiles one on the next run.
 if ! command -v herdr &>/dev/null; then
-  echo "herdr not found. Installing its config anyway."
+  # Says what is true of herdr, not what this run is about to do: the deploy
+  # below may well write nothing, and a run that changes nothing should not read
+  # as an install.
+  echo "herdr not found. Its config is managed here all the same:"
 fi
 deploy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml" || true
 
@@ -321,7 +368,10 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
   for failed in "${FAILURES[@]}"; do
     echo "  - $failed"
   done
-  echo "Each one is explained above. Everything else here was deployed."
+  # Not "everything else was deployed": a run can also skip a managed file for
+  # want of anywhere to put it (Windows Terminal, on a machine that is not WSL
+  # or has not got it), and those are named above too.
+  echo "Each one is explained above. Everything else was deployed or skipped as noted."
   exit 1
 fi
 
