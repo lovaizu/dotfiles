@@ -33,41 +33,21 @@ seg1=$(printf '%s\n' "$input" | jq -r '
     end
 ')
 
-# Model name: family + version, e.g. Opus5 / Sonnet5 / Fable5 / Haiku4.5.
-# No family is named in these rules on purpose — the old per-family list let
-# Fable through untouched, and the next new family would slip through too.
-# The parenthesised note ("(1M context)") is dropped to keep the segment to the
-# name; the C: segment above is where context size belongs.
-# display_name can arrive empty as well as absent, so pick the first non-empty
-# of display_name / id rather than relying on jq's // (empty string is truthy).
-# The normalisation lives in jq, not sed, because jq is already a hard
-# dependency and its regex engine (Oniguruma) is the same build on both hosts,
-# whereas sed is BSD on macOS and GNU on WSL — and the two really do disagree
-# about whether [[:space:]] covers a non-breaking space (GNU/glibc does not).
-# Doing it here also makes the result locale-independent.
-# The notes go first so the anchor below sees the real start of the name.
-# "Claude " is then stripped at the front only, so a name that merely contains
-# it ("Foo Claude 5") is not cut in half; the leading-whitespace tolerance is
-# there because a note removed from the front ("(beta) Claude Opus 5") leaves a
-# space the anchor would otherwise miss.
-# [\p{Z}\s] is the whitespace class throughout. Measured against jq 1.6, 1.7
-# and 1.7.1-apple: \p{Z} takes the Unicode separators (U+00A0, U+3000) but not
-# the tab or the newline, which are control characters rather than separators;
-# \s takes those two, and in these builds the separators as well. The union is
-# what keeps the class from depending on how Unicode-aware a given Oniguruma
-# build's \s happens to be. \s reaching the newline also means a name with one
-# embedded can no longer split the status line in two.
+# Model name: family + version — Opus5 / Sonnet5 / Fable5 / Haiku4.5. No family
+# is named: the old per-family list let Fable through. jq, unlike sed, measured
+# the same on both hosts. display_name arrives empty as well as absent, so take
+# the first non-empty of display_name / id — jq's // keeps empty strings. Order
+# matters: notes go first (context size is the C: segment's job) so the anchor
+# then strips a leading "Claude " only, leaving "Foo Claude 5" whole.
 model_name=$(printf '%s\n' "$input" | jq -r '
-  [.model.display_name, .model.id, "unknown"]
+  [.model.display_name, .model.id]
   | map(select(. != null and . != ""))
-  | first
+  | first // ""
   | gsub("\\([^)]*\\)"; "")
-  | sub("^[\\p{Z}\\s]*Claude[\\p{Z}\\s]"; "")
-  | gsub("[\\p{Z}\\s]"; "")
+  | sub("^\\s*Claude\\s"; "")
+  | gsub("\\s"; "")
 ')
-# A name that is nothing but a note or blanks ("(1M context)", "   ") is emptied
-# by the rules above; jq printing nothing at all (no jq on PATH, unparsable
-# input) lands here too. Without this the segment would degrade to a bare "/h".
+# Nothing but a note or blanks empties out under those rules; default it here.
 [ -n "$model_name" ] || model_name=unknown
 
 # Effort level first letter
