@@ -5,7 +5,7 @@ Design: .rn/20260822-herdr4mac/design.md
 
 この dotfiles の目的は、Win(WSL + Windows Terminal)と Mac(iTerm2)の端末環境を
 「clone → setup 一発」で再現し、毎回手で設定しなくて済むようにすること。そのために両OSの設定を
-同じ使い勝手に統一して管理する — テーマ(Gruvbox Dark)、フォント(HackGen Console NF 13)、
+同じ使い勝手に統一して管理する — テーマ(Gruvbox Dark)、フォント(HackGen Console NF 14)、
 herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctrl+alt+{[,],u}` / Mac:
 `⌃⌘{[,],U}` — HHKB では Alt と Cmd が同じ物理位置)、`⇧Enter` での改行送信。
 
@@ -17,13 +17,16 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 
 # Acceptance criteria
 
-- README に統一仕様が明文化されている: 操作×OS別キーの対応表(即時切替3操作・⇧Enter・プレフィックス
-  パススルー)、テーマ・フォント、セットアップ手順(Win / Mac 双方)
+- README が**意図と規則だけ**を書いている: 何ができるか(即時切替3操作・⇧Enter・プレフィックス
+  パススルー)、なぜそうなっているか(両OSで同じ指運び / 端末は暗くその上の UI は明るい)、
+  セットアップ手順(Win / Mac 双方)と手作業が要る箇所。**具体的な設定値は書かない** —
+  フォント名とサイズ・色の hex・テーマ名・送信バイト列はすべて設定ファイル側にしか置かない
+  (2か所でメンテできないため。キー対応表の列は「操作 / Win キー / Mac キー」まで)
 - iTerm2 用設定が dotfiles に存在し、インストールした iTerm2 で:
   - `⌃⌘[` が `0x14 0x5b`(`^T [`)、`⌃⌘]` が `0x14 0x5d`(`^T ]`)、`⌃⌘U` が `0x14 0x75`(`^T u`)を送信する
   - `⇧Enter` が `\n`(0x0a)を送信する
   - `⌃T` は横取りされず端末(herdr)に届く
-  - カラースキームは Gruvbox Dark、フォントは HackGen Console NF 13pt
+  - カラースキームは Gruvbox Dark、フォントは HackGen Console NF 14pt
 - windows-terminal/settings.json が統一仕様に整理されている: 即時切替は `ctrl+alt` 系のみ
   (`ctrl+shift` / `alt+shift` の別名チョードは削除)、`⇧Enter`→`\n`・`ctrl+t` 無効化・外観・
   プロファイル定義は維持
@@ -45,21 +48,18 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - `claude/settings.json` の `theme` が組み込みの `light` である。カスタムテーマの実体を
   dotfiles で抱えない(組み込みテーマなので他PCでの無警告フォールバックが起きない)
 - `setup.sh` の共通部が両OSで `~/.claude/settings.json` と `~/.claude/scripts/statusline.sh` を
-  配置し、既存ファイルは BACKUP_DIR に退避される。配置後の settings.json が有効な JSON である
+  丸ごと上書きで配置する。配置後の settings.json が有効な JSON である(Claude Code が書く他のもの —
+  `sessions/` `projects/` `history.jsonl` `plugins/` など — はすべて別ファイルなので巻き込まない)
 - `setup.sh` が `jq` 不在を検出して警告する(statusline.sh は jq が無いと exit 0 のまま
   ` |  | dir@branch` と壊れた表示になり、無言で失敗するため)
-- setup.sh の配置方式が2種類に分かれている: dotfiles でしか生成しないファイル
-  (`iterm2/herdr.json` / `claude/scripts/statusline.sh`)は丸ごと上書き、
-  アプリ側も書くファイル(`~/.claude/settings.json` / `~/.config/herdr/config.toml` /
-  WT の `settings.json`)は **項目マージ** — dotfiles が持つキーは置き換え、dotfiles に無いキーは
-  配置先のものを残す
-- 項目マージによって、配置先にしか存在しない設定(そのマシンで `/config` や herdr UI から変えた値、
-  WT がそのマシンの WSL ディストロ向けに生成したプロファイル)が失われない
-- アプリ自身が要素を書き足す配列は id で1件ずつ突き合わせてマージされ、dotfiles に無い要素が
-  配置先に残る: WT の `profiles.list`(`guid`)・`actions`(`id`)・`schemes`(`name`)、
-  Claude Code の `hooks.<Event>`(`matcher`)
-- マージ処理が `jq` と `tomllib` のどちらにも依存しない(mac の python3 は 3.9 系で `tomllib` が無く、
-  WSL 既定に `jq` が無いため)
+- **dotfiles が正**。setup.sh は管理対象のファイルをすべて丸ごと上書きする — 配置方式は1種類だけで、
+  ファイルごとの例外を持たない。dotfiles が持つ設定がそのマシンの設定であり、dotfiles からキーを
+  消せばマシンからも消える
+- 項目マージの機構(`lib/merge.py` と、それを呼ぶ `setup.sh` の経路、`tests/` のマージ用スイートと
+  ファザ)が repo に存在しない。アプリが書き戻した値(herdr のテーマ名・`onboarding`)は
+  上書きで dotfiles の値に戻り、WT がそのマシン向けに生成する WSL プロファイルは WT 自身が作り直す
+- 上書きに移行する初回だけ、既存ファイルを BACKUP_DIR に退避する(まだ dotfiles に集めていない
+  設定が残っている可能性があるため)。恒常的なバックアップ機構は持たない
 - README に Claude Code 設定の管理対象・herdr 統合の前提(`hooks/herdr-agent-state.sh` は herdr 側が
   導入するため dotfiles では管理しない)・セットアップ手順が記載されている。あわせて配布時に
   意識が要る3点が明記されている: `jq` が前提であること、`skipDangerousModePermissionPrompt: true`
@@ -127,7 +127,7 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 
 - README に対応表があり、即時切替3操作(previous/next workspace, next agent)・⇧Enter・⌃T
   パススルーについて Win / Mac 双方のキーと送信内容(herdr 列)が読み取れる
-- テーマ(Gruvbox Dark)・フォント(HackGen Console NF 13)と、両OSのセットアップ手順
+- テーマ(Gruvbox Dark)・フォント(HackGen Console NF 14)と、両OSのセットアップ手順
   (フォントの入手方法含む)が記載されている
 - 記載内容が steering の Acceptance criteria の対応表と矛盾しない
 
@@ -287,19 +287,32 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
   herdr / iTerm2 / WT の配置動作は変わらない
 - `jq` 不在時と herdr 統合フック不在時に、それぞれ警告が出てエラー終了しない
 
-### #8: README に Claude Code 設定の管理範囲と手順を追記する
+### #8: README を意図だけの記述に書き直し、Claude Code の管理範囲を加える
 
-**Purpose**: dotfiles が管理する Claude Code 設定の範囲・herdr 統合との境界・配置方式(上書き /
-項目マージ)・セットアップ後の確認方法を README に明文化する。
+**Purpose**: README が具体的な設定値を持っているため、値を変えるたびに2か所をメンテすることに
+なっている(フォントサイズの変更で発覚)。README の担当を「何ができるか / なぜそうなっているか /
+手でやるしかない箇所」に絞り、値は設定ファイル側にしか置かない。あわせて Claude Code 設定の
+管理範囲と、配布時に意識が要る前提を書く。
 
-**Prerequisites**: #6, #7, #9, #10
+**Prerequisites**: #10(配置方式が確定してから書く)
 
 **Steps**:
 
-- [ ] README.md に節を追加: 管理対象(`claude/settings.json` / `claude/scripts/statusline.sh`)と配置先、`claude/` 以下は `~/.claude/` の構造をそのまま写す規則、`hooks/herdr-agent-state.sh` は herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
-- [ ] 配布時に意識が要る3点を明記: `jq` が前提(不在だとステータスラインが無言で壊れる)、`skipDangerousModePermissionPrompt: true` も配布されること、`rn@ccpm` はバージョン非固定で初回オンライン起動が要ること
-- [ ] 配置方式の表を追加: どのファイルが「丸ごと上書き」でどれが「項目マージ」か、その理由(そのファイルをアプリ側も書くかどうか)
-- [ ] 項目マージでも dotfiles にあるキーは dotfiles 側の値で置き換わるため、手元での `/config`・herdr UI での変更を残したい場合は dotfiles 側にも反映する必要がある旨を明記
+- [ ] README から具体的な設定値を落とす: フォント名とサイズ、Gruvbox Dark の hex、`gruvbox-light` /
+      `light` というテーマ名、キー対応表の送信バイト列(`0x14 0x5b` 等)。対応表の列は
+      「操作 / Win キー / Mac キー」まで
+- [ ] 残す意図を明示的に書く: 両OSで同じ指運びになる理由(HHKB の Alt と ⌘ が同じ物理位置)、
+      `^T` が端末に横取りされず herdr に届くことが前提であること、テーマが3層あり
+      「端末は暗く、その上の UI は明るい」のは意図した組み合わせであること(ワークスペースの
+      選択状態を判別するため)
+- [ ] 配置方式を1行で書く: dotfiles が正で、管理対象はすべて丸ごと上書き。手元で `/config` や
+      herdr UI から変えた設定を残したいなら dotfiles 側に入れる
+- [ ] Claude Code の管理対象(`claude/settings.json` / `claude/scripts/statusline.sh`)と配置先、
+      `claude/` 以下は `~/.claude/` の構造をそのまま写す規則、`hooks/herdr-agent-state.sh` は
+      herdr 側が導入する旨、`./setup.sh` 後に Claude Code を再起動して反映する旨
+- [ ] 配布時に意識が要る3点: `jq` が前提(不在だとステータスラインが無言で壊れる)、
+      `skipDangerousModePermissionPrompt: true` も配布されること、`rn@ccpm` はバージョン非固定で
+      初回オンライン起動が要ること
 - [ ] 記載内容が steering の Acceptance criteria および実際の setup.sh の挙動と一致することを照合
 - [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
 - [ ] QA expert review (subagent)
@@ -308,14 +321,20 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
 
 **Completion criteria**:
 
+- README に具体的な設定値が残っていない — フォント名・サイズ、色の hex、テーマ名、送信バイト列を
+  grep して0件。設定値を知りたい読者が、どの設定ファイルを見ればよいか分かる
 - README を読んだ第三者が、dotfiles が管理する Claude Code 設定ファイルと配置先、および
   管理しないもの(herdr 統合フックの本体、output-styles)を区別できる
 - `jq` 前提・`skipDangerousModePermissionPrompt` の配布・`rn@ccpm` のバージョン非固定・
-  `/config` 変更の手戻し運用の4点が記載されている
-- 記載された手順が実際の setup.sh の挙動と一致し、README 内の既存記述(端末統一仕様)と矛盾しない
+  「dotfiles が正なので手元の変更は dotfiles に入れる」の4点が記載されている
+- 記載された手順が実際の setup.sh の挙動と一致し、README 内の既存記述と矛盾しない
 
+### #9: setup.sh に項目マージのヘルパーを実装する — 撤回(2026-09-01)
 
-### #9: setup.sh に項目マージのヘルパーを実装する
+**撤回理由**: dotfiles が正であり、すべて丸ごと上書きする方針にユーザーが決めた。項目マージが
+守ろうとした「配置先にしか無い設定」は、マシンの在庫情報(WT の WSL プロファイル、WT が作り直す)か、
+アプリの書き戻し(herdr のテーマ名、上書きで戻るのが望ましい挙動)で、守る価値が無かった。
+成果物の撤去は #10。
 
 **Purpose**: アプリ側も書く設定ファイルに対して「dotfiles が持つキーだけを置き換え、dotfiles に
 無いキーは配置先のものを残す」マージを、`jq` にも `tomllib` にも依存せず行えるようにする。
@@ -357,7 +376,9 @@ settings.json・statusline.sh・カスタムテーマが置かれるようにす
   Ubuntu の python3 の双方で動く
 - 書き込みが原子的で、途中で中断しても配置先が半端な内容にならない
 
-### #13: マージャを `lib/merge.py` に切り出し、テストをリポジトリに入れる
+### #13: マージャを `lib/merge.py` に切り出し、テストをリポジトリに入れる — 撤回(2026-09-01)
+
+**撤回理由**: #9 と同じ。切り出した `lib/merge.py` ごと撤去する(#10)。
 
 **Purpose**: `setup.sh` は 1360 行あり、その 1100 行超が埋め込み python で、シェルとしても
 python としても読めない。切り出して両方を読める形にする。あわせて #9 の根拠(回帰スイートと
@@ -373,9 +394,7 @@ python としても読めない。切り出して両方を読める形にする�
 - [x] `tests/README.md` に走らせ方(オラクルに 3.12 が要る旨、マージ本体は 3.9 に投げる旨、`realdata.sh` が実ファイルをコピーしか触らない旨)を書く
 - [x] 切り出し前後で `suite.py` が同じ結果(`PASS=127 FAIL=0`)であることと、`realdata.sh` が同じ結末になることを確認
 - [x] self-check (OK/NG per completion criterion, record in checks/13.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [-] QA / Craft / Verification expert review — 撤回により不要(成果物ごと #10 で撤去する)
 
 **Completion criteria**:
 
@@ -384,34 +403,62 @@ python としても読めない。切り出して両方を読める形にする�
 - `tests/` から `suite.py` が repo だけで走り、`PASS=127 FAIL=0`
 - 切り出しによる挙動の変化がない(`realdata.sh` の結末と `suite.py` の結果が切り出し前と一致)
 
-### #10: herdr と Windows Terminal の配置を項目マージに切り替える
+### #10: 配置を丸ごと上書きに統一し、項目マージ機構を撤去する
 
-**Purpose**: 既に丸ごと上書きで配置している `~/.config/herdr/config.toml` と WT の
-`settings.json` を #9 のヘルパー経由に切り替え、配置先固有の設定が消えないようにする。
+**Purpose**: 「dotfiles が正」という原則に実装を合わせる。項目マージは「配置先にしか無い設定を
+消さない」ために作ったが、守る対象が実在しないか、むしろ上書きされるべきものだった。そして
+このセッションで見つかった不具合 — 同じ matcher のフック消失、大小文字の畳み込み、`keybindings` の
+チョードだけが消える、`themes: []` が配置先のテーマ定義を削除する、意図的に消した action の復活、
+`[[keys.command]]` があると何も配られない、冪等性違反 — は**すべてマージ機構だけが原因**だった。
+加えてマージには削除の概念が無く、dotfiles からキーを消してもマシンから消えないため、
+「dotfiles が正」を今の実装は満たしていない。
 
-**Prerequisites**: #9
+**Prerequisites**: none
 
 **Steps**:
 
-- [ ] `setup.sh` の herdr ブロックを `merge_toml` 経由に切り替える
-- [ ] `setup.sh` の WT ブロックを `merge_json` 経由に切り替える(`profiles.list` / `actions` / `schemes` の id 単位マージつき)
-- [ ] mac 上で実行し、`~/.config/herdr/config.toml` の dotfiles 由来のキーが反映され、herdr が書き込んだ dotfiles 外のキーが残ることを確認。`herdr config check` が通ることも確認
-- [ ] WT 経路は mac で実行できないため、擬似的な配置先ファイル(別マシンを模して WSL ディストロが異なるもの)を作ってマージ結果をコードレビューで確認する。実機確認は次回 Windows 同期時
-- [ ] herdr の `[theme] name` が dotfiles の値どおりに反映されることを確認する(8/24 時点で配置先が `gruvbox-light` に書き戻されており、#5 の revise (c) が効いていない状態)
+- [ ] `setup.sh` の `merge_json` / `merge_toml` / `merge_config` / `drop_identical_backup` を削除し、herdr・WT・Claude Code の3経路を `backup_then_copy` に戻す
+- [ ] `lib/merge.py` を削除する。`tests/` からマージ専用のもの(`suite.py` / `fuzzmut.py` / `fuzzrand.py` / `h.py` と、`realdata.sh` のマージ検証部)を削除する。`tests/` が空になるなら README ごと落とす
+- [ ] 初回移行のためのバックアップだけ残す(`backup_then_copy` の既存の退避を維持)。恒常的なバックアップ機構・同一バックアップの削除処理は不要なら落とす
+- [ ] `design.md` の §4.7(項目マージの保証・id 突き合わせ・4系統の終末)と、それを参照している箇所を撤去し、「全部上書き、dotfiles が正」に書き換える。§4.4 の未使用 action の話も上書き前提に戻す
+- [ ] mac で `setup.sh` を実行し exit 0、herdr config / Claude settings / statusline.sh / iTerm2 プロファイルが dotfiles の内容そのものになることを確認。2回流して冪等であることも確認
+- [ ] WSL 経路は mac で実行できないため、`uname` シムとスタブで到達して確認する。あわせて WSL でない Linux で `wslpath` 不在により落ちる既存の穴(レビュー指摘)を塞ぐ
 - [ ] self-check (OK/NG per completion criterion, record in checks/10.md)
+- [ ] QA expert review (subagent)
+- [ ] Design expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+
+**Completion criteria**:
+
+- `lib/merge.py` が存在せず、`setup.sh` にマージ経路が残っていない。管理対象のファイルは
+  すべて同じ1つの方式(丸ごと上書き)で配置される
+- mac 上で `setup.sh` が exit 0 で完了し、配置された4ファイルが dotfiles の内容と一致する。
+  2回流してもバイト列が変わらない
+- `herdr config check` が配置後の config.toml に対して通る
+- WSL でない Linux で `wslpath` 不在により setup が落ちない
+- `design.md` と `steering.md` と `setup.sh` が同じことを言っている(項目マージへの言及が残らない)
+
+### #14: フォントサイズを 14 にする
+
+**Purpose**: 13pt が小さいというユーザーの判断。統一仕様の変更。
+
+**Prerequisites**: none
+
+**Steps**:
+
+- [ ] `iterm2/herdr.json` の `Normal Font` を `HackGenConsoleNF-Regular 14` にする
+- [ ] `windows-terminal/settings.json` の `profiles.defaults` のフォントサイズを 14 にする
+- [ ] 配置して mac で実機確認(ユーザーが見て判断する)
+- [ ] self-check (OK/NG per completion criterion, record in checks/14.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
-- mac 上で `setup.sh` が exit 0 で完了し、`~/.config/herdr/config.toml` が dotfiles のキーを反映
-  しつつ dotfiles 外のキーを保っている。`herdr config check` が通る
-- 擬似的な WT 配置先(dotfiles に無い WSL ディストロのプロファイルを含むもの)に対してマージした
-  結果に、そのプロファイルが残っている
-- 既存の iTerm2 / statusline.sh の配置は従来どおり丸ごと上書きのままである
-- setup.sh が両OSで exit 0 のまま(WSL 経路は静的レビューまで)
-
+- 両OSの端末設定でフォントサイズが 14 になっている。README は数字を持たない(#8 の規則)
+- iTerm2 で実際に 14pt で表示されることをユーザーが確認している
 
 ### #11: iTerm2 プロファイルの色定義の欠落を塞ぐ
 
