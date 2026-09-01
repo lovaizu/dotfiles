@@ -45,13 +45,21 @@ display=$(printf '%s\n' "$input" | jq -r '
   | map(select(. != null and . != ""))
   | first
 ')
-# The leading-space tolerance matters: a note removed from the front leaves one
-# behind, and the anchor would otherwise miss. The anchor itself stays so names
-# like "Claudette 5" are not mangled.
+# The notes go first so the anchor below sees the real start of the name.
+# "Claude " is then stripped at the front only, so a name that merely contains
+# it ("Foo Claude 5") is not cut in half; the leading-space tolerance is there
+# because a note removed from the front ("(beta) Claude Opus 5") leaves a space
+# the anchor would otherwise miss.
+# Whitespace is squeezed by the POSIX class rather than a literal space, so a
+# tab — or, under a UTF-8 locale, a non-breaking / ideographic space — is closed
+# up too.
 model_name=$(printf '%s\n' "$display" | sed -E \
-  -e 's/ *[(][^)]*[)]//g' \
+  -e 's/[(][^)]*[)]//g' \
   -e 's/^ *Claude //' \
-  -e 's/ //g')
+  -e 's/[[:space:]]//g')
+# A name that is nothing but a note or blanks ("(1M context)", "   ") is emptied
+# by the rules above; without this the segment would degrade to a bare "/h".
+[ -n "$model_name" ] || model_name=unknown
 
 # Effort level first letter
 effort=$(printf '%s\n' "$input" | jq -r '.effort.level // empty')
