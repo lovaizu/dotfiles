@@ -529,16 +529,19 @@ herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っ�
 
 **Steps**:
 
-- [ ] `claude/scripts/statusline.sh` のモデル略記処理を、括弧注記の除去 → `Claude ` 接頭辞の除去 →
-      空白の除去、という家族名に依存しない規則に置き換える
-- [ ] 実際の入力形状で確認する: `Opus 5 (1M context)` / `Sonnet 5` / `Fable 5` / `Haiku 4.5` /
+- [x] `claude/scripts/statusline.sh` のモデル略記処理を、括弧注記の除去 → `Claude ` 接頭辞の除去 →
+      空白の除去、という家族名に依存しない規則に置き換える(`6bab994`)。レビューで sed が mac=BSD /
+      WSL=GNU で割れることが実測されたため、正規化は jq 側に移した(`f740dcb`)— jq は既に必須依存で、
+      実測上どちらのホストでも同じ結果を返す。あわせて `echo` を `printf` に置換(7箇所)— どちらの
+      シェルの `echo` もバックスラッシュを展開して JSON を壊していた既存の穴
+- [x] 実際の入力形状で確認する: `Opus 5 (1M context)` / `Sonnet 5` / `Fable 5` / `Haiku 4.5` /
       `Claude Sonnet 4.5`、および `display_name` が無く `model.id` にフォールバックする形状と、
       `effort.level` の有無の両方
-- [ ] `sh -n` と `dash -n` で構文検証し、`~/.claude/scripts/statusline.sh` に配置して実表示を確認する
-- [ ] self-check (OK/NG per completion criterion, record in checks/15.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] `sh -n` と `dash -n` で構文検証し、`~/.claude/scripts/statusline.sh` に配置して実表示を確認する
+- [x] self-check (OK/NG per completion criterion, record in checks/15.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
