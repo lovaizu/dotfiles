@@ -14,8 +14,8 @@ LAST_BACKUP=""
 
 # Copy an existing dst into BACKUP_DIR. Does nothing when dst is not there yet.
 # One run backs up several files with the same basename and a timestamp counts
-# whole seconds, so the name is made unique by counting up: the messages
-# promise the user a file at that path.
+# whole seconds, so the name is made unique by counting up: the message
+# backup_then_copy prints promises the user a file at that path.
 backup_file() {
   local dst="$1" stem bak count=1
   LAST_BACKUP=""
@@ -31,15 +31,14 @@ backup_file() {
     done
     # Non-zero when there is a dst but it cannot be copied -- a directory in
     # its place, a file that cannot be read, a disk that fills up. cp says why
-    # on stderr and the caller decides what that means: merge_config warns and
-    # carries on, backup_then_copy hands the non-zero on to whoever called it,
-    # where set -e stops the setup for most of them and install_statusline
-    # turns it into a warning.
+    # on stderr and the caller decides what that means: backup_then_copy hands
+    # the non-zero on to whoever called it, where set -e stops the setup for
+    # most of them and install_statusline turns it into a warning.
     #
     # A cp that dies partway leaves a half-written file under a name that says
     # it is a whole backup, and nothing else would ever remove it: LAST_BACKUP
-    # stays empty, so drop_identical_backup never sees it and no message ever
-    # names it. Better no backup than a plausible-looking wrong one.
+    # stays empty, so no message ever names it. Better no backup than a
+    # plausible-looking wrong one.
     if ! cp "$dst" "$bak"; then
       rm -f "$bak"
       return 1
@@ -48,138 +47,50 @@ backup_file() {
   fi
 }
 
-# Say where the backup went. Separate from backup_file because merge_config
-# only knows whether the copy was worth keeping once the merge has run.
-announce_backup() {
-  [ -n "$LAST_BACKUP" ] && echo "Backed up existing config to $LAST_BACKUP"
-  return 0
-}
-
-# One wording for "dst now holds the dotfiles copy", from every path there.
+# One wording for "dst now holds the dotfiles copy", from both paths there.
 installed() { echo "Installed $1"; }
 
-# Throw away a backup that turned out to hold exactly what now sits at dst.
-# A backup nobody can use is litter: re-running setup.sh with nothing to
-# change would otherwise leave one more identical .bak behind every time. The
-# copy is still taken up front by backup_file -- once the new content has
-# been written the old file is gone, so there is no deciding this afterwards.
-drop_identical_backup() {
-  if [ -n "$LAST_BACKUP" ] && cmp -s "$LAST_BACKUP" "$1"; then
-    rm -f "$LAST_BACKUP"
-    LAST_BACKUP=""
-  fi
-  return 0
-}
-
-# Copy src to dst, backing up an existing dst first. For the files only
-# dotfiles ever writes: the whole file is ours, so it is replaced wholesale.
+# Copy src over dst, backing up an existing dst first. This is the only way
+# anything here is deployed, and every managed file goes through it: dotfiles
+# is the source of truth, so the whole file is replaced and no file gets a
+# method of its own. A setting made on the machine that dotfiles does not
+# carry does not survive the next run -- to keep one, put it in dotfiles.
 #
-# Returns non-zero when there is a dst that cannot be copied or replaced,
+# A dst that already holds the dotfiles copy is left untouched. There is
+# nothing to write, and the backup is for the one run that moves this machine
+# onto dotfiles: a copy of a file that is byte-for-byte the one in the
+# repository would be litter that every later run adds to.
+#
+# Returns non-zero when there is a dst that cannot be backed up or replaced,
 # rather than leaving that to set -e inside the function: the caller decides
 # what a failure means, and most of them let set -e stop the setup.
 backup_then_copy() {
-  local src="$1" dst="$2" status=0
+  local src="$1" dst="$2"
+  if cmp -s "$src" "$dst"; then
+    installed "$dst"
+    return 0
+  fi
   backup_file "$dst" || return 1
-  cp "$src" "$dst" || status=$?
-  # Dropped on the failure path as well: cp that could not start leaves dst
-  # exactly as it was, so the copy of it is as useless as one taken before a
-  # write that changed nothing. A cp that got partway through does change
-  # dst, and that backup survives here and is announced below.
-  drop_identical_backup "$dst"
-  announce_backup
-  [ "$status" -eq 0 ] || return "$status"
+  # Said before the copy rather than after it: a cp that dies partway has
+  # already changed dst, and that is exactly when the user needs to be told
+  # where the old contents went.
+  if [ -n "$LAST_BACKUP" ]; then
+    echo "Backed up existing config to $LAST_BACKUP"
+  fi
+  cp "$src" "$dst" || return 1
   installed "$dst"
 }
 
-# Merge src into dst item by item, backing up an existing dst first. For the
-# files the application itself also writes: the keys dotfiles has are set to
-# the dotfiles value, the keys only dst has are left alone. Both take
-# (src, dst) exactly like backup_then_copy.
-#
-# Only a broken src stops the setup; a broken dst is replaced and a merge that
-# cannot be done leaves dst untouched, both with a warning. dst is replaced
-# atomically. The merger's docstring has the outcomes in full.
-#
-# Read-modify-write, so it assumes herdr and Claude Code are not writing the
-# same file at the same moment. Run setup.sh with them closed, or expect to
-# re-apply a change made in their UI while it ran.
-merge_json() {
-  merge_config json "$1" "$2"
-}
-
-merge_toml() {
-  merge_config toml "$1" "$2"
-}
-
-# Shared body of merge_json / merge_toml: back up dst, then hand both files to
-# lib/merge.py. Backing up here keeps the one backup rule in one place -- the
-# merger only ever writes dst.
-merge_config() {
-  local format="$1" src="$2" dst="$3" status=0
-  # `command -v python3` is not the test: macOS ships a /usr/bin/python3 shim
-  # that exists until something invokes it. Running it is.
-  if ! python3 -c 'pass' &>/dev/null; then
-    # Nothing here to discard, so copy: refusing would leave a fresh mac with
-    # no configuration at all. An existing file is left alone instead -- the
-    # application writes it too, and overwriting it discards what only it has.
-    if [ ! -e "$dst" ]; then
-      if cp "$src" "$dst"; then
-        installed "$dst"
-      else
-        echo
-        echo "WARNING: $dst could not be written."
-        echo "  The dotfiles settings for it were not applied."
-        echo
-      fi
-      return 0
-    fi
-    echo
-    echo "WARNING: python3 does not run, so $dst was left as it is."
-    echo "  Merging config files needs it (macOS: xcode-select --install)."
-    echo "  The dotfiles copy was NOT written over it on purpose: this file is"
-    echo "  one the application writes too, and overwriting it would discard"
-    echo "  the settings that exist only on this machine."
-    echo
-    return 0
-  fi
-  # No backup, no merge: the merger promises the user a copy of whatever it
-  # replaces, and it cannot make that promise without this one.
-  if ! backup_file "$dst"; then
-    echo
-    echo "WARNING: $dst could not be copied, so it was left as it is."
-    echo "  The dotfiles settings for it were not applied."
-    echo
-    return 0
-  fi
-  MERGE_BACKUP="$LAST_BACKUP" python3 "$DOTFILES_DIR/lib/merge.py" \
-    "$format" "$src" "$dst" || status=$?
-  drop_identical_backup "$dst"
-  announce_backup
-  # One line per exit code the merger has. Anything else is a broken src,
-  # which stops the setup.
-  case "$status" in
-    0) echo "Merged $(basename "$src") into $dst" ;;
-    3) echo "Replaced $dst with $(basename "$src") -- see the warning above" ;;
-    4) echo "Left $dst as it is -- see the warning above" ;;
-    5) installed "$dst" ;;
-    6) echo "Could not install $dst -- see the warning above" ;;
-    *) return "$status" ;;
-  esac
-}
-
 # herdr (common)
-# herdr writes this file itself -- the onboarding flag and the theme name are
-# both saved back by it -- so a whole-file copy would discard what only this
-# machine has, and with it the comments and key order of a file the user
-# edits by hand as well.
+# herdr writes this file itself -- it saves the theme name and the onboarding
+# flag back into it -- and the overwrite is what corrects that: dotfiles holds
+# the values this machine is meant to have, so a theme picked in herdr's UI
+# goes back to the dotfiles one on the next run.
 if ! command -v herdr &>/dev/null; then
   echo "herdr not found. Installing its config anyway."
 fi
-# Quietly, and without stopping the setup: merge_toml names the file it could
-# not write, and this is the first deployment of the run -- dying here would
-# cost every one below it over a directory only this file needs.
-mkdir -p "$HOME/.config/herdr" 2>/dev/null || true
-merge_toml "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+mkdir -p "$HOME/.config/herdr"
+backup_then_copy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 
 # Claude Code (common)
 # statusline.sh reads its input with jq and exits 0 without it, so the status
@@ -194,28 +105,25 @@ if ! command -v jq &>/dev/null; then
   echo
 fi
 # herdr's integration installer writes the hook script, so dotfiles carries
-# the hook entry but not the script it points at. Said before the merge, so
-# the wording is about the entry dotfiles carries rather than about a
-# settings.json that may not have it yet or may be left as it is.
+# the hook entry but not the script it points at.
 if [ ! -f "$HOME/.claude/hooks/herdr-agent-state.sh" ]; then
   echo
   echo "WARNING: ~/.claude/hooks/herdr-agent-state.sh is missing."
   echo "  The SessionStart hook dotfiles carries points at it, so once the"
   echo "  settings.json below is in place Claude Code runs a script that is"
-  echo "  not there, every session -- unless the merge leaves the file as it"
-  echo "  is, which it says when it does."
+  echo "  not there, every session."
   echo "  Fix: install the herdr integration (herdr integration ...)."
   echo
 fi
 
 # The status line, as a step of its own so that a home directory this machine
 # will not let us write is a warning rather than an abort. Not the file's
-# habit -- the herdr and iTerm2 blocks around it do stop the setup, and the
-# merge is the one neighbour that warns and carries on. It is the position
-# that earns it: this block sits between the settings.json merge and the
-# terminal profile, so dying here would cost two deployments that have
-# nothing to do with the status line. set -e does not apply inside a function
-# whose result the caller tests, so each command carries its own || return.
+# habit -- every other deployment here stops the setup. It is the position
+# that earns it: this block sits between the herdr config above and the
+# settings.json and terminal profile below, so dying here would cost two
+# deployments that have nothing to do with the status line. set -e does not
+# apply inside a function whose result the caller tests, so each command
+# carries its own || return.
 #
 # 1 means nothing was deployed; 2, the copy is there but chmod on it failed.
 # cp gives a dst it creates the source's mode, so a fresh statusline.sh is
@@ -257,14 +165,12 @@ case "$statusline_status" in
 esac
 
 # Claude Code writes this file itself (/config, /output-style, the theme
-# picker), so a whole-file copy would discard whatever this machine set that
-# dotfiles does not carry.
-#
-# ~/.claude is made next to the write that needs it rather than left to
-# install_statusline above, and quietly, because merge_json names the file it
-# could not write anyway.
-mkdir -p "$HOME/.claude" 2>/dev/null || true
-merge_json "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
+# picker), and it is replaced whole all the same: what was set here and is not
+# in dotfiles goes back to the dotfiles value. Everything else Claude Code
+# writes -- sessions/, projects/, history.jsonl, plugins/ -- is a different
+# file and is not touched.
+mkdir -p "$HOME/.claude"
+backup_then_copy "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
 
 # OS-specific setup
 case "$(uname -s)" in
@@ -300,16 +206,30 @@ case "$(uname -s)" in
     fi
     ;;
   *)
-    # Windows Terminal (Windows side)
-    WT_DIR="$(wslpath "$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')")/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
-    if [ -d "$WT_DIR" ]; then
-      # Windows Terminal writes this file itself, and writes into the very
-      # arrays dotfiles carries: a profile per WSL distro, an action and a
-      # scheme per thing set in its settings UI. Those three are matched by
-      # id, so this machine's own keep their place beside the dotfiles ones.
-      merge_json "$DOTFILES_DIR/windows-terminal/settings.json" "$WT_DIR/settings.json"
+    # Windows Terminal (Windows side). The Windows-side path is found through
+    # wslpath and cmd.exe, and both exist only under WSL -- on a Linux box that
+    # is not one there is no Windows to deploy to, and asking for wslpath
+    # anyway would abort the whole setup here over a file this machine has no
+    # place for.
+    if ! command -v wslpath &>/dev/null || ! command -v cmd.exe &>/dev/null; then
+      echo "Not WSL (no wslpath / cmd.exe). Skipping Windows Terminal."
     else
-      echo "Windows Terminal not found. Skipping."
+      # cmd.exe ends the value with a CR. One that fails, or answers with
+      # nothing, leaves this empty -- a skip, rather than a wslpath called
+      # with no argument.
+      appdata="$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r' || true)"
+      if [ -n "$appdata" ]; then
+        appdata="$(wslpath "$appdata" 2>/dev/null || true)"
+      fi
+      WT_DIR="$appdata/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
+      if [ -n "$appdata" ] && [ -d "$WT_DIR" ]; then
+        # Windows Terminal writes this file itself, and the overwrite costs it
+        # nothing it cannot rebuild: the profiles it generates per WSL distro
+        # are this machine's inventory and it generates them again.
+        backup_then_copy "$DOTFILES_DIR/windows-terminal/settings.json" "$WT_DIR/settings.json"
+      else
+        echo "Windows Terminal not found. Skipping."
+      fi
     fi
     ;;
 esac
