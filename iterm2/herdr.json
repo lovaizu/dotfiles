@@ -3,7 +3,7 @@
     {
       "Name": "herdr",
       "Guid": "8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038",
-      "Normal Font": "HackGenConsoleNF-Regular 13",
+      "Normal Font": "HackGenConsoleNF-Regular 14",
       "Keyboard Map": {
         "0x5b-0x140000": {
           "Action": 12,

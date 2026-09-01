@@ -30,7 +30,7 @@ herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/c
 | 端末そのものの配色 | Gruvbox Dark(背景 `#282828` / 前景 `#EBDBB2`) | Win: `windows-terminal/settings.json` の `profiles.defaults.colorScheme` / Mac: `iterm2/herdr.json` の色定義 |
 | herdr の UI テーマ | `gruvbox-light` | `herdr/config.toml` の `[theme] name` |
 | Claude Code の UI テーマ | `light`(組み込み) | `claude/settings.json` の `theme` |
-| フォント | HackGen Console NF 13(Win: `HackGen Console NF` 13pt / Mac: `HackGenConsoleNF-Regular` 13pt) | Win: `profiles.defaults` / Mac: `iterm2/herdr.json` |
+| フォント | HackGen Console NF(Mac でのフォント名は `HackGenConsoleNF-Regular`) | Win: `profiles.defaults` の `font` / Mac: `iterm2/herdr.json` の `Normal Font` |
 
 Windows Terminal では `profiles.defaults` にテーマ・フォントを置き、全プロファイル(PowerShell / Ubuntu / ClaudeCode / my など)が継承する。個別プロファイルでの上書きは行わない。
 
