@@ -29,13 +29,16 @@ seg1=$(echo "$input" | jq -r '
     end
 ')
 
-# Model abbreviation: Opus→O, Sonnet→S, Haiku→H + version
+# Model name: family + version, e.g. Opus5 / Sonnet5 / Fable5 / Haiku4.5.
+# No family is named in these rules on purpose — the old per-family list let
+# Fable through untouched, and the next new family would slip through too.
+# The parenthesised note ("(1M context)") is dropped because the C: segment
+# above already states the context size.
 display=$(echo "$input" | jq -r '.model.display_name // .model.id // "unknown"')
 abbrev=$(echo "$display" | sed -E \
-  -e 's/Claude //' \
-  -e 's/Opus ?/O/' \
-  -e 's/Sonnet ?/S/' \
-  -e 's/Haiku ?/H/')
+  -e 's/ *[(][^)]*[)]//g' \
+  -e 's/^Claude //' \
+  -e 's/ //g')
 
 # Effort level first letter
 effort=$(echo "$input" | jq -r '.effort.level // empty')
