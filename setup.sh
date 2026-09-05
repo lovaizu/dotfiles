@@ -1,11 +1,68 @@
 #!/bin/bash
 set -euo pipefail
 
+# Every destination below is built from HOME, so a HOME that is not set is not a
+# machine this script can deploy to. The check comes before the traps because
+# after them a `set -u` fatal is handed back as exit 0 (see the traps), and this
+# is exactly how that used to bite: with XDG_CONFIG_HOME and XDG_STATE_HOME both
+# set, the two expansions of $HOME above the OS branch were never reached, so
+# the run deployed herdr's config, died on the first bare $HOME with "unbound
+# variable", deployed no iTerm2 profile, listed no failure, printed no "Done."
+# and exited 0 (measured). A trimmed environment reaches here that way in
+# ordinary use -- a systemd unit, a cron, a docker run. An empty HOME is as
+# useless as an unset one, since every destination would then be an absolute
+# path with nothing in front of it, and :? refuses both.
+: "${HOME:?HOME is not set. Every path this script deploys to is built from it.}"
+
 # Names at this level: capitals for what outlives the block that sets it -- the
 # settings here, and the state the traps read -- and lower case for a value one
-# block works out and spends on the spot (iterm_dir, wt_dir, appdata,
-# default_guid). Inside the functions everything is a local and lower case.
+# block works out and spends on the spot, iterm_dir and wt_dir among them.
+# Inside the functions everything is a local and lower case.
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# The XDG base directories, read through one test rather than straight, because
+# unset is not the only value that has to fall back on the default: a relative
+# one is worse than none. The specification says a value that is not an absolute
+# path is invalid and must be ignored, and using it literally instead makes
+# every destination relative to whatever directory the run was started in
+# (measured: with XDG_CONFIG_HOME=relcfg, the same run from two directories
+# deployed to work/relcfg/herdr/config.toml and to elsewhere/relcfg/herdr/
+# config.toml, and said "Done." both times). Both of this script's promises
+# break there -- the file is not where the program reads it, and a second run
+# from another directory writes somewhere else again instead of saying Up to
+# date -- so anything not beginning with / is ignored here, for both variables
+# and by the same "is it absolute" question the WSL branch asks of
+# %LOCALAPPDATA%.
+#
+# Ignoring it is not done in silence. herdr does not follow the specification on
+# such a machine: it resolves a relative value against its own working directory
+# (measured: with XDG_CONFIG_HOME=relcfg and a broken config.toml under ./relcfg,
+# `herdr config check` reported that file's parse error; run from a directory
+# with no relcfg beside it, the same command said "config: ok" and read the one
+# under ~/.config). So no single path this script could write is sure to be the
+# one herdr reads, and a run that quietly took the default would be claiming
+# more than it knows. The warning is spoken further down, where warn exists.
+#
+# The answer comes back in xdg_base rather than on stdout because the caller is
+# not the only thing this has to tell: a command substitution runs in a subshell,
+# and the note of what was ignored would not survive it. xdg_base is read on the
+# line after the call and never again, so it is lower case like the other values
+# a block works out and spends; XDG_IGNORED outlives this block and is not.
+XDG_IGNORED=""
+xdg_base=""
+set_xdg_base() {
+  local name="$1" value="${2:-}" fallback="$3"
+  case "$value" in
+    /*)
+      xdg_base="$value"
+      return 0
+      ;;
+  esac
+  if [ -n "$value" ]; then
+    XDG_IGNORED="${XDG_IGNORED}${XDG_IGNORED:+, }$name"
+  fi
+  xdg_base="$fallback"
+}
 
 # Where the deployed files go. The XDG variables are read wherever the program
 # that owns the file reads them: herdr looks under $XDG_CONFIG_HOME when it is
@@ -15,16 +72,25 @@ DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 # deploying to ~/.config on such a machine would write a file herdr never reads
 # and still call the run a success (measured: the run said "Installed
 # .../.config/herdr/config.toml" and left the XDG directory empty).
-HERDR_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml"
+set_xdg_base XDG_CONFIG_HOME "${XDG_CONFIG_HOME:-}" "$HOME/.config"
+HERDR_CONFIG="$xdg_base/herdr/config.toml"
 
 # Backups go to a directory of their own because of what iTerm2 does with
 # DynamicProfiles: it reads every file in that directory except the ones whose
 # name begins with a dot or ends with a tilde (measured: the iTerm2 binary
 # carries "Skipping it because of leading dot" and "Skipping it because of
 # trailing tilde (GNU-style backup file)" beside reallyReloadDynamicProfiles).
-# A backup is named herdr.json.<timestamp>.bak, which is neither, so one left
-# beside the profile would be read as a second profile with a duplicate Guid.
-BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
+# A backup is named herdr.json.<timestamp>.bak, which is neither of those, so
+# one left beside the profile should be read as a second profile with a
+# duplicate Guid. Should: the strings are measured, that reading of them is not
+# -- iTerm2 has not been run on a DynamicProfiles directory holding a .bak to
+# watch it happen. The inference is enough to keep backups elsewhere, which
+# costs nothing either way.
+#
+# XDG_STATE_HOME rather than a path of this script's own so that the two XDG
+# variables are treated alike here; nothing but this script reads BACKUP_DIR.
+set_xdg_base XDG_STATE_HOME "${XDG_STATE_HOME:-}" "$HOME/.local/state"
+BACKUP_DIR="$xdg_base/dotfiles-backups"
 
 # What this run could not deploy, one entry per file. A deployment that fails
 # is a warning and the setup carries on -- nothing deployed here is read by
@@ -46,10 +112,12 @@ BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
 # itself: the next write to stdout ends it with a broken pipe, so the
 # deployments after that point never happen and this list -- printed after all
 # of them -- is never reached (measured: PIPESTATUS "141 0", the warning on the
-# terminal, no "Finished with" line). It is left that way. Surviving a
-# truncated pipe would mean every echo in this file carrying its own failure
-# handling, and the run that dies does end non-zero and converges on the next
-# one like any other interrupted run.
+# terminal, no "Finished with" line). It is left that way, and not for want of a
+# way to survive it -- the progress lines could go through one helper and be
+# handled there once. It is that surviving buys nothing worth the helper: a
+# caller that asked for two lines got its two lines, the run ends non-zero, and
+# deployment is idempotent, so the next run makes every judgement again from the
+# start. Nobody deploys through `| head`.
 FAILURES=()
 
 # Every half-written file this script makes is a dot file named after where it
@@ -89,6 +157,13 @@ tmp_for() {
 # do (config.toml, herdr.json, settings.json). A fourth that repeats one of
 # them would put both files' backups under one name, with nothing in the name
 # to tell them apart, and deploy's sweep would glob the same pattern for both.
+#
+# Left as a rule rather than a check in deploy, for the reason the Guid in the
+# Darwin arm is left to a grep: a check could only compare the basenames one run
+# actually deploys, so the pair it would miss -- two managed files on different
+# operating systems, which never run together -- is exactly the pair a person
+# would get wrong, while `grep -n 'deploy "' setup.sh` shows all of them at once
+# and costs the run nothing.
 backup_path_for() {
   printf '%s/%s' "$BACKUP_DIR" "$(basename "$1")"
 }
@@ -120,28 +195,49 @@ remove_pending_tmp() {
   BACKUP_TMP=""
 }
 # INT and TERM exit rather than only cleaning up: a trap that returns leaves
-# bash carrying on to the next deployment, so Ctrl-C would stop nothing. That
-# is about a signal this shell actually gets. Ctrl-C is one -- the terminal
-# sends it to the whole process group (measured: SIGINT to the group during a
-# copy left through this trap with 130 and no temp file behind) -- but a signal
-# aimed at this script's pid alone is not: bash is waiting on cp or mv, the
-# child never sees it, and the run carries on to the end (measured: kill -INT
-# on the pid alone finished the deployment and exited 0).
+# bash carrying on to the next deployment, so Ctrl-C would stop nothing. Both
+# fire whether the signal is aimed at the process group or at this script's pid
+# alone (measured, five runs each, SIGINT during a copy: exit 130, nothing
+# deployed after it, no temp file behind). What decides whether a trap exists to
+# fire is the disposition this shell was started with: a shell that inherited
+# SIGINT ignored cannot trap it at all, which is what a non-interactive shell
+# hands its `&` jobs (measured: `bash -c 'trap ... INT; kill -INT $$; ...' &`
+# from a script printed "trap did not fire" and exited 0, while the same command
+# started through a wrapper that put SIGINT back to its default ran the trap and
+# exited 130). Nothing here can mend that from the inside, and it is not how a
+# person runs a deployment.
 #
-# The EXIT trap costs the run one thing, and it is a rule about the rest of this
-# file rather than anything the trap can be written out of: with an EXIT trap
-# set, bash 3.2 hands a `set -u` fatal back as exit 0. The message is printed
-# and the run still calls itself a success (measured with /bin/bash 3.2.57: a
-# script whose statement after the trap reads an unset variable printed "unbound
-# variable" and exited 0; the same script without the trap exited 1). Reading
-# $? in the trap and exiting with it does not recover it -- the trap is handed 0
-# for this failure, though it is handed 1 for an ordinary errexit failure
-# (measured: `trap 'st=$?; ...; exit $st' EXIT` still exited 0 on the unset
-# variable, and a trap that printed $? saw 0 there and 1 after a plain `false`).
-# So it is not about any one variable: any expansion below that could be unset
-# would end its run quietly at 0. Every one of them therefore carries a default
-# -- `${VAR:-}`, `${#ARR[@]}` -- and a new one added to this file must too.
-trap remove_pending_tmp EXIT
+# The EXIT trap costs the run one thing: with an EXIT trap set, bash 3.2 hands a
+# `set -u` fatal back as exit 0. The message is printed and the run still calls
+# itself a success (measured with /bin/bash 3.2.57: a script whose statement
+# after the trap reads an unset variable printed "unbound variable" and exited 0;
+# the same script without the trap exited 1). Reading $? in the trap and exiting
+# with it does not recover it -- the trap is handed 0 for this failure, though it
+# is handed 1 for an ordinary errexit failure (measured: `trap 'st=$?; ...; exit
+# $st' EXIT` still exited 0 on the unset variable, and a trap that printed $? saw
+# 0 there and 1 after a plain `false`). So it is not about any one variable: any
+# expansion below that could be unset would end its run quietly at 0.
+#
+# REACHED_END is the mechanism against that whole class, and the `${VAR:-}` and
+# `${#ARR[@]}` defaults below are the discipline that keeps it from being needed.
+# The discipline alone had already been broken once -- an unset HOME, guarded at
+# the top of this file now -- so the run says out loud where it got to: only the
+# two places that end this script on purpose set REACHED_END, and an exit 0 that
+# did not come from one of them is turned into 1. The test on $st is what keeps
+# that from flattening every other way out: a run killed by SIGTERM leaves
+# through its own trap with 143, and forcing 1 on it would lose which signal
+# stopped it (measured, all four ways out: `set -u` fatal 1, ordinary end 0,
+# SIGTERM 143, the failure list's own exit 1; SIGINT 130).
+REACHED_END=""
+cleanup() {
+  local st=$?
+  remove_pending_tmp
+  if [ -z "${REACHED_END:-}" ] && [ "$st" -eq 0 ]; then
+    exit 1
+  fi
+  exit "$st"
+}
+trap cleanup EXIT
 trap 'remove_pending_tmp; exit 130' INT
 trap 'remove_pending_tmp; exit 143' TERM
 
@@ -150,9 +246,11 @@ trap 'remove_pending_tmp; exit 143' TERM
 # record_failure below because not everything worth warning about is a managed
 # file that was not deployed -- of the callers that use this directly, four are
 # about something outside the managed files (two about iTerm2's default profile,
-# two about the font) and one is about a managed file that has been deployed
-# correctly at a cost the backup cannot undo (the symlink in deploy). None of
-# them should make the run end non-zero.
+# two about the font), one is about a managed file that has been deployed
+# correctly at a cost the backup cannot undo (the symlink in deploy), and one is
+# about a managed file deployed to the path the specification names while the
+# program that reads it may look elsewhere (the ignored XDG value). None of them
+# should make the run end non-zero.
 #
 # All of it on stderr. What a warning explains is a command that has just said
 # why on stderr itself, and the two belong together: on stdout the explanation
@@ -173,6 +271,24 @@ trap 'remove_pending_tmp; exit 143' TERM
 # than the reader expects says so where the rest of the diagnosis is, and a
 # caller keeping only stdout is not left with a clean-looking log of a run that
 # quietly skipped something.
+#
+# Three shapes speak on stderr, and what tells them apart is what the run wants
+# from the reader, not how grave the event sounds (§4.6 of design.md carries the
+# same three):
+#   record_failure -- a managed file had somewhere to go and did not get there.
+#     The run ends non-zero and names it again at the end.
+#   warn           -- nothing managed is misplaced, but the run wants something
+#     it cannot do itself: install the font, set the default profile, make the
+#     symlink again. Every one of these carries a Fix line, which is what the
+#     block shape is for.
+#   a plain echo   -- a fact about this machine that asks nothing of anyone: a
+#     managed file has nowhere to go here and that is not a defect (a Linux that
+#     is not WSL, a Windows side without Windows Terminal).
+# So the font, which is not even a managed file, gets a block while a skipped
+# settings.json gets one line. That is the intended way round: the block is the
+# shape of a request, and there is nothing to ask of a machine that is exactly
+# as it should be. Turning the skips into blocks would warn every run on every
+# ordinary Linux box for no act anyone was meant to take.
 #
 # Ends by returning 0 so that record_failure does too: its caller in the WSL
 # branch runs under errexit, and a warn whose value came from whatever the last
@@ -279,7 +395,7 @@ backup_file() {
 # here). Half of config.toml is quieter, and the measurement behind that is
 # about cuts at a line boundary: every one of the 20 line-boundary cuts of this
 # repository's config.toml, the empty file included, is valid TOML with whole
-# tables gone, and 16 of the 20 leave no [keys] table at all -- which asks
+# tables gone, and 15 of the 20 leave no [keys] table at all -- which asks
 # nothing of herdr, so the machine gets herdr's fallbacks and the workspace
 # switching this repository exists for is not there, and herdr calls every one
 # of them "config: ok" (measured with herdr config check). A cut at an arbitrary
@@ -310,13 +426,16 @@ backup_file() {
 # run under umask 022, which said Up to date). "dotfiles is the source of
 # truth" is about the contents.
 #
-# Returns non-zero, having already warned and recorded it, when the file was
-# not deployed. Callers add `|| true` so that set -e does not turn the warning
-# back into an abort. That `|| true` also switches errexit off for everything
-# inside this function -- bash applies it to the whole call -- so the file's
-# set -euo pipefail is no help here: every command below that can fail is
-# checked explicitly, and a bare line added to this function would fail in
-# silence and let the run end 0 having deployed nothing.
+# Always returns 0. A file that was not deployed has already been warned about
+# and put in FAILURES, which is where the run reads it back; no caller has ever
+# had a use for the return value. Returning it anyway cost more than it was
+# worth: every call needed `|| true` to keep set -e from turning a warning into
+# an abort, and bash applies that `|| true` to the whole call, so errexit was
+# switched off for everything inside this function too. A bare line added here
+# would then have failed in silence and let the run end 0 having deployed
+# nothing. With the contract stated instead, the calls are bare, errexit is live
+# inside this function, and the only lines that opt out of it are the ones that
+# name a failure they mean to allow.
 deploy() {
   local src="$1" dst="$2" dir backup="" was_link=""
   # Before the check below rather than after it: a dst that is already correct
@@ -332,6 +451,18 @@ deploy() {
   # and a lone "Is a directory" naming neither the managed file nor what to do
   # about it is worse than no message. One of the commands below runs into the
   # same thing and its complaint arrives with the warning that explains it.
+  #
+  # Only "identical" is read here; every other answer means "carry on and
+  # deploy", and they cannot usefully be told apart anyway -- cmp answers 2 for
+  # a dst that does not exist yet (measured), which is the ordinary first
+  # install. The one that hides in there is 127, a cmp that is not on PATH,
+  # whose "command not found" the redirection above swallows. That machine still
+  # gets the right bytes and is never told a false success; what it loses is Up
+  # to date, so every run rewrites the file and leaves one more identical .bak.
+  # Left unchecked, and named here instead: guarding this one command while cp,
+  # mv, mkdir and date -- leaned on just as hard, and absent on the same machine
+  # -- go unguarded would be the asymmetry, and a bounded cost of one backup per
+  # run does not buy it.
   if cmp -s "$src" "$dst" 2>/dev/null; then
     echo "Up to date: $dst"
     return 0
@@ -412,15 +543,19 @@ deploy() {
   # Keeping it would add one more identical .bak per run for as long as the
   # cause lasts.
   if [ -n "$backup" ]; then
-    rm -f "$backup"
+    # The one line here that is allowed to fail: the backup is being thrown
+    # away, so a machine that will not let go of it changes nothing about what
+    # this run is reporting.
+    rm -f "$backup" || true
   fi
   record_failure "$dst was not deployed." \
     "The command that failed said why just above. Nothing was replaced: the" \
     "copy is renamed into place only once it is whole, and a rename that" \
     "fails replaces nothing, so the file is as it was and no backup was" \
-    "kept. An empty directory may be left behind -- the one holding the" \
-    "file, or the backup directory -- since both are made before the copy" \
-    "that failed." \
+    "kept. The directory holding the file may be left behind empty, since it" \
+    "is made before anything is copied into it. The backup directory is made" \
+    "later, only once the new file has been copied, so it is there only if it" \
+    "was taking the backup that failed." \
     "The rest of the setup runs below and this run ends non-zero." \
     "Fix: a \"No such file or directory\" naming a path under" \
     "  $DOTFILES_DIR" \
@@ -430,8 +565,25 @@ deploy() {
     "  $BACKUP_DIR" \
     "writable, or move aside something standing where the file belongs." \
     "Then re-run ./setup.sh."
-  return 1
+  return 0
 }
+
+# Said here rather than where the value was thrown away, because warn does not
+# exist that early. Not a failure: every managed file is deployed, and to the
+# path the specification names. What the reader is being asked for is the thing
+# this script cannot settle -- which of the two paths herdr will read (see
+# set_xdg_base).
+if [ -n "${XDG_IGNORED:-}" ]; then
+  warn "an XDG base directory must be an absolute path, so this run ignored: $XDG_IGNORED" \
+    "The specification says a value that does not begin with / is invalid and" \
+    "is to be ignored, so the default was used instead. Taking the value" \
+    "literally would put the deployed files under whichever directory the run" \
+    "was started in, somewhere new each time." \
+    "If XDG_CONFIG_HOME is among them, herdr does not ignore it: it resolves" \
+    "the relative value against its own working directory, so it may read a" \
+    "different config.toml from the one deployed here." \
+    "Fix: set it to an absolute path, or unset it, and re-run ./setup.sh."
+fi
 
 # herdr (common)
 # herdr writes this file itself -- it saves the theme name and the onboarding
@@ -444,7 +596,7 @@ if ! command -v herdr &>/dev/null; then
   # as an install.
   echo "herdr not found. Its config is managed here all the same:"
 fi
-deploy "$DOTFILES_DIR/herdr/config.toml" "$HERDR_CONFIG" || true
+deploy "$DOTFILES_DIR/herdr/config.toml" "$HERDR_CONFIG"
 
 # OS-specific setup
 case "$(uname -s)" in
@@ -453,8 +605,18 @@ case "$(uname -s)" in
     # is on this machine: it is a managed file with somewhere to go, iTerm2
     # reads the directory when it is next started, and a Mac that has not got
     # iTerm2 yet is not a Mac that should be told a managed file was skipped.
+    # deploy's mkdir -p makes this directory when it is not there, which is the
+    # opposite of what the WSL arm does with Windows Terminal's LocalState, and
+    # the test that tells them apart is whose directory it is: DynamicProfiles
+    # is a drop box iTerm2 scans on start-up, empty is a state it is meant to be
+    # in, and one made early is read whenever iTerm2 arrives. LocalState belongs
+    # to an installed package -- Windows makes it when the app is installed --
+    # so making one here would leave a settings.json inside a package footprint
+    # for an app that is not there and that nothing would read. So Darwin has no
+    # third outcome: on a Mac every managed file is either deployed or a failure,
+    # never skipped for want of anywhere to go (design.md 4.5).
     iterm_dir="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
-    deploy "$DOTFILES_DIR/iterm2/herdr.json" "$iterm_dir/herdr.json" || true
+    deploy "$DOTFILES_DIR/iterm2/herdr.json" "$iterm_dir/herdr.json"
 
     # The key mappings live in the herdr profile, so they only apply to windows
     # opened with it. Warn when it is not the default profile -- a warning and
@@ -466,7 +628,11 @@ case "$(uname -s)" in
     # no file defines: the warning below then fires on every run, including on
     # the machine where herdr is already the default, and stops meaning
     # anything.
-    ITERM_PROFILE_GUID="8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038"
+    iterm_profile_guid="8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038"
+    # The one thing both messages below have in common, held once so that a menu
+    # iTerm2 renames cannot be corrected in one of them and left wrong in the
+    # other -- the same reason tmp_prefix_for and backup_path_for exist.
+    iterm_default_menu="iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default"
     # `defaults` failing and `defaults` answering something else are two
     # different machines, and they get two different messages. It fails when the
     # domain is not there at all -- iTerm2 never installed, or installed and
@@ -481,11 +647,12 @@ case "$(uname -s)" in
     # machine's own Guid), so it is the one thing here that a throwaway home
     # cannot exercise.
     if default_guid="$(defaults read com.googlecode.iterm2 "Default Bookmark Guid" 2>/dev/null)"; then
-      if [ "$default_guid" != "$ITERM_PROFILE_GUID" ]; then
+      if [ "$default_guid" != "$iterm_profile_guid" ]; then
         warn "the 'herdr' profile is not iTerm2's default profile." \
           "The ctrl+cmd key mappings apply only to windows using that profile," \
           "so herdr workspace switching will not work in other windows." \
-          "Fix: iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default," \
+          "Fix: set it as the default in" \
+          "  $iterm_default_menu" \
           "then open a NEW window (existing windows keep their old profile)."
       fi
     else
@@ -494,7 +661,7 @@ case "$(uname -s)" in
         "never been started. The profile itself is deployed and iTerm2 will" \
         "read it when it first runs, so nothing was missed here." \
         "Fix: after installing and starting iTerm2, set the default profile in" \
-        "iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default." \
+        "  $iterm_default_menu" \
         "Re-running ./setup.sh then says whether it took."
     fi
 
@@ -504,14 +671,23 @@ case "$(uname -s)" in
     # that fails is a warning and not a recorded failure -- treating it as one
     # would make a dropped network connection the same kind of event as a home
     # directory that refuses the settings, which it is not.
+    #
+    # What a missing font costs is the same sentence in both arms below, so it
+    # is written once, for the reason iterm_default_menu is: two copies drift.
+    # A literal array with lines in it is never the empty one the traps warn
+    # about.
+    font_cost=(
+      "Nothing else here depends on it; the iTerm2 profile names HackGen and"
+      "macOS falls back to another monospace font until it is installed. The"
+      "font is not a managed file, so this run is not counted a failure."
+    )
     if command -v brew &>/dev/null; then
       if brew list --cask font-hackgen-nerd &>/dev/null; then
         echo "font-hackgen-nerd already installed. Skipping."
       elif ! brew install --cask font-hackgen-nerd; then
         warn "brew install --cask font-hackgen-nerd failed." \
-          "brew said why just above. Nothing else here depends on it; the" \
-          "iTerm2 profile names HackGen and macOS falls back to another" \
-          "monospace font until it is installed." \
+          "brew said why just above." \
+          "${font_cost[@]}" \
           "Fix: re-run brew install --cask font-hackgen-nerd once the" \
           "reason is gone, or install the font by hand (see README)."
       fi
@@ -520,9 +696,7 @@ case "$(uname -s)" in
       # same news -- the font is not going to be installed by this run -- and
       # printing one on each stream would split it in two.
       warn "Homebrew is not installed, so the HackGen Nerd font was not installed either." \
-        "Nothing else here depends on it; the iTerm2 profile names HackGen and" \
-        "macOS falls back to another monospace font until it is there. The" \
-        "font is not a managed file, so this run is not counted a failure." \
+        "${font_cost[@]}" \
         "Fix: install the font by hand (see README), or install Homebrew and" \
         "re-run ./setup.sh."
     fi
@@ -565,6 +739,12 @@ case "$(uname -s)" in
       # cmd.exe ends the value with a CR. Its stderr is kept rather than
       # dropped: when this comes back empty, that message is the only account
       # of why.
+      #
+      # The `|| true` is the one place in this file that lets a pipeline fail on
+      # purpose: a cmd.exe that cannot run, or a pipefail on either half, would
+      # otherwise end the run right here under errexit -- before the case below
+      # can say which of the three ways it went wrong. The empty answer that
+      # leaves behind is exactly what that case is written to name.
       appdata="$(cmd.exe /c 'echo %LOCALAPPDATA%' | tr -d '\r' || true)"
       # The guard is what keeps wslpath from being handed the empty string that
       # a cmd.exe answering with nothing leaves here. wslpath keeps its stderr
@@ -593,6 +773,18 @@ case "$(uname -s)" in
       # path begins with /, so that is the test, and it also catches a wslpath
       # that succeeded while writing only part of an answer (one that fails
       # leaves cmd.exe's answer in place, which does not begin with / either).
+      #
+      # What the test rests on, and what has not been checked: it catches the
+      # literal only while wslpath refuses to translate it. A wslpath that took
+      # %LOCALAPPDATA% for a relative path and answered with something beginning
+      # with / would carry it straight through here, and the run would be back
+      # to blaming a Windows Terminal that may well be installed (measured with
+      # two stubs: one that fails on the literal reaches record_failure and exit
+      # 1, one that answers /mnt/c/%LOCALAPPDATA% prints "Windows Terminal not
+      # installed (...)" and exits 0). Which of the two the real wslpath does
+      # cannot be found out from a Mac, so it stands unverified beside the other
+      # thing only a WSL machine can settle -- whether Windows Terminal rebuilds
+      # its per-distro profiles after the overwrite (design.md 4.5, 4.6).
       case "$appdata" in
         /*)
           wt_dir="$appdata/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
@@ -600,12 +792,14 @@ case "$(uname -s)" in
             # Windows Terminal writes this file itself, and the overwrite costs
             # it nothing it cannot rebuild: the profiles it generates per WSL
             # distro are this machine's inventory and it generates them again.
-            deploy "$DOTFILES_DIR/windows-terminal/settings.json" "$wt_dir/settings.json" || true
+            deploy "$DOTFILES_DIR/windows-terminal/settings.json" "$wt_dir/settings.json"
           else
             # The Windows side was found and Windows Terminal is not on it.
             # There is nothing to deploy to, so this is a skip and not a
             # failure -- on stderr with the other notices about a managed file
-            # that was not deployed.
+            # that was not deployed. LocalState is not made here, for the reason
+            # the Darwin arm gives where it does make DynamicProfiles: this one
+            # is part of an installed package's footprint, not a drop box.
             echo "Windows Terminal not installed ($wt_dir does not exist). Skipping." >&2
           fi
           ;;
@@ -641,9 +835,10 @@ esac
 # The guard is not tidiness, and it is one instance of the rule stated at the
 # traps: under set -u, bash 3.2 reads "${arr[@]}" on an empty array as an
 # unbound variable and kills the script on the spot, and with an EXIT trap set
-# the run then ends 0, so it dies quietly (measured with /bin/bash 3.2.57: with
-# this guard removed, a run that deployed everything printed "FAILURES[@]:
-# unbound variable" and still exited 0). "${#FAILURES[@]}" is safe on an empty
+# the run then ends 0, so it used to die quietly (measured with /bin/bash
+# 3.2.57: with this guard removed, a run that deployed everything printed
+# "FAILURES[@]: unbound variable" and still exited 0; with REACHED_END in place
+# the same run prints it and exits 1). "${#FAILURES[@]}" is safe on an empty
 # array, so it is what decides whether the loop below is reached at all.
 if [ "${#FAILURES[@]}" -gt 0 ]; then
   # On stderr with the warnings it summarises, for the reason warn gives.
@@ -656,7 +851,15 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
   # want of anywhere to put it (Windows Terminal, on a machine that is not WSL
   # or has not got it), and those are named above too.
   echo "Each one is explained above. Everything else was deployed or skipped as noted." >&2
+  # One of the two ends this script has. Set here rather than at the top of the
+  # block so that a run which dies part-way through printing the list is still
+  # a run that did not reach an end.
+  REACHED_END=1
   exit 1
 fi
 
 echo "Done."
+# The other end. Nothing follows it, so an exit 0 that the EXIT trap sees
+# without this having been set is a run that stopped somewhere it never meant
+# to (see the traps).
+REACHED_END=1
