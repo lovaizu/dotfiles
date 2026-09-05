@@ -235,28 +235,26 @@ lovaizu/ccpm#23)。最終形はコーディネータが隔離ホームの実測�
 `#ffffff` である限り両立する輝度が存在しない)。選択色は Windows Terminal と揃えた意図的な値なので
 変えるなら両OSの仕様側の判断になる。
 
-## 未完了
-
 ### #12: テーマの二層をユーザー指定どおりに揃える
 
 **Purpose**: テーマは端末そのものと herdr の UI の2層あり、ユーザーの指定は端末 = Gruvbox Dark /
 herdr = `gruvbox-light`。dotfiles 側が herdr に `gruvbox`(dark)を持っていて setup のたびに指定から
 巻き戻る状態を解消する。
 
-**Prerequisites**: none
-
-**Steps**:
-
-- [x] `herdr/config.toml` の `[theme] name` を `gruvbox-light` にする
-- [ ] README と design.md の記載を両層について合わせる(端末は Win/Mac それぞれの設定箇所を明示)
-- [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
-- [ ] QA / Craft / Verification expert review
-
 **Completion criteria**:
 
 - `herdr/config.toml` の `[theme] name` が `gruvbox-light`、端末側(WT の
   `profiles.defaults.colorScheme` / iTerm2 `herdr.json` の色)が Gruvbox Dark
 - README と design.md にテーマ2層の対応が書かれていて、Acceptance criteria と一貫している
+
+レビュー: `checks/12.md`。専門家レビューは回さず、コーディネータが実測で確認した(Rules)。
+`[theme] name` は `gruvbox-light`、端末側は WT の `profiles.defaults.colorScheme` が `Gruvbox Dark` で、
+iTerm2 の色定義とは前景・背景に加え **ANSI 16 色まで1色ずつ一致**(`99902e2` は README と design.md のみ)。
+2層の対応は design.md §4.7 に、設定の持ち主・値・暗/明が意図であること・破れの検出として書いた。
+README には**設定箇所だけ**を残して色名も hex もテーマ名も置いていない — この節は #8 の書き直しを
+待たずに値なしで書いたので、#8 が取り消す必要はない(残るフォント行は #8 の担当)。
+
+## 未完了
 
 ### #14: フォントサイズを 14 にする
 
