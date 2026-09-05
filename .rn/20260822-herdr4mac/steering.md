@@ -600,4 +600,5 @@ so only a genuinely suspended session reads `paused`.)
   **次回 Windows 同期時にやること**: WT が WSL プロファイルを作り直すかの検証(撤回判断を支える
   唯一の未検証事項)、ctrl+alt 系キーの確認、WT settings.json の上書き結果の確認。
   README は #8 まで旧方式(項目マージ前提)のままである点に注意。
-  未追跡のまま残した: `?? .rn/20260822-herdr4mac/checks/10.md` `?? .rn/20260822-herdr4mac/checks/14.md`
+  `checks/10.md` `checks/14.md` は自己検証記録として先にコミット済み(`95a1a1a`)。両タスクの
+  チェックオフ時にレビュー判定を書き足して台帳を確定させること。
