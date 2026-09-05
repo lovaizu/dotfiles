@@ -10,8 +10,6 @@ right when requirements change.
 dotfiles の目的(Win / Mac の端末環境を clone → setup 一発で再現し、毎回設定しない)に沿って、
 Mac(iTerm2)対応を追加し、Win(Windows Terminal)側も含めて設定を統一仕様
 (テーマ・フォント・herdr 操作・即時切替キー・⇧Enter)に揃える。
-あわせて、同じ「clone → setup 一発」の対象に Claude Code のユーザー設定
-(`~/.claude/settings.json` とステータスライン用シェル)を加える。
 
 ### 1.2 What goes wrong without this?
 
@@ -21,17 +19,18 @@ Mac では herdr の workspace / agent 切替に毎回プレフィックス2ス�
 
 ### 1.3 What does reaching it require?
 
-統一仕様の明文化(README の対応表)、iTerm2 側のキー→バイト列マッピングと色・フォントの
-プロファイル定義、WT 側の別名チョード整理、それらを OS 判定つきでインストールする setup.sh。
-加えて Claude Code のユーザー設定をホーム非依存の形で持ち、setup.sh の共通部から配置すること。
+統一仕様の明文化(README)、iTerm2 側のキー→バイト列マッピングと色・フォントのプロファイル定義、
+WT 側の別名チョード整理、それらを OS 判定つきでインストールする setup.sh。
 
 ### 1.4 What is out of scope?
 
 herdr 本体・iTerm2 のインストール、Win 側フォントのインストール(WSL からは不可能 — README の
 手動手順に委ねる)、シェルの統一(Win は PowerShell / WSL bash、Mac は zsh のまま — herdr の中の
-体験が揃えば足りる)、iTerm2 のプロファイル外グローバル設定の管理、Claude Code の
-`~/.claude` 配下のうち settings.json / statusline.sh 以外(プラグイン実体・履歴・
-認証情報・herdr 統合フックの本体・output-styles・カスタムテーマ)。
+体験が揃えば足りる)、iTerm2 のプロファイル外グローバル設定の管理。
+
+**Claude Code のユーザー設定も対象外**。一度は取り込んだが、端末の統一とは独立に決めるべきことが
+多く(プラグイン実体の再現方法、どの設定を dotfiles で固定するか)、1つの PR に混ぜると判断が
+まとまらないため切り離した。要望は Issue #9 / #10 に移してある。
 
 ## 2. Assumptions & Constraints
 
@@ -48,148 +47,109 @@ iTerm2 は WT のような単一の可搬な settings.json を持たず、設定
 集約される — dotfiles で扱うにはファイル1個で完結し、起動中でも安全に読み込める仕組みが要る。
 setup は Win 側も WSL の bash で実行される前提(既存 setup.sh の方式)なので、両OSとも bash 1本の
 エントリで書ける。配置はシンボリックリンクを張らずファイルの実体を置く(既存 setup.sh の方式)。
-配置先のうち herdr の config.toml・Claude Code の settings.json・WT の settings.json はアプリ自身も
-書き戻すが、**dotfiles が正**なので方式は分けない — 管理対象はすべて丸ごと上書きする(§4.7)。
-アプリが書き戻した値(herdr のテーマ名、Claude Code が `/config` で書いた設定)は次の setup で
-dotfiles の値に戻り、WT が WSL ディストロごとに生成するプロファイルは WT 自身が作り直す(未検証 — §4.7 の境界)。
+配置先のうち herdr の config.toml と WT の settings.json はアプリ自身も書き戻すが、**dotfiles が正**
+なので方式は分けない — 管理対象はすべて丸ごと上書きする(§4.6)。herdr が書き戻したテーマ名は
+次の setup で dotfiles の値に戻り、WT が WSL ディストロごとに生成するプロファイルは WT 自身が
+作り直す(未検証 — §4.6 の境界)。
 
 ## 3. Design overview
 
 ### 3.1 What is the core idea, and why does it solve the problem?
 
-「共通層+OS別層」の2層構成にする。共通層 = herdr config と統一仕様(README の対応表)。
-OS別層 = その仕様を各ターミナルの語彙に翻訳した設定ファイル(WT の settings.json / iTerm2 の
-Dynamic Profile)。仕様を README に1か所で明文化することで、両OSの設定が同じ使い勝手に収束し、
-将来の変更も「仕様を直す → 両OSの翻訳を直す」という手順に固定される。iTerm2 側は
-**Dynamic Profiles**(`~/Library/Application Support/iTerm2/DynamicProfiles/` に置いた JSON を
-自動読み込み)を使う — キー・色・フォントがプロファイル単位で JSON 1ファイルに収まり、既存の
-コピー方式にそのまま乗る。
+「共通層+OS別層」の2層構成にする。共通層 = herdr config と統一仕様(README)。OS別層 = その仕様を
+各ターミナルの語彙に翻訳した設定ファイル(WT の settings.json / iTerm2 の Dynamic Profile)。
+仕様を README に1か所で明文化することで、両OSの設定が同じ使い勝手に収束し、将来の変更も
+「仕様を直す → 両OSの翻訳を直す」という手順に固定される。iTerm2 側は **Dynamic Profiles**
+(`~/Library/Application Support/iTerm2/DynamicProfiles/` に置いた JSON を自動読み込み)を使う —
+キー・色・フォントがプロファイル単位で JSON 1ファイルに収まり、既存のコピー方式にそのまま乗る。
 
 ### 3.2 What are the pieces, and what is each responsible for?
 
-- `README.md` — 統一仕様の源: 操作×OS別キー対応表、テーマ・フォント、セットアップ手順。
-- `herdr/config.toml` — OS 共通の herdr 設定(本セッションでは不変)。
+- `README.md` — 統一仕様の意図: 操作×OS別キー対応表、セットアップ手順、手作業が要る箇所。
+  具体的な値(フォント名・サイズ・色の hex・テーマ名・送信バイト列)は持たない — 持つと
+  設定ファイルと2か所でメンテすることになる。
+- `herdr/config.toml` — OS 共通の herdr 設定。
 - `windows-terminal/settings.json` — 統一仕様の Win 翻訳(ctrl+alt 系のみに整理)。
 - `iterm2/herdr.json` — 統一仕様の Mac 翻訳(⌃⌘ 系 + ⇧Enter + Gruvbox Dark + HackGen)。
-- `claude/settings.json` — Claude Code のユーザー設定。ホーム依存パスは `"$HOME/…"` で記述。
-- `claude/scripts/statusline.sh` — ステータスライン生成スクリプト(ホーム非依存、そのまま配置)。
-- `setup.sh` — 単一エントリ: 共通部(herdr + Claude Code)→ `uname` で分岐 → darwin(iTerm2 配置+
-  brew があればフォント)/ WSL(WT 配置)。
+- `setup.sh` — 単一エントリ: 共通部(herdr)→ `uname` で分岐 → darwin(iTerm2 配置 + brew があれば
+  フォント)/ WSL(WT 配置)。
 
 ### 3.3 How does work move?
 
-両OSとも `./setup.sh` を実行 → 共通部が herdr config と Claude Code 設定を配置 → OS 判定 → darwin なら Dynamic
+両OSとも `./setup.sh` を実行 → 共通部が herdr config を配置 → OS 判定 → darwin なら Dynamic
 Profile 配置(iTerm2 が監視していて再起動不要で反映)+フォント、WSL なら WT の settings.json を
-配置。使い勝手を変えたいときは README の仕様を先に直し、両翻訳ファイルを追随させる。
+配置。使い勝手を変えたいときは README の意図を先に直し、両翻訳ファイルを追随させる。
 
 ## 4. Detailed design
 
 ### 4.1 What does the README spec guarantee, and how is a breach caught?
 
-保証: 両OSのキー割り当て・送信バイト列・外観の単一の正が存在し、設定ファイル間の乖離を判定できる。
-破れの検出: 各タスクの completion criteria が「README の対応表と一致」を要求しており、照合は
-タスク検証(checks/)で記録される。将来の変更では README と両翻訳の diff が同一 PR に並ぶことで
-乖離が見える。
+保証: 両OSのキー割り当てと外観について単一の意図が存在し、設定ファイル間の乖離を判定できる。
+README は値を持たないので、乖離の判定は「両翻訳ファイルどうしが同じ操作に同じ意味を割り当てて
+いるか」で行う。破れの検出: README と両翻訳の diff が同一 PR に並ぶこと。
 
 ### 4.2 What does the iTerm2 Keyboard Map guarantee, and how is a breach caught?
 
 保証: `⌃⌘[`/`⌃⌘]`/`⌃⌘U` が herdr のプレフィックス列(0x14 + 文字)、`⇧Enter` が `\n` を送信する。
-エントリは iTerm2 の `0x<keycode>-0x<modifier flags>` 形式、アクションは Send Escape Sequence /
-Send Text。破れの検出: 作成時のキーコード手計算照合(タスク#2)と、ユーザーの実機確認(タスク#5)。
-macOS / iTerm2 既定とは ⌃⌘ 系・⇧Enter とも衝突なし(⌃⌘F フルスクリーンとは別キー)。
+
+キーの表記は `0x<キーコード>-0x<修飾フラグ>`。修飾フラグは NSEvent の値(Shift=0x20000、
+Ctrl=0x40000、Cmd=0x100000)の論理和で、キーコードは**修飾なしの文字コード**
+(`charactersIgnoringModifiers`、英字は小文字)。よって `⌃⌘[` は `[`=0x5b と Ctrl|Cmd=0x140000 で
+`0x5b-0x140000`、`⇧Enter` は Return=0xd と Shift=0x20000 で `0xd-0x20000` になる。
+
+アクションは **12(SEND_TEXT)** を選んだ。10(ESCAPE_SEQUENCE)は先頭に ESC を付けるので
+`^T` 始まりのバイト列には使えず、11(HEX_CODE)も書けるが、SEND_TEXT ならリテラル文字が
+そのまま通るので JSON の diff で送信内容が直接読める。
+
+破れの検出: 送信文字列をバイト列にデコードして README の対応表と突き合わせる静的検証と、
+ユーザーの実機確認。macOS / iTerm2 既定とは ⌃⌘ 系・⇧Enter とも衝突なし(⌃⌘F フルスクリーンとは別キー)。
 
 ### 4.3 What does the Dynamic Profile guarantee, and how is a breach caught?
 
 保証: JSON が valid で Guid / Name を持てば iTerm2 が自動登録し、Guid 固定なので再コピー時も同一
-プロファイルの更新になる(重複しない)。破れの検出: JSON 構文エラー時はプロファイルが現れない —
-タスク#2 の `json.tool` 検証とタスク#4 の配置確認で事前に捕捉する。
+プロファイルの更新になる(重複しない)。
+
+iTerm2 は DynamicProfiles を **NSJSONSerialization** で読む。plist ではないので `plutil -lint` は
+失敗するが、これは仕様であって欠陥ではない — 検証は `python3 -m json.tool` など JSON として行う。
+
+破れの検出: JSON 構文エラー時はプロファイルが現れない — 配置前の JSON 検証と配置後の目視で捕捉する。
 
 ### 4.4 What does the WT cleanup guarantee, and how is a breach caught?
 
 保証: 即時切替は `ctrl+alt` 系3キーのみになり、README の対応表と1:1 になる。⇧Enter・`ctrl+t`
-無効化・WT 固有キー・外観・プロファイルは従来のまま。配置は丸ごと上書きなので(§4.7)、dotfiles から
-消したチョードと、それが指していた未使用 action は、配置先からも消える。破れの検出: タスク#3 で
-削除対象以外に diff がないことと未使用 action が残らないことを照合。実機は次回 Win 同期時の
-ユーザー確認(タスク#5 で依頼)。
+無効化・WT 固有キー・外観・プロファイル定義は従来のまま。配置は丸ごと上書きなので(§4.6)、dotfiles から
+消したチョードと、それが指していた未使用 action は、配置先からも消える。破れの検出: 削除対象以外に
+diff がないことと未使用 action が残らないことの照合。実機は次回 Win 同期時のユーザー確認。
 
 ### 4.5 What does the setup.sh OS dispatch guarantee, and how is a breach caught?
 
 保証: darwin では WT ブロック(`wslpath`/`cmd.exe` 依存)に到達せず、brew 不在でもエラー終了しない。
 フォントは README が手動導入を認めている任意要素なので、`brew install` の**失敗**も警告に留めて
-exit 0 を保つ(管理対象ファイルではないため §4.7 の失敗集計にも数えない)。
-WSL では従来と同じファイルを同じ場所に配置する。WSL でない Linux — `uname -s` は同じ `Linux` を返すので
-分岐だけでは区別できない — では `wslpath` / `cmd.exe` の不在を先に確かめ、無ければ WT をスキップして
-続行する。WSL であっても、**「WT が入っていない」と「Windows 側のパスを解決できなかった」は別扱い**に
-する: 前者(`%LOCALAPPDATA%` は解けたが `LocalState` が無い)は配る先が無いだけなのでスキップして
-exit 0、後者(`cmd.exe` が答えない / `wslpath` が失敗)は配るべきファイルを配れていないので §4.7 の
-失敗として数える。`cmd.exe` と `wslpath` の stderr は捨てずに残す — 後者の唯一の手掛かりだから。
-`wslpath` は空文字列の引数でも呼ばれない(直前の `[ -n "$appdata" ]` ガードによる)。
-破れの検出: mac での実行テスト(exit 0 + 配置確認、brew 分岐のメッセージ)と、`uname` / `wslpath` /
-`cmd.exe` のスタブで WSL 経路・非 WSL Linux 経路に到達させる実測(タスク#4 / #10)。
+exit 0 を保つ(管理対象ファイルではないため §4.6 の失敗集計にも数えない)。
+WSL では herdr config と WT settings.json を配置する。WSL でない Linux — `uname -s` は同じ `Linux` を
+返すので分岐だけでは区別できない — では `wslpath` / `cmd.exe` の不在を先に確かめ、無ければ WT を
+スキップして続行する。WSL であっても、**「WT が入っていない」と「Windows 側のパスを解決できなかった」は
+別扱い**にする: 前者(`%LOCALAPPDATA%` は解けたが `LocalState` が無い)は配る先が無いだけなので
+スキップして exit 0、後者(`cmd.exe` が答えない / `wslpath` が失敗)は配るべきファイルを配れて
+いないので §4.6 の失敗として数える。`cmd.exe` と `wslpath` の stderr は捨てずに残す — 後者の
+唯一の手掛かりだから。`wslpath` は空文字列の引数でも呼ばれない(直前の `[ -n "$appdata" ]` ガードによる)。
 
-### 4.6 What does the Claude Code settings deployment guarantee, and how is a breach caught?
+破れの検出: mac での実行(exit 0 + 配置確認、brew 分岐のメッセージ)と、`uname` / `wslpath` /
+`cmd.exe` のスタブで WSL 経路・非 WSL Linux 経路に到達させる実測。
 
-保証: 両OSで同じ Claude Code のユーザー設定(出力スタイル・努力度・テーマ・プラグイン・
-ステータスライン・herdr の SessionStart フック)が再現され、ホームディレクトリのパスが
-OS ごとに異なっても正しい実パスを指す。
+### 4.6 What does the whole-file overwrite guarantee, and how is a breach caught?
 
-仕組み: settings.json の `command` はシェル経由で実行される — Claude Code 2.1.241 のバイナリで検証済み
-(hook `command` スキーマの説明が "When absent [args], `command` runs through a shell (bash on POSIX,
-PowerShell on Windows without Git Bash)" と述べ、statusLine も同じランナー `Oes(…,"StatusLine",…)` を
-通る)。よって dotfiles 側は `"$HOME/…"` を直接書き、setup.sh はパスの変換をせずそのまま配置する
-(settings.json も statusline.sh も §4.7 の `deploy` で丸ごと配置する)。
-ホームパスに空白が含まれても壊れないよう、両 command のパスはダブルクォートで囲む。
-
-当初はプレースホルダ(`__HOME__`)+ setup 時の置換を採る設計だったが、`$HOME` 展開が検証できたため
-不採用にした。置換方式は sed の置換文字列側で `&` がマッチ全体に解釈されるなど無言で壊れる失敗モードを
-持ち込むため(実測: ホームが `/home/a&b` だと `/home/a__HOME__b` になる)、機構を持たない方が堅い。
-
-境界: `~/.claude/hooks/herdr-agent-state.sh` は herdr の統合インストーラが管理するファイル
-(冒頭に "managed by herdr" と明記され、再インストールで上書きされる)なので dotfiles では持たない。
-settings.json 側の SessionStart エントリだけを持ち、本体不在なら setup.sh が警告する。
-`~/.claude/output-styles/sleek.md` も持たない — 現行 settings.json が参照していない
-(`outputStyle` は組み込みの `Concise`)ため。
-
-`~/.claude/themes/` のカスタムテーマも持たない。`theme` を組み込みの `light` にしたため
-参照が無くなったからで、これは「設定名は運べても実体が運べていない」型の破れ(カスタムテーマ名だけが
-他PCに渡ると Claude Code は警告なく組み込みにフォールバックする)を、実体を運ぶのではなく
-組み込みテーマだけを使うことで回避する選択でもある。
-
-テーマは3層あり、層ごとに持ち主が違う:
-
-| 層 | 値 | 持ち主 |
-|---|---|---|
-| 端末そのものの配色 | Gruvbox Dark | Win: `windows-terminal/settings.json` の `profiles.defaults.colorScheme` / Mac: `iterm2/herdr.json` の色定義 |
-| herdr の UI | `gruvbox-light` | `herdr/config.toml` の `[theme] name` |
-| Claude Code の UI | `light`(組み込み) | `claude/settings.json` の `theme` |
-
-端末だけ暗くしても herdr / Claude Code の UI は追随しない。herdr が light なのはワークスペースの
-選択状態を判別しやすくするためで、暗い端末の上に明るい UI が乗る組み合わせは意図されたもの。
-
-前提: statusline.sh は `jq` に依存する。不在時は exit 0 のまま ` |  | dir@branch` を返して無言で
-劣化するため、setup.sh が `jq` の存在を確認して警告する(mac は OS 同梱だが Ubuntu/WSL は既定で不在)。
-
-破れの検出: 配置後の settings.json が dotfiles の原本とバイト単位で一致すること(タスク#7 / #10 —
-丸ごと上書きなので `diff` 1本で判定できる)、原本との diff 照合(タスク#6)、`/config` 上での
-`remoteControlAtStartup` の目視確認(タスク#7)。
-
-### 4.7 What does the whole-file overwrite guarantee, and how is a breach caught?
-
-対象: 管理対象のファイルすべて — herdr の `config.toml`、Claude Code の `settings.json` と
-`statusline.sh`、iTerm2 の Dynamic Profile、WSL では WT の `settings.json`。**配置方式は1種類だけで、
-ファイルごとの例外を持たない**。アプリ自身も書くファイルかどうかは方式を分ける理由にならない。
-statusline.sh の `chmod +x` だけは配置のあとに続くが、これは「置かれたファイルのモード」の話であって
-置き方の例外ではない。残してあるのは実際に効く場面があるからで、**配置先が原本とバイト一致していれば
-`deploy` は何も書かず、モードは配置先が持っていたものが残る**ため(実測: 内容が同じで 644 の
-statusline.sh は、この `chmod` で 755 に戻る。原本を書き写した直後は 755 なのでそこでは何もしない)。
+対象: 管理対象のファイルすべて — herdr の `config.toml`、iTerm2 の Dynamic Profile、WSL では WT の
+`settings.json`。**配置方式は1種類だけで、ファイルごとの例外を持たない**。アプリ自身も書くファイル
+かどうかは方式を分ける理由にならない。
 
 保証: **exit 0 で終わった run では、その run が配る先を持っていた管理対象は、配置後に dotfiles の
-原本とバイト単位で一致する**。「配る先を持っていた」で限定するのは、非 WSL Linux と WT 未導入のマシンでは
-WT の settings.json を配らずに exit 0 で終わるから(§4.5、および下の境界の第3カテゴリ)。
+原本とバイト単位で一致する**。「配る先を持っていた」で限定するのは、非 WSL Linux と WT 未導入の
+マシンでは WT の settings.json を配らずに exit 0 で終わるから(§4.5、および下の境界の第3カテゴリ)。
 dotfiles が持つ値がそのマシンの値になり、dotfiles から消した設定はマシンからも消え、同じ dotfiles で
-2回流しても結果は変わらない(冪等)。アプリが書き戻した値 — herdr のテーマ名と `onboarding`、
-Claude Code が `/config` で書いた設定 — は次の setup で dotfiles の値に戻る。これは副作用ではなく
-目的で、「clone → setup 一発で同じ環境」が意味を持つのはこの向きのときだけ。
+2回流しても結果は変わらない(冪等)。アプリが書き戻した値 — herdr のテーマ名と `onboarding` — は
+次の setup で dotfiles の値に戻る。これは副作用ではなく目的で、「clone → setup 一発で同じ環境」が
+意味を持つのはこの向きのときだけ。
 
 保証を exit 0 で条件づけるのは、配置は失敗しうるからで、**失敗の扱いも方式と同じく1種類に揃える**:
 どのファイルでも、配置できなければ WARNING を出して**残りの配置は続行**し、run の最後に配置できな
@@ -199,12 +159,10 @@ Claude Code が `/config` で書いた設定 — は次の setup で dotfiles �
 
 部分適用(配れたものは配り、配れなかったものは名指しして続行する)を安全にしているのは、**冪等な
 再試行**である。配置は run のあいだで状態を持ち越さないので、次の run は同じ判定を1からやり直す —
-原因が消えていれば黙って `Up to date` に揃い、消えていなければまた非0で同じファイルを名指しする。
-だから「配れたものを配る」が「配れなかったものを忘れる」にはならない。逆に、部分適用は**成果物どうしの
-組み合わせを崩しうる**: `~/.claude/scripts` が読み取り専用だと、新しい settings.json は配置され、それが
-指す statusline.sh は古いまま残る(実測)。setup.sh 冒頭が言う「他の配置に依存していない」は
-**スクリプトの実行順の話**に限った主張で、配置後のファイルが互いに噛み合うことまでは意味しない。
-後者を担保するのは、揃うまで run が非0で名指しし続けることだけ。
+原因が消えていれば `Up to date` に揃い、消えていなければまた非0で同じファイルを名指しする。
+だから「配れたものを配る」が「配れなかったものを忘れる」にはならない。ただしこれは**スクリプトの
+実行順**についての主張であって、配置後のファイルが互いに噛み合うことまでは意味しない — それを
+担保するのは、揃うまで run が非0で名指しし続けることだけ。
 
 原子性: 配置は「配置先と**同じディレクトリの一時ファイルへ書き、`mv` で置き換える**」。同一ファイル
 システム上の rename なので、途中で止まっても配置先は旧内容か新内容のどちらかで、切り詰められた
@@ -212,10 +170,10 @@ JSON / TOML が残ることはない(実測: `cp` を途中で殺すスタブで
 切れた config.toml を残したまま `Done.` / exit 0 を出したが、現行は配置先が旧内容のまま WARNING を
 出して exit 1)。`mv` は `-f` で呼ぶ: 読み取り専用の配置先に対して、**stdin が tty のときだけ** `mv` は
 確認プロンプトを出し、既定の "n" で何も置き換えずに exit 0 を返す(実測: pty 越しに走らせると、旧内容の
-まま `Installed` と表示して `Done.` / exit 0 で終わり、一時ファイルも残った)。`-f` は非対話時の挙動と
-同じで、これによって「失敗しうるものはすべて rename の前で失敗し、そこまで配置先は無傷」が実際に
-真になる(実測で再確認)。rename の代償は2つ: 書き込み権限が要るのが「ファイル」ではなく
-「そのディレクトリ」になること(読み取り専用ディレクトリの中の書き込み可能なファイルは、以前は上書きできたが今は失敗)と、
+まま `Installed` と表示して `Done.` / exit 0 で終わり、一時ファイルも残った)。`-f` によって
+「失敗しうるものはすべて rename の前で失敗し、そこまで配置先は無傷」が実際に真になる。
+rename の代償は2つ: 書き込み権限が要るのが「ファイル」ではなく「そのディレクトリ」になること
+(読み取り専用ディレクトリの中の書き込み可能なファイルは、以前は上書きできたが今は失敗)と、
 置き換わったファイルのモードが原本のもの(umask 差し引き)になること。
 
 退避: 配置先が原本と違えば**毎回** BACKUP_DIR に退避する。「このマシンを dotfiles に載せ替える最初の
@@ -224,19 +182,26 @@ config.toml の退避は実行ごとに1本増える。**世代管理も剪定�
 不要になったらユーザーが手で消す。これは受容した仕様で、コードでは直さない(直すには「どこまでが
 不要か」を機構が知る必要があり、方式を1種類に保つという判断と釣り合わない)。原本と同じ内容の
 配置先には何も書かず、退避も取らない。**退避が取れなければ配置も行われない**: BACKUP_DIR が作れなければ
-`deploy` はそこで止まり、原本と違う配置先は1つも配られずに失敗として数えられる(実測: `~/.local/state` を
-ファイルにすると、内容の違う config.toml と settings.json の2つが「配置されなかった」になる)。つまり
+`deploy` はそこで止まり、原本と違う配置先は1つも配られずに失敗として数えられる(実測)。つまり
 「dotfiles が正」という保証の可用性は、退避機構の可用性に乗っている。配置に失敗した
 (= rename に到達しなかった)ときは、**その配置自身が直前に取った**退避を捨てる — 配置先は無傷なので
 その退避は同じ内容の写しでしかなく、残すと失敗のたびに1本ずつ増える(実測: 丸ごと `cp` する実装は
 読み取り専用の配置先に4回実行すると同一内容の `.bak` が4本になった)。捨てるのはその配置自身のものに
 限る、が退避側の保証で、**run が `Backed up existing config to …` と表示した退避は、その run が終わった
-あともそこにある**。この「自身のものに限る」を機構で担保しているのは、退避先を関数のあいだで
-グローバル変数ではなく戻り値で渡していること(実測: グローバルだった頃は、あとの配置の失敗が、前の
-配置がユーザーに約束した退避を消していた)。
+あともそこにある**。これを機構で担保しているのは、退避先を関数のあいだでグローバル変数ではなく
+戻り値で渡していること(実測: グローバルだった頃は、あとの配置の失敗が、前の配置がユーザーに
+約束した退避を消していた)。
+
+**退避先を配置先の隣ではなく専用ディレクトリにしている理由**: iTerm2 は DynamicProfiles の中の
+ファイルを1つずつ読むが、**先頭がドットのものと末尾がチルダのものだけを読み飛ばす**
+(実測: iTerm2 バイナリの `reallyReloadDynamicProfiles` 近傍に `Skipping it because of leading dot` /
+`Skipping it because of trailing tilde (GNU-style backup file)`)。退避名は `herdr.json.<日時>.bak` で
+どちらにも当たらないので、隣に置けば同じ Guid の二重プロファイルとして読まれる。一時ファイルの方は
+`.herdr.json.dotfiles-tmp.<pid>` とドットで始まるので読まれない — この命名は偶然ではなく、配置中の
+ファイルが拾われないための設計である。
 
 代償: 配置先にしか無い設定は消える。**残したいものは dotfiles に入れる**、が唯一の運用で、手元で
-`/config` や herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに残る(§5.2)。
+herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに残る(§5.2)。
 
 境界:
 
@@ -250,11 +215,9 @@ config.toml の退避は実行ごとに1本増える。**世代管理も剪定�
   なく、放っておくと誰も消さない。よって `deploy` は配置の前に配置先ディレクトリの同じパターンを掃く
   (実測: 次の run で消える。配置先が既に原本と一致している run でも掃く)。退避も同じ方式で、
   BACKUP_DIR に一時名で書いてから rename する — こちらは Ctrl-C で死んだ退避が「完全な退避」を名乗る
-  名前で残らないため(実測: 従来は部分的な `.bak` が残った)。iTerm2 がドット始まりのファイルを
-  読み飛ばすかどうかは**未検証**で、この設計はそこに依存していない(残さないことで解いている)。
-- 上書きするのは上の管理対象だけで、同じディレクトリにある他のもの(`~/.claude` の `sessions/`
-  `projects/` `history.jsonl` `plugins/`、iTerm2 の他の Dynamic Profile、WT が別ファイルに持つ状態)は
-  別ファイルなので巻き込まない。
+  名前で残らないため(実測: 従来は部分的な `.bak` が残った)。
+- 上書きするのは上の管理対象だけで、同じディレクトリにある他のもの(iTerm2 の他の Dynamic Profile、
+  WT が別ファイルに持つ状態)は別ファイルなので巻き込まない。
 - WT の `settings.json` だけは配置先の全体が置き換わるため、そのマシンの WSL ディストロのプロファイルも
   一度消える。**WT が起動時に作り直す、というのは未検証の仮定**(§2.1 の「herdr の config.toml は
   OS 共通」と同じ扱い)で、WSL 実機での確認は取れていない。作り直されなければ、そのマシンの
@@ -270,17 +233,13 @@ config.toml の退避は実行ごとに1本増える。**世代管理も剪定�
   (実測)。どちらも「リンクを張った意図は残らない」点は同じなので、配置先をリンクにする運用は
   取らない。
 
-破れの検出: mac 上での実行(exit 0 で終わること、配置した4ファイルが原本と `diff` で一致すること、
+破れの検出: mac 上での実行(exit 0 で終わること、配置したファイルが原本と `diff` で一致すること、
 2回流してバイト列が変わらないこと、配置後の `herdr config check` が通ること)と、WSL / 非 WSL Linux
 経路の `uname` `wslpath` `cmd.exe` スタブでの到達確認、および失敗経路の実測(書けないホーム・
 配置先がディレクトリ・中断された `cp` で、他の配置が続き、最後に非0で終わり、何が配れなかったかが
-出ること)を、タスク#10 の検証に記録する。**既存の設定があるホームで失敗経路を踏ませること**も
-そこに含める — まっさらなホームでは退避が1本も無く、失敗時に退避をどう扱うかのコードが動かないため、
-退避が消える不具合が一度見逃された。判定が `diff` 1本で済むこと自体がこの方式の検出手段で、
-方式が増えれば増えた分だけ検出は難しくなる。
-
-この節は当初、アプリも書くファイルを項目単位でマージする機構を規定していた(#9 / #13 で実装)。
-撤回して上書きに統一した経緯は §5.1。
+出ること)。**既存の設定があるホームで失敗経路を踏ませること**も要る — まっさらなホームでは退避が
+1本も無く、失敗時に退避をどう扱うかのコードが動かないため、退避が消える不具合が一度見逃された。
+判定が `diff` 1本で済むこと自体がこの方式の検出手段で、方式が増えれば増えた分だけ検出は難しくなる。
 
 ## 5. Alternatives considered
 
@@ -298,31 +257,21 @@ config.toml の退避は実行ごとに1本増える。**世代管理も剪定�
   完結する Dynamic Profiles が最小。
 - **WT の別名チョードを Mac にも展開**: 統一の方向と逆(使われていない別名を増やす)。むしろ Win 側を
   ctrl+alt 系のみに整理して両OSを1:1 にする。
-- **`~/.claude` ごとシンボリックリンク**: プラグインキャッシュ・履歴・認証情報など Claude Code が
-  実行時に書き込む大量のファイルを巻き込む。管理したいのは settings.json と statusline.sh の2つだけ。
-- **settings.json をそのまま(リテラルの絶対パスのまま)持つ**: mac(`/Users/kiyo`)と WSL
-  (`/home/kiyo`)でホームパスが異なるため片方で壊れる。
-- **`__HOME__` プレースホルダ + setup 時の sed 置換**: `$HOME` 展開が検証できた今では余分な機構。
-  sed は置換文字列側の `&` `\` やデリミタ文字で無言で壊れ、しかも結果は有効な JSON のままなので
-  検出しづらい。採らない。
-- **herdr のフックスクリプト本体も dotfiles で持つ**: herdr の統合が再インストール時に上書きする
-  ため二重管理になり、バージョン不整合を招く。
 - **アプリも書くファイルは項目単位でマージする**(dotfiles が持つキーだけを dotfiles の値にし、
-  配置先にしか無いキーは残す): 一度は実装し(`lib/merge.py` — #9 / #13)、撤回した。守ろうとしていた
-  「そのマシンにしか無い設定」を数え上げると、WT が WSL ディストロごとに書くプロファイルは WT 自身が
-  作り直すマシンの目録であり(この「作り直す」は未検証 — §4.7 の境界)、herdr が書き戻すテーマ名と `onboarding` は**上書きで直したい値そのもの**
-  だった(指定したテーマが herdr の書き戻しで戻り続けるのが #12 の中身)。つまり守る対象は**現時点では**
-  実在しない。ただしそれは「**Windows マシンは1台**」という前提(§4.7 の境界)の下での話で、この前提が
-  崩れれば守る対象は実在する — 2台目に上書きで配れば、そのマシンにしか無いディストロの GUID は消える。
-  id 突き合わせマージが解いていた問題そのものは無くならず、上書きは前提の下でそれを回避しているだけ、
-  というのが捨てた選択肢の唯一の利点(台数が増えた時点で §4.7 の境界ごと再検討になる)。現時点では
-  費用が大きく、`jq` にも `tomllib` にも依存せず JSON / TOML を自前で読み書きし、アプリが要素を書き足す
-  配列を id で突き合わせる機構が要る。この会話で見つかった不具合 — 同じ matcher のフック消失、id の
-  大小文字の畳み込み、`keybindings` のチョードだけが消える、空の `themes` が配置先のテーマ定義を削除
-  する、意図的に消した action の復活、`[[keys.command]]` があると何も配られない、冪等性違反 — は
-  すべてこの機構だけが原因だった。決め手は**マージに削除の概念が無い**こと: dotfiles からキーを消しても
-  配置先からは消えないので、「dotfiles が正」をそもそも満たせない。上書きなら方式は1種類、検証は
-  `diff` 1本になる。
+  配置先にしか無いキーは残す): 一度は実装し、撤回した。決め手は**マージに削除の概念が無い**こと —
+  dotfiles からキーを消しても配置先からは消えないので、「dotfiles が正」をそもそも満たせない。
+  費用も大きく、`jq` にも `tomllib` にも依存せず JSON / TOML を自前で読み書きし、アプリが要素を
+  書き足す配列を id で突き合わせる機構が要る(実装は約 1,200 行 + 専用テストスイートになった)。
+  上書きなら方式は1種類、検証は `diff` 1本で済む。
+
+  守ろうとしていた「そのマシンにしか無い設定」を数え上げると、WT が WSL ディストロごとに書く
+  プロファイルは WT 自身が作り直すマシンの目録であり(この「作り直す」は未検証 — §4.6 の境界)、
+  herdr が書き戻すテーマ名と `onboarding` は**上書きで直したい値そのもの**だった。つまり守る対象は
+  **現時点では**実在しない。ただしそれは「**Windows マシンは1台**」という前提(§4.6 の境界)の
+  下での話で、この前提が崩れれば守る対象は実在する — 2台目に上書きで配れば、そのマシンにしか無い
+  ディストロの GUID は消える。id 突き合わせマージが解いていた問題そのものは無くならず、上書きは
+  前提の下でそれを回避しているだけ、というのが捨てた選択肢の唯一の利点(台数が増えた時点で
+  §4.6 の境界ごと再検討になる)。
 
 ### 5.2 What did we trade away?
 
@@ -330,7 +279,7 @@ Dynamic Profile はデフォルトプロファイル化を自動でできない(
 残る)。Win 側フォントは自動化されない(WSL から Windows へのフォントインストールは不可 — README の
 手動手順で受容)。シェルは OS ごとに異なるまま(統一しない判断)。グローバルな iTerm2 設定
 (ウィンドウ挙動等)は管理対象外のまま。配置は一方向(dotfiles → ホーム)の丸ごと上書きに割り切った
-ので、手元で変えた設定(Claude Code の `/config`、herdr のテーマ選択、WT の設定 UI)を dotfiles へ
-戻す作業は手動で残り、戻す前に setup を流せばその変更は失われる — 退避された `.bak` から手で拾うことに
-なる。方式を1種類に保つ代わりに、この一手間を受け入れた。退避も同じ割り切りで、配置先が原本と違えば
-毎回1本増え、剪定はしない(§4.7) — 溜まった `.bak` を消すのもユーザーの手作業として残る。
+ので、手元で変えた設定(herdr のテーマ選択、WT の設定 UI)を dotfiles へ戻す作業は手動で残り、
+戻す前に setup を流せばその変更は失われる — 退避された `.bak` から手で拾うことになる。方式を1種類に
+保つ代わりに、この一手間を受け入れた。退避も同じ割り切りで、配置先が原本と違えば毎回1本増え、
+剪定はしない(§4.6) — 溜まった `.bak` を消すのもユーザーの手作業として残る。
