@@ -72,7 +72,7 @@ setup は Win 側も WSL の bash で実行される前提(既存 setup.sh の�
 - `README.md` — 統一仕様の意図: 操作×OS別キー対応表、セットアップ手順、手作業が要る箇所。
   具体的な値(フォント名・サイズ・色の hex・テーマ名・送信バイト列)は持たない — 持つと
   設定ファイルと2か所でメンテすることになる。
-- `herdr/config.toml` — OS 共通の herdr 設定。
+- `herdr/config.toml` — OS 共通の herdr 設定(キー割り当てと、テーマ2層のうち herdr UI 側 — §4.7)。
 - `windows-terminal/settings.json` — 統一仕様の Win 翻訳(ctrl+alt 系のみに整理)。
 - `iterm2/herdr.json` — 統一仕様の Mac 翻訳(⌃⌘ 系 + ⇧Enter + Gruvbox Dark + HackGen)。
 - `setup.sh` — 単一エントリ: 共通部(herdr)→ `uname` で分岐 → darwin(iTerm2 配置 + brew があれば
@@ -491,6 +491,40 @@ herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに
 `HOME` 未設定(+ XDG 両方設定)で非0に落ち、何も配らないこと。相対 XDG を2つの cwd から流して
 同じ場所に配られ、2回目が `Up to date` になること。`deploy` の中に意図的に失敗する裸の行を一時的に
 足すと run が非0になること。
+
+### 4.7 What does the two-layer theme guarantee, and how is a breach caught?
+
+保証: 端末そのものの配色は両OSとも Gruvbox Dark、その上で動く herdr の UI テーマは
+`gruvbox-light` になる。層ごとに設定の持ち主が1か所に決まっていて、setup を流しても
+ユーザーの指定に戻る。
+
+テーマが2層あるのは、色を決める主体が2つあるから。端末(WT / iTerm2)は「背景色と ANSI 0–15 が
+実際に何色になるか」だけを決める。herdr は自分の UI(サイドバー・ペイン境界・ステータス)を
+その 16 色ではなく**自前のテーマ設定**で描くので、端末を暗くしても herdr は追随しない。よって
+2つを別々に指定する必要がある。
+
+| 層 | 設定の持ち主 | 値 |
+|---|---|---|
+| 端末そのものの配色(Win) | `windows-terminal/settings.json` の `profiles.defaults.colorScheme` — スキーム実体は同ファイルの `schemes` | `Gruvbox Dark`(背景 `#282828` / 前景 `#EBDBB2`) |
+| 端末そのものの配色(Mac) | `iterm2/herdr.json` の色定義(`Background Color` / `Foreground Color` ほか) | 同上(WT の Gruvbox Dark と同値 — #2 / #11) |
+| herdr の UI テーマ | `herdr/config.toml` の `[theme]`(OS 共通) | `name = "gruvbox-light"`、`auto_switch = false` |
+
+**暗/明を食い違わせているのはユーザーの意図**であって、乖離ではない — herdr の UI を明るくすると
+ワークスペースの選択状態が判別しやすい。したがって「端末と herdr でテーマ名が違う」ことを
+不一致として直してはいけない。逆に `auto_switch` を true に戻すと herdr が端末の明暗に追随して
+dark 側(`dark_name`)に落ちるので、明示指定を保つために false のままにする。
+
+herdr は `${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml` にテーマ名を書き戻す(§2.1 / §4.6)。
+dotfiles が正なので、書き戻された値は次の setup で `[theme]` の指定に戻る — これは丸ごと上書きの
+方式がそのまま効く範囲で、テーマのための例外は要らない。
+
+README はこの2層について**設定箇所だけ**を書き、色名・hex・テーマ名は持たない(§3.2 / §4.1)。
+読者は README から各設定ファイルへ辿る。
+
+破れの検出: 3つの持ち主の値を直接照合する — `herdr/config.toml` の `[theme] name` が
+`gruvbox-light` であること、`profiles.defaults.colorScheme` が `Gruvbox Dark` でそのスキームが
+`schemes` に定義されていること、`iterm2/herdr.json` の前景/背景が WT の Gruvbox Dark と同値で
+あること(#2 の完了基準が 16 色まで含めて突き合わせている)。実機の見た目はユーザーが確認する。
 
 ## 5. Alternatives considered
 

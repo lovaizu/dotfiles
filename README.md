@@ -23,17 +23,20 @@ herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/c
 
 ## テーマ・フォント
 
-端末のカラースキームとフォントを両 OS で揃える。テーマは **2 層**あり、層ごとに設定箇所も値も違う。
+端末のカラースキームとフォントを両 OS で揃える。
+
+テーマは **2 層**ある — 端末そのものの配色と、その上で動く herdr の UI テーマ。層ごとに設定を持つファイルが違う(具体的な値は下記の設定箇所を見ること)。
+
+- **端末そのものの配色** — Win: `windows-terminal/settings.json` の `profiles.defaults.colorScheme`(スキームの実体は同ファイルの `schemes`)/ Mac: `iterm2/herdr.json` の色定義
+- **herdr の UI テーマ** — `herdr/config.toml` の `[theme]`(OS 共通)
 
 | 項目 | 値 | 設定箇所 |
 |---|---|---|
-| 端末そのものの配色 | Gruvbox Dark(背景 `#282828` / 前景 `#EBDBB2`) | Win: `windows-terminal/settings.json` の `profiles.defaults.colorScheme` / Mac: `iterm2/herdr.json` の色定義 |
-| herdr の UI テーマ | `gruvbox-light` | `herdr/config.toml` の `[theme] name` |
 | フォント | HackGen Console NF(Mac でのフォント名は `HackGenConsoleNF-Regular`) | Win: `profiles.defaults` の `font` / Mac: `iterm2/herdr.json` の `Normal Font` |
 
 Windows Terminal では `profiles.defaults` にテーマ・フォントを置き、全プロファイル(PowerShell / Ubuntu / ClaudeCode / my など)が継承する。個別プロファイルでの上書きは行わない。
 
-**端末が暗く、その上に乗る UI が明るいのは意図した組み合わせ。** 端末側は「背景色と ANSI 0–15 が実際に何色になるか」だけを決め、herdr は自分の UI(サイドバー・ペイン境界・ステータス)を自前のテーマ設定で描く。端末を暗くしても herdr は追随しない。herdr を light にしているのはワークスペースの選択状態を判別しやすくするためで、`auto_switch = false` を置いて `name = "gruvbox-light"` を明示している。
+**端末は暗い配色、その上に乗る herdr の UI は明るい配色 — これは意図した組み合わせ。** 端末側は「背景色と ANSI 0–15 が実際に何色になるか」だけを決め、herdr は自分の UI(サイドバー・ペイン境界・ステータス)を自前のテーマ設定で描く。端末を暗くしても herdr は追随しない。herdr の UI を明るくしているのはワークスペースの選択状態を判別しやすくするためで、端末の明暗に自動追随させず、明るい側を明示指定している。
 
 ## セットアップ
 
