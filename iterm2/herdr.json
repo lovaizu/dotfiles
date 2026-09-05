@@ -182,7 +182,22 @@
         "Red Component": 0.984313725490196,
         "Green Component": 0.28627450980392155,
         "Blue Component": 0.20392156862745098
-      }
+      },
+      "Link Color": {
+        "Alpha Component": 1,
+        "Color Space": "sRGB",
+        "Red Component": 0.5137254901960784,
+        "Green Component": 0.6470588235294118,
+        "Blue Component": 0.596078431372549
+      },
+      "Selected Text Color": {
+        "Alpha Component": 1,
+        "Color Space": "sRGB",
+        "Red Component": 0.1568627450980392,
+        "Green Component": 0.1568627450980392,
+        "Blue Component": 0.1568627450980392
+      },
+      "Use Selected Text Color": true
     }
   ]
 }
