@@ -37,7 +37,7 @@ herdr のプレフィックスは `Ctrl+T`(Mac は `⌃T`)。herdr 側のキー�
 
 フォントは両 OS で同じものに揃える。名前とサイズを持つのは Win: `windows-terminal/settings.json` の `profiles.defaults.font` の `face` / `size` / Mac: `iterm2/herdr.json` の `Normal Font`(名前とサイズを 1 つの文字列で持つ)。Mac と Windows でフォント名の表記が違うので、値は両ファイルをそれぞれ見ること。
 
-Windows Terminal ではテーマ・フォントを `profiles.defaults` に置き、全プロファイル(PowerShell / Ubuntu / ClaudeCode / my など)が継承する。個別プロファイルでの上書きは行わない。
+Windows Terminal ではテーマ・フォントを `profiles.defaults` に置き、**全プロファイルが継承する**。個別プロファイルでの上書きは行わない — プロファイルを増やしても設定を足す必要が無いのが狙い。
 
 ## 配置方式
 
@@ -71,7 +71,7 @@ herdr の設定の配置先は `XDG_CONFIG_HOME` に従う(`~/.config` 決め打
 
 herdr の設定と、Windows 側の Windows Terminal の `settings.json` を配置する(配置先・上書き・退避は「配置方式」を見ること)。
 
-フォントは WSL からは Windows にインストールできないため手動。[リリースページ](https://github.com/yuru7/HackGen/releases) から Nerd Font 版(ファイル名に `_NF` が付くアーカイブ)をダウンロードし、その中の Console 版の ttf を Windows にインストールする。どのフォント名を入れればよいかは `windows-terminal/settings.json` の `profiles.defaults.font` を見ること。
+**フォントは手動**(WSL から Windows にはインストールできない)。入れるフォントの名前は `windows-terminal/settings.json` の `profiles.defaults.font` の `face` にある。その名前は配布物の版まで含んだ完全な名前なので、名前で配布元を探し、その名前どおりのフォントを Windows 側にインストールすること。README はフォント名を持たない(冒頭の規則のとおり)。
 
 ### Mac
 
@@ -81,7 +81,7 @@ herdr の設定と、Windows 側の Windows Terminal の `settings.json` を配�
 
 herdr の設定と、iTerm2 の Dynamic Profile を配置する。Dynamic Profile は iTerm2 が未導入でも配置する(iTerm2 は起動時にそのディレクトリを読む)。
 
-フォントは Homebrew があれば `font-hackgen-nerd` cask で入れる。Homebrew が無い、または install に失敗した場合は警告するだけで失敗には数えない(フォントは管理対象ファイルではない) — 上のリリースページから手動で入れること。
+フォントは Homebrew があれば `./setup.sh` が cask で入れる(cask 名は `setup.sh` の中にある。読者が自分でコマンドを打つ必要は無い)。Homebrew が無い、または install に失敗した場合は警告するだけで失敗には数えない(フォントは管理対象ファイルではない) — そのときは WSL 節と同じく手動で入れる。Mac 側の名前は `iterm2/herdr.json` の `Normal Font` にある。再実行すべき brew のコマンドは `./setup.sh` の警告がそのまま表示する。
 
 #### 初回のみ: herdr プロファイルをデフォルトにする(必須・手動)
 
