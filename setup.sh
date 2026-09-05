@@ -3,9 +3,13 @@ set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Backups go to a directory of their own: iTerm2 loads every file in
-# DynamicProfiles, so a backup left beside the profile is parsed as a second
-# profile with a duplicate Guid.
+# Backups go to a directory of their own because of what iTerm2 does with
+# DynamicProfiles: it reads every file in that directory except the ones whose
+# name begins with a dot or ends with a tilde (measured: the iTerm2 binary
+# carries "Skipping it because of leading dot" and "Skipping it because of
+# trailing tilde (GNU-style backup file)" beside reallyReloadDynamicProfiles).
+# A backup is named herdr.json.<timestamp>.bak, which is neither, so one left
+# beside the profile would be read as a second profile with a duplicate Guid.
 BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
 
 # What this run could not deploy, one entry per file. A deployment that fails
@@ -20,57 +24,98 @@ BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
 # judgement again and either quietly agrees or names the same file. This list
 # is what keeps a partial run from passing for success: the run names every
 # entry at the end and exits non-zero.
+#
+# That report is spoken on stdout and nowhere else, which is also its limit: a
+# caller that stops reading part-way -- ./setup.sh | head -2 -- takes the run
+# down with a broken pipe at the next write, so the deployments after that
+# point never happen and the list is never printed (measured: PIPESTATUS
+# "141 0"). It is left that way. Surviving a truncated pipe would mean every
+# echo in this file carrying its own failure handling, and the run that dies
+# does end non-zero and converges on the next one like any other interrupted
+# run. Redirect to a file and read that when the output needs trimming.
 FAILURES=()
 
 # Every half-written file this script makes is a dot file named after where it
 # is going, in the directory it is going to, and is renamed into place once it
-# is whole. $$ keeps two runs from writing the same name.
+# is whole. The leading dot is what makes that safe in iTerm2's
+# DynamicProfiles: a name that begins with a dot is one of the two kinds iTerm2
+# skips (see BACKUP_DIR above), so a file half-way through being deployed is
+# never read as a profile.
+#
+# The name is built here and nowhere else. sweep_tmp_files has to find the same
+# files again, and a second hand-written copy of the format would let a change
+# to one stop the other matching without saying so.
+tmp_prefix_for() {
+  printf '%s/.%s.dotfiles-tmp.' "$(dirname "$1")" "$(basename "$1")"
+}
+
+# The pid on the end is what keeps two runs at once from writing into one temp
+# file and renaming the mixture into place. Two setup.sh at once is still not a
+# case this script serves -- the sweep below removes the other run's temp file
+# out from under it, and that run then fails at its own rename -- but it fails,
+# which is the point of the pid.
 tmp_for() {
-  printf '%s/.%s.dotfiles-tmp.%s' "$(dirname "$1")" "$(basename "$1")" "$$"
+  printf '%s%s' "$(tmp_prefix_for "$1")" "$$"
+}
+
+# Where the backup of dst lives, before the timestamp is added. deploy needs it
+# to sweep and to name the temp file the trap must know about, and backup_file
+# needs it to build the .bak name, so it is worked out here for both.
+backup_path_for() {
+  printf '%s/%s' "$BACKUP_DIR" "$(basename "$1")"
 }
 
 # Remove the temp files earlier runs left beside a destination. A run killed
 # outright (SIGKILL, a power cut) leaves one, and since the name carries that
 # run's pid no later run ever writes over it -- without this sweep nothing would
-# ever remove it (measured). Leftovers matter most in iTerm2's DynamicProfiles,
-# where every file in the directory is read: that is the same reason backups are
-# kept in a directory of their own, and the temp file must not undo it. A
-# concurrent run's temp file would be swept too; two setup.sh at once is not a
-# case this script serves.
+# ever remove it (measured). The leading dot that keeps iTerm2 from reading such
+# a file also keeps a plain ls from showing it, so nobody finds it by looking
+# either; it is litter that would otherwise sit in the directory for good.
 sweep_tmp_files() {
-  rm -f "$(dirname "$1")/.$(basename "$1").dotfiles-tmp."* 2>/dev/null || true
+  rm -f "$(tmp_prefix_for "$1")"* 2>/dev/null || true
 }
 
-# The temp file deploy is writing, so an interrupt does not leave it behind.
-# Empty whenever there is none.
+# The temp files this run is part-way through writing, so an interrupt does not
+# leave them behind. Empty whenever there is none, and rm is content with that
+# (measured: rm -f "" exits 0 and says nothing).
 DEPLOY_TMP=""
-remove_deploy_tmp() {
-  if [ -n "$DEPLOY_TMP" ]; then
-    # A dst whose directory has gone makes even rm complain; nothing here is
-    # worth a message.
-    rm -f "$DEPLOY_TMP" 2>/dev/null || true
-    DEPLOY_TMP=""
-  fi
+BACKUP_TMP=""
+remove_pending_tmp() {
+  # A dst whose directory has gone makes even rm complain; nothing here is
+  # worth a message.
+  rm -f "$DEPLOY_TMP" "$BACKUP_TMP" 2>/dev/null || true
+  DEPLOY_TMP=""
+  BACKUP_TMP=""
 }
 # INT and TERM exit rather than only cleaning up: a trap that returns leaves
 # bash carrying on to the next deployment, so Ctrl-C would stop nothing.
-trap remove_deploy_tmp EXIT
-trap 'remove_deploy_tmp; exit 130' INT
-trap 'remove_deploy_tmp; exit 143' TERM
+trap remove_pending_tmp EXIT
+trap 'remove_pending_tmp; exit 130' INT
+trap 'remove_pending_tmp; exit 143' TERM
 
-# Say that something was not deployed and remember it for the summary. The
-# detail lines are the caller's, because what to do about it differs; what is
-# the same everywhere is that the run goes on and ends non-zero.
-record_failure() {
+# The shape a warning has, wherever it comes from: a blank line, the headline,
+# the caller's detail lines indented under it, a blank line. Kept apart from
+# record_failure below because not everything worth warning about is a managed
+# file that was not deployed -- the two callers that use this directly are both
+# about something outside the managed files, and neither should make the run
+# end non-zero.
+warn() {
   local what="$1" line
   shift
-  FAILURES+=("$what")
   echo
   echo "WARNING: $what"
   for line in "$@"; do
     echo "  $line"
   done
   echo
+}
+
+# Say that a managed file was not deployed and remember it for the summary. The
+# detail lines are the caller's, because what to do about it differs; what is
+# the same everywhere is that the run goes on and ends non-zero.
+record_failure() {
+  FAILURES+=("$1")
+  warn "$@"
 }
 
 # Copy an existing dst into BACKUP_DIR and print where it went. Prints nothing
@@ -91,14 +136,16 @@ record_failure() {
 # and the iTerm2 profile deployed after it cannot be written -- with a global,
 # the config.toml backup the run had just announced was gone by the end of it;
 # taken on stdout into a local, it is still there).
+#
+# The temp file to write through is handed in rather than worked out here, for
+# the reason deploy gives where it works it out.
 backup_file() {
-  local dst="$1" base stem bak count=1 tmp
+  local dst="$1" tmp="$2" stem bak count=1
   [ -e "$dst" ] || return 0
   # No directory, no backup, and a backup is what the caller is about to
   # promise the user -- so this is a failure like any other here.
   mkdir -p "$BACKUP_DIR" || return 1
-  base="$(basename "$dst")"
-  stem="$BACKUP_DIR/$base.$(date +%Y%m%d%H%M%S)"
+  stem="$(backup_path_for "$dst").$(date +%Y%m%d%H%M%S)"
   bak="$stem.bak"
   while [ -e "$bak" ]; do
     bak="$stem-$count.bak"
@@ -109,13 +156,12 @@ backup_file() {
   # and checking cp's exit status cannot do that alone: a Ctrl-C during the copy
   # leaves the script through the INT trap before any test of it could run, and
   # a part-written .bak stayed behind under that name (measured). Under a temp
-  # name a half-written copy claims nothing and the next run sweeps it.
+  # name a half-written copy claims nothing, the trap removes it, and a run
+  # killed outright leaves it for deploy's sweep.
   #
   # Non-zero when there is a dst that cannot be copied: a directory in its
   # place, a file that cannot be read, a disk that fills up. cp says why on
   # stderr and deploy turns it into a warning.
-  tmp="$(tmp_for "$BACKUP_DIR/$base")"
-  sweep_tmp_files "$BACKUP_DIR/$base"
   if ! cp "$dst" "$tmp" || ! mv -f "$tmp" "$bak"; then
     rm -f "$tmp"
     return 1
@@ -171,8 +217,13 @@ deploy() {
   local src="$1" dst="$2" dir backup=""
   # Before the check below rather than after it: a dst that is already correct
   # still has to come out of a directory with no leftovers standing in it, and
-  # a run killed before the rename leaves both an old dst and a temp file.
+  # a run killed before the rename leaves both an old dst and a temp file. The
+  # backup directory is swept on the same terms and for the same reason -- a
+  # sweep that only ran when a backup is actually taken would never reach a
+  # machine that is up to date, and the leftover would sit there for good
+  # (measured: a backup interrupted mid-copy survived three later runs).
   sweep_tmp_files "$dst"
+  sweep_tmp_files "$(backup_path_for "$dst")"
   # cmp -s keeps quiet about a difference but not about a dst it cannot open,
   # and a lone "Is a directory" naming neither the managed file nor what to do
   # about it is worse than no message. One of the commands below runs into the
@@ -183,9 +234,27 @@ deploy() {
   fi
   dir="$(dirname "$dst")"
   DEPLOY_TMP="$(tmp_for "$dst")"
+  # backup_file's temp file is named here, where the trap can see it, and handed
+  # in. backup_file runs in a command substitution, and the name would be no use
+  # to anyone if it were set in there: a subshell does not run these traps
+  # (measured: with the name set inside the command substitution, a SIGINT to
+  # the process group left the part-written file behind; named here, the same
+  # interrupt removes it).
+  BACKUP_TMP="$(tmp_for "$(backup_path_for "$dst")")"
+  # mkdir -p is also what can leave an empty directory behind when it is the
+  # copy that fails -- the destination's here, BACKUP_DIR in backup_file. They
+  # are left where they are: mkdir -p does not say whether this run made the
+  # directory, so removing one means being ready to remove a directory that was
+  # there all along. An empty directory under ~/.config or ~/.local/state asks
+  # nothing of anyone and the next run that gets further fills it. The warning
+  # below says so rather than claiming nothing was written.
+  #
   # backup is local, and empty until backup_file has actually taken one, so the
   # cleanup below can only ever remove this file's own backup.
-  if mkdir -p "$dir" && cp "$src" "$DEPLOY_TMP" && backup="$(backup_file "$dst")"; then
+  if mkdir -p "$dir" && cp "$src" "$DEPLOY_TMP" && backup="$(backup_file "$dst" "$BACKUP_TMP")"; then
+    # Either renamed onto the .bak or removed by backup_file; either way there
+    # is no longer a backup temp file for the trap to worry about.
+    BACKUP_TMP=""
     # -f because a read-only dst makes mv ask -- but only when stdin is a tty,
     # which is exactly how a person runs this. The prompt defaults to "no" and
     # mv then exits 0 having replaced nothing, so the run announced a file it
@@ -204,7 +273,7 @@ deploy() {
       return 0
     fi
   fi
-  remove_deploy_tmp
+  remove_pending_tmp
   # Nothing above reached the rename, so dst is as it was and this backup is a
   # copy of a file that is still there. Keeping it would add one more identical
   # .bak per run for as long as the cause lasts.
@@ -212,13 +281,18 @@ deploy() {
     rm -f "$backup"
   fi
   record_failure "$dst was not deployed." \
-    "The command that failed said why just above. The file still holds what" \
-    "it held before, and no backup was kept: the copy is renamed into place" \
-    "only once it is whole, so a failure here leaves nothing to undo." \
+    "The command that failed said why just above. Nothing was replaced: the" \
+    "copy is renamed into place only once it is whole, so the file is as it" \
+    "was and no backup was kept. An empty directory may be left behind --" \
+    "the one holding the file, or the backup directory -- since both are" \
+    "made before the copy that failed." \
     "The rest of the setup runs below and this run ends non-zero." \
-    "Fix: clear whatever that message names -- make the file, the directory" \
-    "holding it, or $BACKUP_DIR writable, or move aside" \
-    "something standing where the file belongs -- then re-run ./setup.sh."
+    "Fix: a \"No such file or directory\" naming a path under" \
+    "$DOTFILES_DIR is a file missing from the repository" \
+    "itself -- re-check the clone. Anything else is this machine: make the" \
+    "file, the directory holding it, or $BACKUP_DIR" \
+    "writable, or move aside something standing where the file belongs." \
+    "Then re-run ./setup.sh."
   return 1
 }
 
@@ -243,17 +317,17 @@ case "$(uname -s)" in
     deploy "$DOTFILES_DIR/iterm2/herdr.json" "$ITERM_DIR/herdr.json" || true
 
     # The key mappings live in the herdr profile, so they only apply to windows
-    # opened with it. Warn when it is not the default profile.
+    # opened with it. Warn when it is not the default profile -- a warning and
+    # not a failure, because every managed file is where it belongs; what is
+    # missing is a choice only the iTerm2 UI can make.
     ITERM_PROFILE_GUID="8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038"
     default_guid="$(defaults read com.googlecode.iterm2 "Default Bookmark Guid" 2>/dev/null || true)"
     if [ "$default_guid" != "$ITERM_PROFILE_GUID" ]; then
-      echo
-      echo "WARNING: the 'herdr' profile is not iTerm2's default profile."
-      echo "  The ctrl+cmd key mappings apply only to windows using that profile,"
-      echo "  so herdr workspace switching will not work in other windows."
-      echo "  Fix: iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default,"
-      echo "  then open a NEW window (existing windows keep their old profile)."
-      echo
+      warn "the 'herdr' profile is not iTerm2's default profile." \
+        "The ctrl+cmd key mappings apply only to windows using that profile," \
+        "so herdr workspace switching will not work in other windows." \
+        "Fix: iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default," \
+        "then open a NEW window (existing windows keep their old profile)."
     fi
 
     # HackGen Nerd font (via Homebrew). The font is the one optional thing
@@ -266,14 +340,12 @@ case "$(uname -s)" in
       if brew list --cask font-hackgen-nerd &>/dev/null; then
         echo "font-hackgen-nerd already installed. Skipping."
       elif ! brew install --cask font-hackgen-nerd; then
-        echo
-        echo "WARNING: brew install --cask font-hackgen-nerd failed."
-        echo "  brew said why just above. Nothing else here depends on it; the"
-        echo "  iTerm2 profile names HackGen and macOS falls back to another"
-        echo "  monospace font until it is installed."
-        echo "  Fix: re-run brew install --cask font-hackgen-nerd once the"
-        echo "  reason is gone, or install the font by hand (see README)."
-        echo
+        warn "brew install --cask font-hackgen-nerd failed." \
+          "brew said why just above. Nothing else here depends on it; the" \
+          "iTerm2 profile names HackGen and macOS falls back to another" \
+          "monospace font until it is installed." \
+          "Fix: re-run brew install --cask font-hackgen-nerd once the" \
+          "reason is gone, or install the font by hand (see README)."
       fi
     else
       echo "Homebrew not found. Install the HackGen Nerd font manually (see README)."
@@ -329,6 +401,10 @@ case "$(uname -s)" in
     ;;
 esac
 
+# The guard is not tidiness. Under set -u, bash 3.2 reads "${arr[@]}" on an
+# empty array as an unbound variable and kills the script on the spot
+# (measured: /bin/bash 3.2.57 exits 127 with "arr[@]: unbound variable"), so
+# the loop below must not be reached on a run that deployed everything.
 if [ "${#FAILURES[@]}" -gt 0 ]; then
   echo
   echo "Finished with ${#FAILURES[@]} failure(s):"
