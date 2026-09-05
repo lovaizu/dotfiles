@@ -208,23 +208,10 @@ lovaizu/ccpm#23)。最終形はコーディネータが隔離ホームの実測�
 - 管理対象を配列にして `deploy` をループで回す(「1方式」を機構で守る)— 3ファイルで、増える予定もない
 - WT Preview / 非パッケージ版のパスへの対応 — 使っていない。次回 Windows 同期時の確認リストにのみ記載
 
-## 未完了
-
 ### #11: iTerm2 プロファイルの色定義の欠落を塞ぐ
 
 **Purpose**: `iterm2/herdr.json` が定義していない色キーが iTerm2 の Default プロファイル
 (Catppuccin Latte)から引き継がれ、Gruvbox Dark の背景に対して読めない色になる。
-
-**Prerequisites**: #2
-
-**Steps**:
-
-- [x] `Bold Color`(`#ebdbb2`)・`Cursor Text Color`(`#282828`)・`Badge Color`(`#fb4934`)を追加(`c978b22`)。
-      実機で太字が読めることをユーザーが確認済み
-- [ ] 残りの未定義キー(`Link Color` / `Selected Text Color` / `Cursor Guide Color` /
-      `Match Background Color` ほか)を洗い、実際の描画先に対するコントラストで要否を判断する
-- [ ] self-check (OK/NG per completion criterion, record in checks/11.md)
-- [ ] QA / Craft / Verification expert review
 
 **Completion criteria**:
 
@@ -232,6 +219,23 @@ lovaizu/ccpm#23)。最終形はコーディネータが隔離ホームの実測�
   読めなくなる色キーをすべて自前で定義している
 - 各色が実際に描画される組み合わせ(太字は背景に、カーソル文字はカーソル色に、選択文字は
   選択背景に)で 4.5:1 以上のコントラストを持つ
+
+レビュー: `checks/11.md`。専門家レビューは回さず、コーディネータが実測で確認した(Rules)。
+`Bold Color` / `Cursor Text Color` / `Badge Color` は `c978b22`、`Link Color` / `Selected Text Color` /
+`Use Selected Text Color` は `d91b770`。**色キーだけ見ていたら足りなかった** — 色キーの解決を左右する
+`Use Separate Colors for Light and Dark Mode` を Default から継承していて、Default 側でライト/ダークの
+色分けを有効にすると Gruvbox 22 色すべてが `(Dark)` サフィックス付きキー(iTerm2 の素のパレット)に
+差し替わる。カーソル文字が 1.92:1 になり完了基準2をそのまま割る。`dc3d8c2` で `false` に固定した。
+`Match Background Color` は定義していない — iTerm2 が検索ヒットの文字色を背景の明暗から白か黒に
+決め直すため、何を継承しても読めなくならない(`iTermTextDrawingHelper.m:2921`)。
+
+**基準を満たさないまま残すもの**: `Badge Color` `#fb4934` は背景に対して 4.29:1。完了基準2が名指しする
+3組に含まれず、`Badge Format` 未設定でバッジは描画されず、Gruvbox に 4.5:1 を満たす赤が無い。
+選択範囲内のリンクも 4.5:1 に到達不能(リンク色が選択文字色より優先され、`Selection Color` が
+`#ffffff` である限り両立する輝度が存在しない)。選択色は Windows Terminal と揃えた意図的な値なので
+変えるなら両OSの仕様側の判断になる。
+
+## 未完了
 
 ### #12: テーマの二層をユーザー指定どおりに揃える
 
