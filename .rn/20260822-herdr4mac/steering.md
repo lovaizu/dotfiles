@@ -138,26 +138,11 @@ WSL では WT 配置を行うようにする。
 
 レビュー: `checks/4.md`
 
-## 未完了
-
 ### #16: PR から Claude Code 設定を外す
 
 **Purpose**: このセッションで取り込んだ Claude Code のユーザー設定を PR から切り離し、端末環境の
 統一だけを残す。要望は Issue #9 に移してある。混ぜたままだと、端末側の判断と Claude Code 側の
 判断(プラグイン実体の再現方法、どの設定を dotfiles で固定するか)が同じ PR で絡まる。
-
-**Prerequisites**: none
-
-**Steps**:
-
-- [ ] `claude/settings.json` と `claude/scripts/statusline.sh` を削除する
-- [ ] `setup.sh` から Claude Code ブロック(settings.json / statusline.sh の配置、`chmod +x`、
-      `jq` 不在の警告、`hooks/herdr-agent-state.sh` 不在の警告)を削除する
-- [ ] 残る配置対象は herdr config / iTerm2 プロファイル / WT settings.json の3つ。`deploy` と
-      失敗集計の機構は維持する — 対象が減っても保証(原子性・退避・部分適用時の非0終了)は要る
-- [ ] mac で実行し exit 0、3ファイルが原本と一致、2回流して不変を確認する
-- [ ] self-check (OK/NG per completion criterion, record in checks/16.md)
-- [ ] QA / Craft / Verification expert review
 
 **Completion criteria**:
 
@@ -165,6 +150,14 @@ WSL では WT 配置を行うようにする。
 - mac 上で `setup.sh` が exit 0 で完了し、配置された3ファイルが dotfiles の内容と一致する。
   2回流してもバイト列が変わらない
 - 配置失敗時の挙動(警告 → 続行 → 末尾で列挙 → 非0)が #10 の完了基準のまま保たれている
+
+レビュー: `checks/16.md`。**削除は grep で終わらなかった** — 消したファイルを worked example や
+`(measured)` の対象にしていたコメントが4件あり、`grep -i claude` では見つからない。直した先で
+さらに全称の言い過ぎが3件出て、コメントだけで4ラウンド回した(コード行は初回から不変)。
+最後は `herdr config check` が `[keys]` の消えた config を `config: ok` と言うことを実測でき、
+代役の parser ではなく読み手本人の証拠に差し替わった。
+
+## 未完了
 
 ### #10: 配置を丸ごと上書きに統一し、項目マージ機構を撤去する
 
