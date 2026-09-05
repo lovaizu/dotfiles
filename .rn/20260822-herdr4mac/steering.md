@@ -277,27 +277,21 @@ README には**設定箇所だけ**を残して色名も hex もテーマ名も�
 既定プロファイル・**消えた symlink の張り直し**・絶対パスでない XDG 値)のうち、初稿は symlink の
 1件を落としていた。`0d575f1` で追記。
 
-## 未完了
-
 ### #14: フォントサイズを 14 にする
 
 **Purpose**: 13pt が小さいというユーザーの判断。統一仕様の変更。
-
-**Prerequisites**: none
-
-**Steps**:
-
-- [x] `iterm2/herdr.json` と `windows-terminal/settings.json` を 14 にする
-- [x] 配置した(`./setup.sh` が exit 0、iTerm2 が再起動なしで読み込み、`New Bookmarks` の `herdr` が
-      `Normal Font` に 14 を保持)
-- [ ] **ユーザーが実機で 14pt の見え方を判断する**(コーディネータでは代われない)
 
 **Completion criteria**:
 
 - 両OSの端末設定でフォントサイズが 14 になっている。README は数字を持たない(#8 の規則)
 - iTerm2 で実際に 14pt で表示されることをユーザーが確認している
 
-自己検証: `checks/14.md`
+レビュー: `checks/14.md`。専門家レビューは回さず、コーディネータが実測で確認した(Rules)。
+`iterm2/herdr.json` の `Normal Font` と `windows-terminal/settings.json` の `profiles.defaults.font.size`
+がどちらも 14、README は数字を持たない(#8)。配置後、iTerm2 は再起動なしで読み込んだ。
+**14pt の見え方はユーザーが新しいウィンドウで確認して「14 でよい」と判断した**(2026-09-05)。
+
+## 未完了
 
 ### #5: Evaluation sign-off
 
