@@ -585,20 +585,8 @@ herdr に `gruvbox`(dark)、Claude Code に `custom:catppuccin-mocha` を持っ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-05
-- **Next**: #10 — 実装は `a873819` まで入り自己検証済み。QA と Verification の再レビューを回し、
-  指摘を反映してからチェックオフする
-- **Last completed**: #15(ステータスラインのモデル名 — `1543933` でチェックオフ済み)
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
-  実施順は #10 → #8 → #11 → #12 → #5。
-  **#14 はユーザーの実機確認待ち** — iTerm2 で新規ウィンドウを開き 14pt の見え方を判断してもらう。
-  それが取れたらレビュー3件を回してチェックオフ。
-  **#10 の再レビュー**: QA と Verification は `a873819` に対して未実施(前ラウンドはこの2人が
-  データ消失と tty での偽成功を実測で見つけた)。Craft の再レビューは `f03f513` を対象に走らせた
-  ままセッションを閉じたので結果は取れていない — 現行コードに当てはまる指摘だけ拾い直すこと。
-  **次回 Windows 同期時にやること**: WT が WSL プロファイルを作り直すかの検証(撤回判断を支える
-  唯一の未検証事項)、ctrl+alt 系キーの確認、WT settings.json の上書き結果の確認。
-  README は #8 まで旧方式(項目マージ前提)のままである点に注意。
-  `checks/10.md` `checks/14.md` は自己検証記録として先にコミット済み(`95a1a1a`)。両タスクの
-  チェックオフ時にレビュー判定を書き足して台帳を確定させること。
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
