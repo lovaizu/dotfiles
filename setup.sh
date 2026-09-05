@@ -74,15 +74,19 @@ record_failure() {
 }
 
 # Copy an existing dst into BACKUP_DIR and print where it went. Prints nothing
-# when dst is not there yet. One run backs up several files with the same
-# basename and a timestamp counts whole seconds, so the name is made unique by
-# counting up: the message deploy prints promises the user a file at that path.
+# when dst is not there yet. The timestamp counts whole seconds, so two runs
+# that back up the same file inside one second arrive at the same name, and the
+# second is made unique by counting up rather than writing over the first: the
+# message deploy prints promises the user a file at that path (measured:
+# back-to-back runs left config.toml.<ts>.bak and config.toml.<ts>-1.bak).
 #
 # The path goes back to the caller on stdout rather than through a global. A
-# global outlives the call: it was still holding one file's backup when a later
-# deploy failed before ever reaching here, and that deploy's cleanup deleted a
-# backup the run had already promised the user (measured, three ways -- the
-# plainest being a second run that only changes a key in settings.json).
+# global outlives the call: it would still hold one file's backup when a later
+# deploy fails, and that deploy's cleanup would delete a backup the run had
+# already promised the user (measured: a second run where config.toml differs
+# and the iTerm2 profile deployed after it cannot be written -- with a global,
+# the config.toml backup the run had just announced was gone by the end of it;
+# taken on stdout into a local, it is still there).
 backup_file() {
   local dst="$1" base stem bak count=1 tmp
   [ -e "$dst" ] || return 0
@@ -126,13 +130,14 @@ backup_file() {
 #
 # The new contents go to a temp file beside dst and are renamed over it. rename
 # within a directory is atomic, so a run stopped partway leaves dst holding the
-# old file or the new one and never a mix of the two -- worth having for the
-# iTerm2 profile, which iTerm2 re-reads as soon as the file changes and a
-# half-written one is not the JSON it expects. It also settles what to do with
-# the backup: everything that can fail here fails before the rename, with dst
-# untouched, so a backup taken a moment earlier is a second copy of a file that
-# is still in place and goes again. Without that, a dst that cannot be written
-# would leave one more identical .bak behind on every run.
+# old file or the new one and never a mix of the two. Every managed file is a
+# whole document to whatever reads it -- JSON to the terminal it configures,
+# TOML to herdr -- and half of one is not a document any of them can parse.
+# Renaming also settles what to do with the backup: everything that can fail
+# here fails before the rename, with dst untouched, so a backup taken a moment
+# earlier is a second copy of a file that is still in place and goes again.
+# Without that, a dst that cannot be written would leave one more identical
+# .bak behind on every run.
 #
 # What renaming costs: it needs the directory writable rather than the file, so
 # a dst whose directory is read-only is a failure here even where writing
