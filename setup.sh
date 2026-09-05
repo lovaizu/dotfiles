@@ -82,9 +82,7 @@ record_failure() {
 # Up to date and backs up nothing -- so it takes a dst that changes between
 # them, which is what herdr does to this config.toml every time it saves a
 # theme (measured: with the theme name rewritten in dst before each of two
-# runs, the pair left config.toml.<ts>.bak and config.toml.<ts>-1.bak; a run
-# here takes about 60ms, or about 300ms with Homebrew on PATH, so consecutive
-# runs share the second unless they happen to straddle one).
+# runs, the pair left config.toml.<ts>.bak and config.toml.<ts>-1.bak).
 #
 # The path goes back to the caller on stdout rather than through a global. A
 # global outlives the call: it would still hold one file's backup when a later
@@ -139,11 +137,10 @@ backup_file() {
 # old file or the new one and never a mix of the two. What half a managed file
 # would cost differs by format, and the quieter half is the worse one. Half a
 # JSON file is not a document at all: no cut shorter than the whole file parses
-# (measured with Python's json on both managed JSON files -- 5796 and 9874
-# truncations, not one of them valid). Half of config.toml usually still is a
-# document: cut at any line boundary it is valid TOML with whole tables simply
-# gone (measured with Python's tomllib -- all 21 line-boundary cuts parse, and
-# 15 of them have no [keys] table at all). A config.toml with no [keys] asks
+# (measured with Python's json on both managed JSON files). Half of config.toml
+# usually still is a document: cut at any line boundary it is valid TOML with
+# whole tables simply gone, and most cuts leave no [keys] table at all
+# (measured with Python's tomllib). A config.toml with no [keys] asks
 # nothing of herdr, so whatever herdr falls back to is what the machine gets
 # and the workspace switching this repository exists for is not in the file to
 # be found -- no error anywhere, which is the case for the rename rather than
