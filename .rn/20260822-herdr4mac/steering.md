@@ -316,8 +316,22 @@ WT settings.json の上書き結果、WT が WSL プロファイルを作り直�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-05
+- **Last completed**: #4(setup.sh の OS 分岐)。以降は #16 → #10 → #11 → #12 → #14 → #8 → #5 の順
+- **Next**: 再開したら**まず `lovaizu/ccpm` に改善要望の Issue を上げる**(ユーザー指示) —
+  rn が足場と決定事項を混ぜ、追記を促すため `.rn/` が肥大化する件。書き方は `lovaizu/ccpm` の
+  既存 Issue に倣う(英語、`## Situation` → `## Desired State`、要望であって実装指示は書かない)。
+  そのあと #16 に着手する
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
+  **PR の縮小が今回の方針転換**: Claude Code 設定は端末環境の統一と混ぜず、Issue #9(settings.json /
+  statusline.sh)と #10(CLAUDE.md)に切り出した。#16 がその撤去タスク。
+  `.rn/` は `71708dc` で 1,707行 → 688行に整理済み — 変更履歴・撤回タスクの手順・レビュー実施
+  チェックボックスを落とし、「なぜそうしたか」と「指摘 → 対応要否 → 対応内容」だけを残す方針。
+  以後もこの方針で最新状態に保つ(Rules 参照)。
+  **#16 で setup.sh を直すときに反映する指摘が checks/10.md に9件**ある(未対応)。うち
+  「一時ファイルの先頭ドットの理由がコメントで逆」は design.md §4.6 だけ修正済みで setup.sh が未修正。
+  **Issue #9 に送る未検証事項**: settings.json の `enabledPlugins` / `extraKnownMarketplaces` は
+  宣言だけで、実体は `~/.claude/plugins/` 配下にある。コピーだけでプラグインが復元されるかは未確定
+  (偽ホームでの `claude plugin list` は `No plugins installed`。ただし未ログインの run だったため
+  認証済み起動での自動インストール有無は取れていない)。
