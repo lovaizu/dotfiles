@@ -170,7 +170,8 @@ WSL では WT 配置を行うようにする。
 **Steps**:
 
 - [x] 実装(`3ae7535` `f03f513` `a873819`)
-- [ ] QA / Design / Craft / Verification expert review — **#16 の後に、最終的な setup.sh に対して回す**
+- [x] 未対応の指摘11件を反映し、design.md §4.6 を結果に揃える(`c1497d7` `a1b641b`)
+- [ ] QA / Design / Craft / Verification expert review — 最終形の setup.sh に対して回す
 
 **Completion criteria**:
 
@@ -309,8 +310,15 @@ WT settings.json の上書き結果、WT が WSL プロファイルを作り直�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: —
-- **Last completed**: —
-- **Next**: —
-- **Notes**: —
+- **Status**: paused
+- **Date**: 2026-09-05
+- **Last completed**: #16(PR から Claude Code 設定を外す)
+- **Next**: #10 の残り1ステップ — 最終形の `setup.sh` に QA / Design / Craft / Verification の
+  4レビューを回す。実装と指摘11件の反映は済んでおり(`a1b641b` まで)、コーディネータによる
+  差分の読み込みがまだ。そのあとは #11 → #12 → #14 → #8 → #5
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
+  `checks/10.md` は実装エキスパートが書いた自己検証のままで、レビュー判定欄は空 — 4レビューの
+  結果はコーディネータが埋める。#10 で判断が要った2件は design.md §4.6 に境界として記録済み
+  (失敗した run が残す空ディレクトリは残す / SIGPIPE は挙動を変えない)。
+  Issue #9 に、プラグインは宣言(settings.json)と導入(`plugin marketplace add` + `install`)に
+  分かれ、宣言だけでは何も起きないことを実測して記録した — 認証は不要だった。
