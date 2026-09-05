@@ -77,8 +77,14 @@ record_failure() {
 # when dst is not there yet. The timestamp counts whole seconds, so two runs
 # that back up the same file inside one second arrive at the same name, and the
 # second is made unique by counting up rather than writing over the first: the
-# message deploy prints promises the user a file at that path (measured:
-# back-to-back runs left config.toml.<ts>.bak and config.toml.<ts>-1.bak).
+# message deploy prints promises the user a file at that path. Two runs on
+# their own never get that far -- the second finds dst already matching, says
+# Up to date and backs up nothing -- so it takes a dst that changes between
+# them, which is what herdr does to this config.toml every time it saves a
+# theme (measured: with the theme name rewritten in dst before each of two
+# runs, the pair left config.toml.<ts>.bak and config.toml.<ts>-1.bak; a run
+# here takes about 60ms, or about 300ms with Homebrew on PATH, so consecutive
+# runs share the second unless they happen to straddle one).
 #
 # The path goes back to the caller on stdout rather than through a global. A
 # global outlives the call: it would still hold one file's backup when a later
@@ -130,9 +136,19 @@ backup_file() {
 #
 # The new contents go to a temp file beside dst and are renamed over it. rename
 # within a directory is atomic, so a run stopped partway leaves dst holding the
-# old file or the new one and never a mix of the two. Every managed file is a
-# whole document to whatever reads it -- JSON to the terminal it configures,
-# TOML to herdr -- and half of one is not a document any of them can parse.
+# old file or the new one and never a mix of the two. What half a managed file
+# would cost differs by format, and the quieter half is the worse one. Half a
+# JSON file is not a document at all: no cut shorter than the whole file parses
+# (measured with Python's json on both managed JSON files -- 5796 and 9874
+# truncations, not one of them valid). Half of config.toml usually still is a
+# document: cut at any line boundary it is valid TOML with whole tables simply
+# gone (measured with Python's tomllib -- all 21 line-boundary cuts parse, and
+# 15 of them have no [keys] table at all). A config.toml with no [keys] asks
+# nothing of herdr, so whatever herdr falls back to is what the machine gets
+# and the workspace switching this repository exists for is not in the file to
+# be found -- no error anywhere, which is the case for the rename rather than
+# against it. Those two parsers stand in for iTerm2, Windows Terminal and
+# herdr; none of the three can be run against a broken file from here.
 # Renaming also settles what to do with the backup: everything that can fail
 # here fails before the rename, with dst untouched, so a backup taken a moment
 # earlier is a second copy of a file that is still in place and goes again.
