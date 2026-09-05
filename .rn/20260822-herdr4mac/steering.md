@@ -84,6 +84,13 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - commit and push every change; one completion marker per task
 - 会話・ドキュメントは日本語(コード・コミットメッセージは英語)
 - herdr/config.toml の `[keys]` には手を入れない(`[theme]` は端末側と揃えるため変更可)
+- **レビューは目的に錨を下ろす**。この dotfiles は1人用で、mac 1台と Windows 1台、setup.sh は
+  対話的に年数回流すだけ、配置が失敗すれば端末を触った瞬間に分かる。レビューを回すときは依頼文に
+  この利用状況を書き、「完了基準に照らして効かない指摘は挙げるな」を明示する。回す軸の数と周回数も
+  ここから決める — 毎回4軸フルセットにしない。#10 でこれを怠り、真だが目的で踏まない指摘
+  (電源断の fsync、同時実行の `.bak` 衝突)に3巡を費やした(lovaizu/ccpm#23)
+- 残るタスク(#11 / #12 / #14 / #8)は**実装 + コーディネータの確認**まで。専門家レビューは回さない —
+  いずれも成果物が小さく、正しさはユーザーが端末を見れば分かる
 - このファイルと design.md、checks/ は**常に最新状態に保つ**。変更履歴・撤回した内容の手順・
   実施済みレビューのチェックボックスは残さない — それらは git log と成果物から辿れる。
   残すのは「なぜそうしたか」と、決定に紐づくレビュー指摘・対応要否・対応内容
@@ -185,7 +192,8 @@ WSL では WT 配置を行うようにする。
 - [x] 3巡目の確定指摘(A1〜C7)を反映 — exit 0 が保証を裏切る経路を機構で塞ぎ(終端番兵・`HOME`
       ガード・XDG 絶対パス検査・`deploy` の戻り値契約)、誤っていた記述(pid 宛 SIGINT・空ディレクトリ・
       `[keys]` 件数)を実測に合わせた
-- [ ] QA / Design / Craft / Verification expert review — 最終形の setup.sh に対して回す
+- [x] QA / Design / Craft / Verification expert review — 3巡回して指摘44件を反映(`checks/10.md`)。
+      4巡目は回さず、最終形はコーディネータが実測で確認した(理由は下の Rules と `checks/10.md`)
 
 **Completion criteria**:
 
@@ -201,6 +209,16 @@ WSL では WT 配置を行うようにする。
 - `design.md` と `steering.md` と `setup.sh` が同じことを言っている
 
 自己検証: `checks/10.md`
+
+**レビューが挙げ、目的に照らして採らなかったもの**(いずれも指摘は真。1人用・年数回・失敗は端末で
+即分かる、という利用状況に対して費用が見合わない):
+
+- 失敗経路のスタブ一式を repo に残す / 「破れの検出」をチェックリスト化する — 回帰を踏むのも直すのも
+  同じ1人なので、検証の仕組みを別に持つ理由がない
+- `setup.sh` のコメント削減(コメント427行 : コード216行)— 実測の記録として残す価値が上回る
+- 配置先のモードを `chmod` で収束させる — 内容は収束しており、モードで困っていない
+- 管理対象を配列にして `deploy` をループで回す(「1方式」を機構で守る)— 3ファイルで、増える予定もない
+- WT Preview / 非パッケージ版のパスへの対応 — 使っていない。次回 Windows 同期時の確認リストにのみ記載
 
 ### #11: iTerm2 プロファイルの色定義の欠落を塞ぐ
 
@@ -335,8 +353,14 @@ WT settings.json の上書き結果、WT が WSL プロファイルを作り直�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: -
-- **Last completed**: -
-- **Next**: -
-- **Notes**: -
+- **Status**: paused
+- **Date**: 2026-09-05
+- **Last completed**: #10 の全ステップ(実装 + レビュー3巡 + 確定指摘44件の反映)。**タスク自体の
+  チェックオフはまだ** — 完了マーカーのコミットが /rn:dn では打てないため
+- **Next**: #10 をチェックオフ(`refactor: complete task #10 — …`)してから #11(iTerm2 の色定義の
+  欠落)へ。#11 は `Link Color` / `Selected Text Color` / `Cursor Guide Color` /
+  `Match Background Color` ほか未定義キーを洗い、Gruvbox Dark 上のコントラストで要否を判断する
+- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
+  #11 以降は Rules のとおり**実装 + コーディネータの確認まで**で、専門家レビューは回さない。
+  #10 で採らなかったレビュー指摘5件は #10 の末尾に理由つきで記録済み(再燃させない)。
+  レビューの依頼文の欠陥は lovaizu/ccpm#23 に起票済み
