@@ -1,7 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 
+# Names at this level: capitals for what outlives the block that sets it -- the
+# settings here, and the state the traps read -- and lower case for a value one
+# block works out and spends on the spot (iterm_dir, wt_dir, appdata,
+# default_guid). Inside the functions everything is a local and lower case.
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Where the deployed files go. The XDG variables are read wherever the program
+# that owns the file reads them: herdr looks under $XDG_CONFIG_HOME when it is
+# set and does not fall back to ~/.config (measured: with XDG_CONFIG_HOME
+# pointing at a directory holding a broken config.toml and a good one under
+# ~/.config, `herdr config check` reported the broken one's parse error), so
+# deploying to ~/.config on such a machine would write a file herdr never reads
+# and still call the run a success (measured: the run said "Installed
+# .../.config/herdr/config.toml" and left the XDG directory empty).
+HERDR_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml"
 
 # Backups go to a directory of their own because of what iTerm2 does with
 # DynamicProfiles: it reads every file in that directory except the ones whose
@@ -52,13 +66,16 @@ tmp_prefix_for() {
   printf '%s/.%s.dotfiles-tmp.' "$(dirname "$1")" "$(basename "$1")"
 }
 
-# The pid on the end is what keeps two runs at once from writing into one temp
-# file and renaming the mixture into place. Two setup.sh at once is not a case
-# this script serves, and the pid does not make it one: what the two runs do to
-# each other beyond this file is not defined here (measured: two runs started
-# together both announced the same backup path, and only one .bak was left).
-# What the pid buys is that neither one renames a file the other was half-way
-# through writing.
+# The pid on the end gives each run a name of its own, so two runs at once write
+# into two files rather than into one, and neither renames a mixture of both
+# into place. That is the whole of what it buys, and it is not what would make
+# two runs at once safe: the sweep below removes every temp file beside the
+# destination, other runs' included (measured: a leftover carrying a foreign pid
+# was gone after one run), so a run can have the copy it is half-way through
+# writing unlinked underneath it by another run's sweep. Two setup.sh at once is
+# not a case this script serves, and what the two do to each other beyond this
+# file is not defined here (measured: two runs started together both announced
+# the same backup path, and only one .bak was left).
 tmp_for() {
   printf '%s%s' "$(tmp_prefix_for "$1")" "$$"
 }
@@ -76,10 +93,13 @@ backup_path_for() {
   printf '%s/%s' "$BACKUP_DIR" "$(basename "$1")"
 }
 
-# Remove the temp files earlier runs left beside a destination. A run killed
-# outright (SIGKILL) leaves one, as does a machine that loses power, and since
-# the name carries that run's pid no later run ever writes over it -- without
-# this sweep nothing would ever remove it (measured). The leading dot that keeps
+# Remove the temp files earlier runs left beside a destination -- every one of
+# them, whichever run wrote it, since the glob is on the shared prefix and not
+# on this run's pid (measured: a leftover carrying a foreign pid was gone after
+# one run). A run killed outright (SIGKILL) leaves one, as does a machine that
+# loses power, and the name carries that run's pid, so no later run writes over
+# it unless the system hands the same pid out again -- and without this sweep
+# nothing would ever remove it (measured). The leading dot that keeps
 # iTerm2 from reading such a file also keeps a plain ls from showing it, so
 # nobody finds it by looking either; it is litter that would otherwise sit in
 # the directory for good.
@@ -107,6 +127,20 @@ remove_pending_tmp() {
 # aimed at this script's pid alone is not: bash is waiting on cp or mv, the
 # child never sees it, and the run carries on to the end (measured: kill -INT
 # on the pid alone finished the deployment and exited 0).
+#
+# The EXIT trap costs the run one thing, and it is a rule about the rest of this
+# file rather than anything the trap can be written out of: with an EXIT trap
+# set, bash 3.2 hands a `set -u` fatal back as exit 0. The message is printed
+# and the run still calls itself a success (measured with /bin/bash 3.2.57: a
+# script whose statement after the trap reads an unset variable printed "unbound
+# variable" and exited 0; the same script without the trap exited 1). Reading
+# $? in the trap and exiting with it does not recover it -- the trap is handed 0
+# for this failure, though it is handed 1 for an ordinary errexit failure
+# (measured: `trap 'st=$?; ...; exit $st' EXIT` still exited 0 on the unset
+# variable, and a trap that printed $? saw 0 there and 1 after a plain `false`).
+# So it is not about any one variable: any expansion below that could be unset
+# would end its run quietly at 0. Every one of them therefore carries a default
+# -- `${VAR:-}`, `${#ARR[@]}` -- and a new one added to this file must too.
 trap remove_pending_tmp EXIT
 trap 'remove_pending_tmp; exit 130' INT
 trap 'remove_pending_tmp; exit 143' TERM
@@ -114,11 +148,11 @@ trap 'remove_pending_tmp; exit 143' TERM
 # The shape a warning has, wherever it comes from: a blank line, the headline,
 # the caller's detail lines indented under it, a blank line. Kept apart from
 # record_failure below because not everything worth warning about is a managed
-# file that was not deployed -- of the callers that use this directly, two are
-# about something outside the managed files (iTerm2's default profile, the
-# font) and one is about a managed file that is being deployed correctly at a
-# cost the backup cannot undo (the symlink in deploy). None of them should make
-# the run end non-zero.
+# file that was not deployed -- of the callers that use this directly, four are
+# about something outside the managed files (two about iTerm2's default profile,
+# two about the font) and one is about a managed file that has been deployed
+# correctly at a cost the backup cannot undo (the symlink in deploy). None of
+# them should make the run end non-zero.
 #
 # All of it on stderr. What a warning explains is a command that has just said
 # why on stderr itself, and the two belong together: on stdout the explanation
@@ -126,8 +160,23 @@ trap 'remove_pending_tmp; exit 143' TERM
 # reading either one alone gets half the story (measured: with the warning on
 # stdout, 2>/dev/null showed the WARNING without cp's "is a directory" and
 # 1>/dev/null showed cp's line with nothing saying which managed file it was
-# about). Progress -- Up to date, Installed, Backed up, Done. -- stays on
-# stdout.
+# about).
+#
+# That is the split for the whole file, and the line it draws is progress
+# against diagnosis rather than warnings against everything else. On stdout: Up
+# to date, Backed up, Installed, the font that was already there, the note that
+# herdr is not installed (which is the opening half of the sentence the Up to
+# date or Installed line below it finishes), Done. On stderr: every WARNING, the
+# failure list at the end, and every notice that a managed file was not
+# deployed -- the Windows Terminal skips. Those last are the reason the line is
+# drawn here and not around the word WARNING: a run that deployed one file fewer
+# than the reader expects says so where the rest of the diagnosis is, and a
+# caller keeping only stdout is not left with a clean-looking log of a run that
+# quietly skipped something.
+#
+# Ends by returning 0 so that record_failure does too: its caller in the WSL
+# branch runs under errexit, and a warn whose value came from whatever the last
+# echo returned would make that call a coin toss.
 warn() {
   local what="$1" line
   shift
@@ -137,6 +186,7 @@ warn() {
     echo "  $line" >&2
   done
   echo >&2
+  return 0
 }
 
 # Say that a managed file was not deployed and remember it for the summary. The
@@ -222,17 +272,21 @@ backup_file() {
 # is left alone; what is at stake is config files a clone and one setup.sh
 # rebuild.
 #
-# What half a managed file would cost differs by format, and the quieter half
-# is the worse one. Half a
-# JSON file is not a document at all: only the cut that drops the trailing
-# newline parses (measured with Python's json, standing in for iTerm2 and
-# Windows Terminal, which cannot be run on a broken file from here). Half of
-# config.toml usually still is a document: cut at a line boundary it is usually
-# valid TOML with whole tables gone, and most cuts leave no [keys] table at
-# all -- which asks nothing of herdr, so the machine gets herdr's fallbacks and
-# the workspace switching this repository exists for is not there. herdr itself
-# calls such a cut "config: ok" (measured with herdr config check): no error
-# anywhere, which is the case for the rename rather than against it.
+# What half a managed file would cost differs by format, and the quieter half is
+# the worse one. Half a JSON file is not a document at all: only the cut that
+# drops the trailing newline parses (measured with Python's json, standing in
+# for iTerm2 and Windows Terminal, which cannot be run on a broken file from
+# here). Half of config.toml is quieter, and the measurement behind that is
+# about cuts at a line boundary: every one of the 20 line-boundary cuts of this
+# repository's config.toml, the empty file included, is valid TOML with whole
+# tables gone, and 16 of the 20 leave no [keys] table at all -- which asks
+# nothing of herdr, so the machine gets herdr's fallbacks and the workspace
+# switching this repository exists for is not there, and herdr calls every one
+# of them "config: ok" (measured with herdr config check). A cut at an arbitrary
+# byte is mostly not that quiet: of the 368 byte-boundary cuts, 332 make herdr
+# config check exit non-zero and 36 pass. So the case for the rename rests on
+# the line-boundary reading, which is the charitable one -- and a cp interrupted
+# mid-write stops wherever it stops, not at a line.
 # Renaming also settles what to do with the backup: everything that can fail
 # here fails before the rename, with dst untouched, so a backup taken a moment
 # earlier is a second copy of a file that is still in place and goes again.
@@ -264,7 +318,7 @@ backup_file() {
 # checked explicitly, and a bare line added to this function would fail in
 # silence and let the run end 0 having deployed nothing.
 deploy() {
-  local src="$1" dst="$2" dir backup=""
+  local src="$1" dst="$2" dir backup="" was_link=""
   # Before the check below rather than after it: a dst that is already correct
   # still has to come out of a directory with no leftovers standing in it, and
   # a run killed before the rename leaves both an old dst and a temp file. The
@@ -282,21 +336,15 @@ deploy() {
     echo "Up to date: $dst"
     return 0
   fi
-  # Said before anything is written, and only on the path that actually
-  # replaces something: a link whose target already holds the dotfiles copy
-  # returned above and stays a link. This is the one thing here the backup
-  # cannot undo, so it is the one thing that gets said out loud even though
-  # nothing has gone wrong -- warn and not record_failure, because the managed
-  # file does land where it belongs and nothing outside the managed files is
-  # written.
+  # Noted here, said after the rename. Whether dst is a link can only be asked
+  # before the rename -- afterwards it is a regular file -- but a run that
+  # warned here and then failed to deploy told the user their link was gone
+  # while it was still there, and sent them off to make it again (measured:
+  # with dst a symlink inside a read-only directory, the run printed "is about
+  # to stop being one" and its Fix line, then cp failed and the link was
+  # untouched). Only a run that actually replaced the link has anything to say.
   if [ -L "$dst" ]; then
-    warn "$dst is a symlink and is about to stop being one." \
-      "The link itself is replaced by a regular file holding the dotfiles" \
-      "copy; what it points at is left as it was. A backup taken here holds" \
-      "the target's contents rather than the link, so putting the backup" \
-      "back restores the contents and not the link -- and a link pointing at" \
-      "nothing leaves no backup at all." \
-      "Fix: if the link was wanted, make it again after this run."
+    was_link=1
   fi
   dir="$(dirname "$dst")"
   DEPLOY_TMP="$(tmp_for "$dst")"
@@ -331,11 +379,29 @@ deploy() {
       # The rename took the temp file away, so there is nothing left to clean.
       DEPLOY_TMP=""
       # Announced after the rename, so the run only ever promises a backup of
-      # contents that have actually been replaced.
+      # contents that have actually been replaced. The message names the
+      # destination because this line is printed for every managed file -- the
+      # iTerm2 profile and Windows Terminal's settings.json as much as herdr's
+      # config -- and "existing config" named none of them.
       if [ -n "$backup" ]; then
-        echo "Backed up existing config to $backup"
+        echo "Backed up the previous $dst to $backup"
       fi
       echo "Installed $dst"
+      # After the rename, and only when the rename happened: this is the one
+      # thing here the backup cannot undo, so it is the one thing said out loud
+      # even though nothing went wrong -- warn and not record_failure, because
+      # the managed file does land where it belongs and nothing outside the
+      # managed files is written. A link whose target already held the dotfiles
+      # copy never reaches this: the cmp above reads through it and returns.
+      if [ -n "$was_link" ]; then
+        warn "$dst was a symlink and is not one any more." \
+          "The link has been replaced by a regular file holding the dotfiles" \
+          "copy; what it pointed at was left as it was. A backup taken here" \
+          "holds the target's contents rather than the link, so putting the" \
+          "backup back restores the contents and not the link -- and a link" \
+          "pointing at nothing left no backup at all." \
+          "Fix: if the link was wanted, make it again now."
+      fi
       return 0
     fi
   fi
@@ -378,14 +444,17 @@ if ! command -v herdr &>/dev/null; then
   # as an install.
   echo "herdr not found. Its config is managed here all the same:"
 fi
-deploy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml" || true
+deploy "$DOTFILES_DIR/herdr/config.toml" "$HERDR_CONFIG" || true
 
 # OS-specific setup
 case "$(uname -s)" in
   Darwin)
-    # iTerm2 (Dynamic Profile)
-    ITERM_DIR="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
-    deploy "$DOTFILES_DIR/iterm2/herdr.json" "$ITERM_DIR/herdr.json" || true
+    # iTerm2 (Dynamic Profile). The profile is deployed whether or not iTerm2
+    # is on this machine: it is a managed file with somewhere to go, iTerm2
+    # reads the directory when it is next started, and a Mac that has not got
+    # iTerm2 yet is not a Mac that should be told a managed file was skipped.
+    iterm_dir="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
+    deploy "$DOTFILES_DIR/iterm2/herdr.json" "$iterm_dir/herdr.json" || true
 
     # The key mappings live in the herdr profile, so they only apply to windows
     # opened with it. Warn when it is not the default profile -- a warning and
@@ -398,13 +467,35 @@ case "$(uname -s)" in
     # the machine where herdr is already the default, and stops meaning
     # anything.
     ITERM_PROFILE_GUID="8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038"
-    default_guid="$(defaults read com.googlecode.iterm2 "Default Bookmark Guid" 2>/dev/null || true)"
-    if [ "$default_guid" != "$ITERM_PROFILE_GUID" ]; then
-      warn "the 'herdr' profile is not iTerm2's default profile." \
-        "The ctrl+cmd key mappings apply only to windows using that profile," \
-        "so herdr workspace switching will not work in other windows." \
-        "Fix: iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default," \
-        "then open a NEW window (existing windows keep their old profile)."
+    # `defaults` failing and `defaults` answering something else are two
+    # different machines, and they get two different messages. It fails when the
+    # domain is not there at all -- iTerm2 never installed, or installed and
+    # never started -- and telling that machine to open iTerm2 > Settings sends
+    # it somewhere it cannot go (measured: with a `defaults` that exits 1, the
+    # old code took the empty answer for a mismatch and printed the Set as
+    # Default instructions). It is still not a failure either way: the profile
+    # is deployed, and what is left is a choice for later.
+    #
+    # This one check does not read HOME: `defaults` answers from the real user's
+    # preferences whatever HOME says (measured: an isolated home returned this
+    # machine's own Guid), so it is the one thing here that a throwaway home
+    # cannot exercise.
+    if default_guid="$(defaults read com.googlecode.iterm2 "Default Bookmark Guid" 2>/dev/null)"; then
+      if [ "$default_guid" != "$ITERM_PROFILE_GUID" ]; then
+        warn "the 'herdr' profile is not iTerm2's default profile." \
+          "The ctrl+cmd key mappings apply only to windows using that profile," \
+          "so herdr workspace switching will not work in other windows." \
+          "Fix: iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default," \
+          "then open a NEW window (existing windows keep their old profile)."
+      fi
+    else
+      warn "iTerm2 has no preferences on this machine, so which profile is its default is unknown." \
+        "That is what a Mac looks like where iTerm2 has never been installed or" \
+        "never been started. The profile itself is deployed and iTerm2 will" \
+        "read it when it first runs, so nothing was missed here." \
+        "Fix: after installing and starting iTerm2, set the default profile in" \
+        "iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default." \
+        "Re-running ./setup.sh then says whether it took."
     fi
 
     # HackGen Nerd font (via Homebrew). The font is the one optional thing
@@ -425,17 +516,51 @@ case "$(uname -s)" in
           "reason is gone, or install the font by hand (see README)."
       fi
     else
-      echo "Homebrew not found. Install the HackGen Nerd font manually (see README)."
+      # Through warn, like the failed install just above it: the two are the
+      # same news -- the font is not going to be installed by this run -- and
+      # printing one on each stream would split it in two.
+      warn "Homebrew is not installed, so the HackGen Nerd font was not installed either." \
+        "Nothing else here depends on it; the iTerm2 profile names HackGen and" \
+        "macOS falls back to another monospace font until it is there. The" \
+        "font is not a managed file, so this run is not counted a failure." \
+        "Fix: install the font by hand (see README), or install Homebrew and" \
+        "re-run ./setup.sh."
     fi
     ;;
   *)
-    # Windows Terminal (Windows side). The Windows-side path is found through
-    # wslpath and cmd.exe, and both exist only under WSL -- on a Linux box that
-    # is not one there is no Windows to deploy to, and asking for wslpath
-    # anyway would end the run non-zero over a file this machine has no place
-    # for.
-    if ! command -v wslpath &>/dev/null || ! command -v cmd.exe &>/dev/null; then
-      echo "Not WSL (no wslpath / cmd.exe). Skipping Windows Terminal."
+    # Windows Terminal (Windows side). Two questions, in this order, because
+    # they have different answers: is this WSL at all, and if it is, can the
+    # Windows side be reached from here.
+    #
+    # The kernel answers the first. Microsoft's kernel carries "microsoft" in
+    # its release string, and nothing else here does. The tools were the test
+    # before and were the wrong one: /etc/wsl.conf can turn interop off
+    # ([interop] appendWindowsPath=false is a common setting), and a real WSL
+    # then has no cmd.exe on PATH -- so a machine whose settings.json this run
+    # is meant to deploy was told "Not WSL", counted as having nowhere to
+    # deploy to, and left at exit 0 (measured with no wslpath and no cmd.exe on
+    # PATH: "Not WSL (no wslpath / cmd.exe). Skipping Windows Terminal." then
+    # "Done." and 0). A Mac never reaches either test -- the Darwin arm above
+    # takes it -- and a Mac has no /proc for the first one to read.
+    if [ ! -r /proc/sys/kernel/osrelease ] || ! grep -qi microsoft /proc/sys/kernel/osrelease; then
+      # Not WSL: there is no Windows side, so settings.json has nowhere to go.
+      # A skip, not a failure -- on stderr all the same, because a managed file
+      # not being deployed is the reader's business wherever the reason lies.
+      echo "Not WSL. Skipping Windows Terminal." >&2
+    elif ! command -v wslpath &>/dev/null || ! command -v cmd.exe &>/dev/null; then
+      # WSL, but the Windows side cannot be spoken to. Unlike the arm above
+      # there is a Windows Terminal out there to deploy to, so this is a miss
+      # and counts like any other.
+      record_failure "Windows Terminal's settings.json was not deployed." \
+        "This is WSL -- /proc/sys/kernel/osrelease names microsoft -- but" \
+        "wslpath or cmd.exe is missing, so where Windows keeps this user's" \
+        "AppData cannot be worked out from here. The usual reason is interop:" \
+        "[interop] appendWindowsPath=false in /etc/wsl.conf keeps cmd.exe off" \
+        "PATH, and [interop] enabled=false stops Windows binaries running at" \
+        "all. Nothing was written anywhere." \
+        "Fix: run this from a shell that has cmd.exe on PATH, or turn interop" \
+        "back on in /etc/wsl.conf (it takes a wsl --shutdown to apply), then" \
+        "re-run ./setup.sh."
     else
       # cmd.exe ends the value with a CR. Its stderr is kept rather than
       # dropped: when this comes back empty, that message is the only account
@@ -444,32 +569,44 @@ case "$(uname -s)" in
       # The guard is what keeps wslpath from being handed the empty string that
       # a cmd.exe answering with nothing leaves here. wslpath keeps its stderr
       # for the same reason cmd.exe does.
+      #
+      # Its answer replaces cmd.exe's only when it succeeds. Assigning the
+      # output unconditionally lost the diagnosis: a wslpath that fails prints
+      # nothing, so the answer the failure message below quotes came out blank,
+      # and "cmd.exe returned the literal %LOCALAPPDATA%" read exactly like
+      # "cmd.exe answered nothing at all" (measured: three stubs -- a literal, an
+      # empty answer, and a wslpath that fails on a good one -- printed the same
+      # blank line). Keeping cmd.exe's answer means each of the three says
+      # something different.
       if [ -n "$appdata" ]; then
-        appdata="$(wslpath "$appdata" || true)"
+        if resolved="$(wslpath "$appdata")"; then
+          appdata="$resolved"
+        fi
       fi
       # Absolute, or this went wrong. An empty answer is not the only wrong
       # one: cmd.exe echoes an undefined variable back as the literal
       # %LOCALAPPDATA% (measured), which is not empty, so a test for emptiness
-      # alone carries that string into WT_DIR, where the [ -d ] below finds no
+      # alone carries that string into wt_dir, where the [ -d ] below finds no
       # such directory and the run ends 0 saying Windows Terminal is not
       # installed -- a managed file missed, counted as a skip, and blamed on
       # something that may well be there. What wslpath answers for a Windows
       # path begins with /, so that is the test, and it also catches a wslpath
-      # that failed after writing part of an answer (the `|| true` above keeps
-      # a non-empty one).
+      # that succeeded while writing only part of an answer (one that fails
+      # leaves cmd.exe's answer in place, which does not begin with / either).
       case "$appdata" in
         /*)
-          WT_DIR="$appdata/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
-          if [ -d "$WT_DIR" ]; then
+          wt_dir="$appdata/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
+          if [ -d "$wt_dir" ]; then
             # Windows Terminal writes this file itself, and the overwrite costs
             # it nothing it cannot rebuild: the profiles it generates per WSL
             # distro are this machine's inventory and it generates them again.
-            deploy "$DOTFILES_DIR/windows-terminal/settings.json" "$WT_DIR/settings.json" || true
+            deploy "$DOTFILES_DIR/windows-terminal/settings.json" "$wt_dir/settings.json" || true
           else
             # The Windows side was found and Windows Terminal is not on it.
             # There is nothing to deploy to, so this is a skip and not a
-            # failure.
-            echo "Windows Terminal not installed ($WT_DIR does not exist). Skipping."
+            # failure -- on stderr with the other notices about a managed file
+            # that was not deployed.
+            echo "Windows Terminal not installed ($wt_dir does not exist). Skipping." >&2
           fi
           ;;
         *)
@@ -478,9 +615,16 @@ case "$(uname -s)" in
           # is a Windows side -- what could not be found is where it keeps the
           # user's AppData. Windows Terminal may well be installed, so a managed
           # file was missed and this counts like any other miss.
+          #
+          # The answer quoted is cmd.exe's own unless wslpath replaced it with
+          # one of its own, so the three ways here differ on the page: the
+          # literal %LOCALAPPDATA%, a wslpath that could not translate a real
+          # Windows path (the path is shown, wslpath's complaint is just above),
+          # and a cmd.exe that said nothing (which is named as nothing rather
+          # than left as an empty line).
           record_failure "Windows Terminal's settings.json was not deployed." \
             "%LOCALAPPDATA% did not resolve to a path. The answer was:" \
-            "  $appdata" \
+            "  ${appdata:-(nothing at all)}" \
             "so where Windows Terminal keeps its settings is unknown. Whatever" \
             "cmd.exe or wslpath said about it is just above. This says nothing" \
             "about whether Windows Terminal is installed -- only that the" \
@@ -494,13 +638,13 @@ case "$(uname -s)" in
     ;;
 esac
 
-# The guard is not tidiness. Under set -u, bash 3.2 reads "${arr[@]}" on an
-# empty array as an unbound variable and kills the script on the spot, and the
-# EXIT trap above then hands back its own status rather than the failure's, so
-# a run that dies here dies quietly (measured with /bin/bash 3.2.57: with this
-# guard removed, a run that deployed everything printed "FAILURES[@]: unbound
-# variable" and still exited 0). "${#FAILURES[@]}" is safe on an empty array,
-# so it is what decides whether the loop below is reached at all.
+# The guard is not tidiness, and it is one instance of the rule stated at the
+# traps: under set -u, bash 3.2 reads "${arr[@]}" on an empty array as an
+# unbound variable and kills the script on the spot, and with an EXIT trap set
+# the run then ends 0, so it dies quietly (measured with /bin/bash 3.2.57: with
+# this guard removed, a run that deployed everything printed "FAILURES[@]:
+# unbound variable" and still exited 0). "${#FAILURES[@]}" is safe on an empty
+# array, so it is what decides whether the loop below is reached at all.
 if [ "${#FAILURES[@]}" -gt 0 ]; then
   # On stderr with the warnings it summarises, for the reason warn gives.
   echo >&2
