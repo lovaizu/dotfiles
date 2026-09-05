@@ -71,7 +71,7 @@ herdr の設定の配置先は `XDG_CONFIG_HOME` に従う(`~/.config` 決め打
 
 herdr の設定と、Windows 側の Windows Terminal の `settings.json` を配置する(配置先・上書き・退避は「配置方式」を見ること)。
 
-**フォントは手動**(WSL から Windows にはインストールできない)。入れるフォントの名前は `windows-terminal/settings.json` の `profiles.defaults.font` の `face` にある。その名前は配布物の版まで含んだ完全な名前なので、名前で配布元を探し、その名前どおりのフォントを Windows 側にインストールすること。README はフォント名を持たない(冒頭の規則のとおり)。
+**フォントは手動**(WSL から Windows にはインストールできない)。入れるフォントの名前は `windows-terminal/settings.json` の `profiles.defaults.font` の `face` にある — 配布物の版まで含んだ完全な名前なので、[配布元のリリースページ](https://github.com/yuru7/HackGen/releases) からその名前どおりのファイルを選んで Windows 側にインストールすること。README はフォント名を持たない(冒頭の規則のとおり) — ここにあるのは入手先へのリンクだけ。
 
 ### Mac
 
@@ -81,7 +81,7 @@ herdr の設定と、Windows 側の Windows Terminal の `settings.json` を配�
 
 herdr の設定と、iTerm2 の Dynamic Profile を配置する。Dynamic Profile は iTerm2 が未導入でも配置する(iTerm2 は起動時にそのディレクトリを読む)。
 
-フォントは Homebrew があれば `./setup.sh` が cask で入れる(cask 名は `setup.sh` の中にある。読者が自分でコマンドを打つ必要は無い)。Homebrew が無い、または install に失敗した場合は警告するだけで失敗には数えない(フォントは管理対象ファイルではない) — そのときは WSL 節と同じく手動で入れる。Mac 側の名前は `iterm2/herdr.json` の `Normal Font` にある。再実行すべき brew のコマンドは `./setup.sh` の警告がそのまま表示する。
+フォントは Homebrew があれば `./setup.sh` が cask で入れる(cask 名は `setup.sh` の中にある。読者が自分でコマンドを打つ必要は無い)。Homebrew が無い、または install に失敗した場合は警告するだけで失敗には数えない(フォントは管理対象ファイルではない) — そのときは上の WSL 節と同じ入手先から手動で入れる(Mac 側の名前は `iterm2/herdr.json` の `Normal Font` にある)。再実行すべき brew のコマンドは `./setup.sh` の警告がそのまま表示する。
 
 #### 初回のみ: herdr プロファイルをデフォルトにする(必須・手動)
 
