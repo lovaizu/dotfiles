@@ -197,7 +197,8 @@
         "Green Component": 0.1568627450980392,
         "Blue Component": 0.1568627450980392
       },
-      "Use Selected Text Color": true
+      "Use Selected Text Color": true,
+      "Use Separate Colors for Light and Dark Mode": false
     }
   ]
 }
