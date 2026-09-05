@@ -394,18 +394,8 @@ WT settings.json の上書き結果、WT が WSL プロファイルを作り直�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-05
-- **Last completed**: #18(setup.sh のコメント整理)。その前に #17(README の重複除去)。どちらも
-  ユーザーの指摘「README に詳細を書くと変更のたびに影響を受ける」「setup.sh はコメントだらけ」から
-  起票したもので、**#5 の提示中に出た指摘**
-- **Next**: #5 の最後のステップ — **ユーザーの verdict 待ち**。Acceptance criteria 7項目の検証結果は
-  #17 / #18 反映後の版で提示済み(すべて OK)。`/rn:ty` なら #5 をチェックオフしてセッション終了、
-  `/rn:gm` なら指摘に対応して再提示。**再提示の前に、その時点の README / setup.sh で検証をやり直すこと**
-  — 今回 #17 / #18 が入ったので、提示済みの根拠は古い版のものになっている
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
-  #17 で**基準の書き方を誤って一度行き過ぎさせた** — 「フォントの正体が復元できない」を字義どおり
-  当てると入手先 URL も落ちて参照が輪になる(setup.sh の warn → README → 行き止まり)。線は
-  「変更したら同期が必要になる**値**」で、リンクはポインタ。再燃させないこと。
-  未確認のまま残るものと基準未達2件(`Badge Color` 4.29:1 / 選択範囲内のリンク)は #5 の末尾と
-  #11 に記録済み
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
