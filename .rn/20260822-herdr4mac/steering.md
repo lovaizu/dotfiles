@@ -353,14 +353,8 @@ WT settings.json の上書き結果、WT が WSL プロファイルを作り直�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-05
-- **Last completed**: #10 の全ステップ(実装 + レビュー3巡 + 確定指摘44件の反映)。**タスク自体の
-  チェックオフはまだ** — 完了マーカーのコミットが /rn:dn では打てないため
-- **Next**: #10 をチェックオフ(`refactor: complete task #10 — …`)してから #11(iTerm2 の色定義の
-  欠落)へ。#11 は `Link Color` / `Selected Text Color` / `Cursor Guide Color` /
-  `Match Background Color` ほか未定義キーを洗い、Gruvbox Dark 上のコントラストで要否を判断する
-- **Notes**: branch `worktree-herdr4mac` / PR https://github.com/lovaizu/dotfiles/pull/8(draft)。
-  #11 以降は Rules のとおり**実装 + コーディネータの確認まで**で、専門家レビューは回さない。
-  #10 で採らなかったレビュー指摘5件は #10 の末尾に理由つきで記録済み(再燃させない)。
-  レビューの依頼文の欠陥は lovaizu/ccpm#23 に起票済み
+- **Status**: not suspended
+- **Date**: -
+- **Last completed**: -
+- **Next**: -
+- **Notes**: -
