@@ -13,12 +13,13 @@ BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups"
 # anything later in this script, so one refusal cannot derail the deployments
 # after it, and a home directory that will not take one file is no reason to
 # skip the ones that would have worked. That is about this script's order of
-# work, not about the files fitting each other once they are in place: a
-# settings.json that lands while statusline.sh is refused leaves a new setting
-# pointing at an old script (measured). What makes that safe to leave is the
-# retry -- the next run makes the same judgement again and either quietly
-# agrees or names the same file. This list is what keeps a partial run from
-# passing for success: the run names every entry at the end and exits non-zero.
+# work, not about the files fitting each other once they are in place: an
+# iTerm2 profile that lands while herdr's config.toml is refused sends the key
+# sequences dotfiles chose to a herdr still configured the way this machine had
+# it. What makes that safe to leave is the retry -- the next run makes the same
+# judgement again and either quietly agrees or names the same file. This list
+# is what keeps a partial run from passing for success: the run names every
+# entry at the end and exits non-zero.
 FAILURES=()
 
 # Every half-written file this script makes is a dot file named after where it
@@ -117,9 +118,7 @@ backup_file() {
 # Every managed file is deployed by this one call, and by nothing else.
 # dotfiles is the source of truth, so the whole file is replaced: a setting
 # made on the machine that dotfiles does not carry does not survive the next
-# run -- to keep one, put it in dotfiles. The status line script asks for a
-# chmod afterwards, but that is about the mode of a file already deployed, not
-# a second way of deploying one.
+# run -- to keep one, put it in dotfiles.
 #
 # A dst that already holds the dotfiles copy is left alone. There is nothing to
 # write, and a backup of a file that is byte-for-byte the one in the repository
@@ -127,13 +126,13 @@ backup_file() {
 #
 # The new contents go to a temp file beside dst and are renamed over it. rename
 # within a directory is atomic, so a run stopped partway leaves dst holding the
-# old file or the new one and never a mix of the two -- worth having for
-# settings.json, which Claude Code reads as JSON and a half-written one is not.
-# It also settles what to do with the backup: everything that can fail here
-# fails before the rename, with dst untouched, so a backup taken a moment
-# earlier is a second copy of a file that is still in place and goes again.
-# Without that, a dst that cannot be written would leave one more identical
-# .bak behind on every run.
+# old file or the new one and never a mix of the two -- worth having for the
+# iTerm2 profile, which iTerm2 re-reads as soon as the file changes and a
+# half-written one is not the JSON it expects. It also settles what to do with
+# the backup: everything that can fail here fails before the rename, with dst
+# untouched, so a backup taken a moment earlier is a second copy of a file that
+# is still in place and goes again. Without that, a dst that cannot be written
+# would leave one more identical .bak behind on every run.
 #
 # What renaming costs: it needs the directory writable rather than the file, so
 # a dst whose directory is read-only is a failure here even where writing
@@ -145,8 +144,8 @@ backup_file() {
 # whose target already holds the dotfiles copy never gets that far: the check
 # above reads through the link, finds no difference and returns, so that link
 # stays a link (measured). The mode a rewritten dst ends up with is the
-# repository's less the umask (measured: under umask 077, a 755 statusline.sh
-# lands as 700).
+# repository's less the umask (measured: under umask 077, a 644 config.toml
+# lands as 600).
 #
 # Returns non-zero, having already warned and recorded it, when the file was
 # not deployed. Callers add `|| true` so that set -e does not turn the warning
@@ -218,55 +217,6 @@ if ! command -v herdr &>/dev/null; then
   echo "herdr not found. Its config is managed here all the same:"
 fi
 deploy "$DOTFILES_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml" || true
-
-# Claude Code (common)
-# statusline.sh reads its input with jq and exits 0 without it, so the status
-# line looks configured and is nearly empty. Say so rather than let it fail
-# quietly.
-if ! command -v jq &>/dev/null; then
-  echo
-  echo "WARNING: jq not found, so the Claude Code status line will be nearly empty."
-  echo "  Only the directory and branch survive; the script still exits 0, so the"
-  echo "  other sign is jq's \"command not found\" on stderr, once per value read."
-  echo "  Fix: brew install jq (mac) / sudo apt install jq (Ubuntu, WSL)"
-  echo
-fi
-# herdr's integration installer writes the hook script, so dotfiles carries
-# the hook entry but not the script it points at.
-if [ ! -f "$HOME/.claude/hooks/herdr-agent-state.sh" ]; then
-  echo
-  echo "WARNING: ~/.claude/hooks/herdr-agent-state.sh is missing."
-  echo "  The SessionStart hook dotfiles carries points at it, so once the"
-  echo "  settings.json below is in place Claude Code runs a script that is"
-  echo "  not there, every session."
-  echo "  Fix: install the herdr integration (herdr integration ...)."
-  echo
-fi
-
-# Claude Code writes settings.json itself (/config, /output-style, the theme
-# picker), and it is replaced whole all the same: what was set here and is not
-# in dotfiles goes back to the dotfiles value. Everything else Claude Code
-# writes -- sessions/, projects/, history.jsonl, plugins/ -- is a different
-# file and is not touched.
-deploy "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json" || true
-
-# The status line script. The chmod is the one thing here that outlives the
-# copy, and it runs whether or not deploy wrote anything: a file deploy wrote
-# comes from cp and is executable already, but a dst that already matched byte
-# for byte was not rewritten and keeps whatever mode it had.
-STATUSLINE_DST="$HOME/.claude/scripts/statusline.sh"
-if deploy "$DOTFILES_DIR/claude/scripts/statusline.sh" "$STATUSLINE_DST"; then
-  if ! chmod +x "$STATUSLINE_DST"; then
-    echo
-    echo "WARNING: chmod +x on the Claude Code status line script failed."
-    echo "  chmod said why just above. This is not a failed deployment and is"
-    echo "  not counted as one: the dotfiles script is in place and byte-exact,"
-    echo "  and the status line works without the bit -- settings.json runs it"
-    echo "  as \`sh \"\$HOME/...\"\`, which does not need the file executable."
-    echo "  Fix: nothing, unless you run it by its own path -- then chmod +x it."
-    echo
-  fi
-fi
 
 # OS-specific setup
 case "$(uname -s)" in

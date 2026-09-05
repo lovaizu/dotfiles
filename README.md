@@ -23,18 +23,17 @@ herdr のプレフィックスは `^T`(Ctrl+T, byte `0x14`)。設定は `herdr/c
 
 ## テーマ・フォント
 
-端末のカラースキームとフォントを両 OS で揃える。テーマは **3 層**あり、層ごとに設定箇所も値も違う。
+端末のカラースキームとフォントを両 OS で揃える。テーマは **2 層**あり、層ごとに設定箇所も値も違う。
 
 | 項目 | 値 | 設定箇所 |
 |---|---|---|
 | 端末そのものの配色 | Gruvbox Dark(背景 `#282828` / 前景 `#EBDBB2`) | Win: `windows-terminal/settings.json` の `profiles.defaults.colorScheme` / Mac: `iterm2/herdr.json` の色定義 |
 | herdr の UI テーマ | `gruvbox-light` | `herdr/config.toml` の `[theme] name` |
-| Claude Code の UI テーマ | `light`(組み込み) | `claude/settings.json` の `theme` |
 | フォント | HackGen Console NF(Mac でのフォント名は `HackGenConsoleNF-Regular`) | Win: `profiles.defaults` の `font` / Mac: `iterm2/herdr.json` の `Normal Font` |
 
 Windows Terminal では `profiles.defaults` にテーマ・フォントを置き、全プロファイル(PowerShell / Ubuntu / ClaudeCode / my など)が継承する。個別プロファイルでの上書きは行わない。
 
-**端末が暗く、その上に乗る UI が明るいのは意図した組み合わせ。** 端末側は「背景色と ANSI 0–15 が実際に何色になるか」だけを決め、herdr と Claude Code は自分の UI(herdr ならサイドバー・ペイン境界・ステータス)を自前のテーマ設定で描く。端末を暗くしても両者は追随しない。herdr を light にしているのはワークスペースの選択状態を判別しやすくするためで、`auto_switch = false` を置いて `name = "gruvbox-light"` を明示している。Claude Code も同じ理由で組み込みの `light` を使う — カスタムテーマだと、テーマ名だけが他 PC に渡って実体が無いときに警告なく組み込みへフォールバックするため、組み込みテーマだけで揃えている。
+**端末が暗く、その上に乗る UI が明るいのは意図した組み合わせ。** 端末側は「背景色と ANSI 0–15 が実際に何色になるか」だけを決め、herdr は自分の UI(サイドバー・ペイン境界・ステータス)を自前のテーマ設定で描く。端末を暗くしても herdr は追随しない。herdr を light にしているのはワークスペースの選択状態を判別しやすくするためで、`auto_switch = false` を置いて `name = "gruvbox-light"` を明示している。
 
 ## セットアップ
 
