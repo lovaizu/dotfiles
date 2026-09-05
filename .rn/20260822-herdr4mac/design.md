@@ -36,8 +36,10 @@ herdr 本体・iTerm2 のインストール、Win 側フォントのインスト
 
 ### 2.1 What do we take as true?
 
-herdr の config.toml は OS 共通(XDG パスも共通) — mac に配置した `~/.config/herdr/config.toml` に
-対して `herdr config check` が `config: ok` を返し(#10)、実機での動作もユーザーが確認済み(#5)。
+herdr の config.toml は OS 共通(XDG パスも共通 — 配置先は
+`${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml` で、herdr がそれを読む。§4.6) — mac に配置した
+config.toml が repo の原本と `diff` 一致し、`herdr config check` も `config: ok` を返し(#10)、
+実機での動作もユーザーが確認済み(#5)。
 HHKB では Windows の Alt 位置のキーが Mac では Cmd — よって Win の ctrl+alt 系は Mac では ⌃⌘ 系が
 同じ指運びになる。iTerm2 は `⌃T` を既定で奪わない(⌘T が新タブ)ため、WT で必要だった
 「ctrl+t 無効化」に相当する設定は不要。
@@ -126,30 +128,77 @@ diff がないことと未使用 action が残らないことの照合。実機�
 ### 4.5 What does the setup.sh OS dispatch guarantee, and how is a breach caught?
 
 保証: darwin では WT ブロック(`wslpath`/`cmd.exe` 依存)に到達せず、brew 不在でもエラー終了しない。
-フォントは README が手動導入を認めている任意要素なので、`brew install` の**失敗**も警告に留めて
-exit 0 を保つ(管理対象ファイルではないため §4.6 の失敗集計にも数えない)。
-WSL では herdr config と WT settings.json を配置する。WSL でない Linux — `uname -s` は同じ `Linux` を
-返すので分岐だけでは区別できない — では `wslpath` / `cmd.exe` の不在を先に確かめ、無ければ WT を
-スキップして続行する。WSL であっても、**「WT が入っていない」と「Windows 側のパスを解決できなかった」は
-別扱い**にする: 前者(`%LOCALAPPDATA%` は解けたが `LocalState` が無い)は配る先が無いだけなので
-スキップして exit 0、後者(`cmd.exe` が答えない / `wslpath` が失敗)は配るべきファイルを配れて
-いないので §4.6 の失敗として数える。`cmd.exe` と `wslpath` の stderr は捨てずに残す — 後者の
-唯一の手掛かりだから。どちらに振り分けるかの判定は**答えが絶対パスかどうか**で行う: `cmd.exe` は
-未定義の変数をリテラルの `%LOCALAPPDATA%` としてそのまま返すので、空文字列だけを弾くガードでは
-その文字列が `WT_DIR` まで運ばれ、「WT 未導入」としてスキップされて exit 0 になってしまう
+フォントは README が手動導入を認めている任意要素なので、`brew install` の**失敗**も、brew 自体の
+不在も警告に留めて exit 0 を保つ(管理対象ファイルではないため §4.6 の失敗集計にも数えない)。
+両者は同じ知らせ(このマシンにフォントは入らなかった)なので、どちらも同じ警告経路 = stderr に出す。
+WSL では herdr config と WT settings.json を配置する。
+
+**WSL かどうかはカーネルで判定する** — `/proc/sys/kernel/osrelease` に `microsoft` が含まれるか。
+`uname -s` は WSL でも `Linux` を返すので分岐だけでは区別できず、以前は `wslpath` / `cmd.exe` の
+不在を「非 WSL」の証拠にしていたが、これは偽の証拠だった: `/etc/wsl.conf` の
+`[interop] appendWindowsPath=false` は実運用でよく使われる設定で、この WSL には `cmd.exe` が PATH に
+無い(実測: 両コマンドを外した PATH で `Not WSL (no wslpath / cmd.exe). Skipping Windows Terminal.` →
+`Done.` → exit 0)。**配るべきマシンが「配る先が無い」に誤分類され、失敗に数えられない**。
+判定を先に置いたことで、下の3分類は次のように決まる:
+
+- 非 WSL(`/proc` が無い、または `microsoft` を含まない)→ Windows 側が存在しないので**スキップ**、exit 0
+- WSL だが `wslpath` / `cmd.exe` が無い(interop 無効)→ 配る先はあるのに配れていないので**失敗**に数える
+- WSL で両方あるが `%LOCALAPPDATA%` が解けない → 同じく**失敗**(下記)
+- WSL で解けたが `LocalState` が無い(WT 未導入)→ 配る先が無いだけなので**スキップ**、exit 0
+
+`cmd.exe` と `wslpath` の stderr は捨てずに残す — 解決に失敗したときの唯一の手掛かりだから。
+どちらに振り分けるかの判定は**答えが絶対パスかどうか**で行う: `cmd.exe` は未定義の変数を
+リテラルの `%LOCALAPPDATA%` としてそのまま返すので、空文字列だけを弾くガードではその文字列が
+`wt_dir` まで運ばれ、「WT 未導入」としてスキップされて exit 0 になってしまう
 (実測: `cmd.exe` スタブでこの経路を踏むと `Windows Terminal not installed (%LOCALAPPDATA%/…)` と
 言って exit 0)。`wslpath` の答えは絶対パスなので、`/` で始まらないものはすべて失敗に数える —
 リテラルも、空文字列も、`wslpath` が失敗しつつ部分的に出力した文字列も、同じ1つの判定で塞がる。
-`wslpath` は空文字列の引数では呼ばれない(直前の `[ -n "$appdata" ]` ガードによる)。
+`wslpath` は空文字列の引数では呼ばれない(直前の `[ -n "$appdata" ]` ガードによる)。また
+**`wslpath` の答えで `cmd.exe` の答えを上書きするのは `wslpath` が成功したときだけ**にする:
+失敗した `wslpath` は何も出力しないので、無条件に代入すると失敗メッセージが引用する「答え」が空になり、
+「`cmd.exe` がリテラルを返した」と「`cmd.exe` が何も答えなかった」が診断上まったく同じ見た目になる
+(実測: 3種のスタブ — リテラル / 空 / `wslpath` が失敗 — がすべて同じ空行を出していた。修正後は
+`%LOCALAPPDATA%` / `(nothing at all)` / `C:\Users\…` と3通りに分かれる)。
 
-破れの検出: mac での実行(exit 0 + 配置確認、brew 分岐のメッセージ)と、`uname` / `wslpath` /
-`cmd.exe` のスタブで WSL 経路・非 WSL Linux 経路に到達させる実測。
+**iTerm2 側の既定プロファイル警告**も同じ3分類に載る。キー割り当ては herdr プロファイルの中にあるので、
+そのプロファイルが既定でなければ新しいウィンドウでは効かない。setup はそれを
+`defaults read com.googlecode.iterm2 "Default Bookmark Guid"` で見て警告する — 管理対象は正しく
+配置されているので**失敗には数えない**(WT で言えば「スキップ」に近いが、こちらは配置自体は起きている)。
+分岐は2つ: `defaults` が非0で終わる(ドメインが無い = iTerm2 が未導入か一度も起動していない)ときと、
+値が食い違うときで、**言い分ける** — 前者に「iTerm2 > Settings で既定にしろ」と言っても行き先が無い
+(実測: 非0で終わる `defaults` スタブで、以前は空の答えを不一致と見なして Set as Default の手順を出していた)。
+**プロファイルの配置自体はどちらでも行う**(あとから iTerm2 を入れても効くように)。
+なお `defaults` は `HOME` を見ず実ユーザーの設定を読む(実測: 隔離ホームでも実ユーザーの GUID が返る)ので、
+**この判定だけは隔離ホームで完結しない**。
+
+この警告が比較する Guid は `setup.sh` の `ITERM_PROFILE_GUID` と `iterm2/herdr.json` の `"Guid"` の
+**2か所にリテラルで存在する**。JSON にコメントは書けないので tie は `setup.sh` 側のコメントにある。
+破れは2方向: 両方を変え忘れて片方だけ変えると、比較が「どのファイルも定義していないプロファイル」を
+問うことになり、**既定にしてあるマシンでも毎回警告が出る**(あるいは既定 GUID をたまたま新しい値に
+合わせてしまえば**永久に警告が出ない**)。検出は `grep -F "$ITERM_PROFILE_GUID" iterm2/herdr.json` が
+1件返ること。**JSON から `sed` で抜く案は採らない** — 抜けなかったとき(キーの並びが変わった、
+ファイルが配置に失敗した)に「誤警告する」か「黙る」かの分岐が増え、いま1本の grep で足りる検出を
+壊れやすい実行時経路に置き換えることになるため。
+
+破れの検出: mac での実行(exit 0 + 配置確認、brew 分岐のメッセージ)と、`uname` /
+`/proc/sys/kernel/osrelease` / `wslpath` / `cmd.exe` / `defaults` のスタブで、上の分類の各経路に
+到達させる実測。`/proc` は darwin に作れないので、osrelease のパスだけを差し替えた `setup.sh` の
+複製で測る(差分はそのパスのみ)。
 
 ### 4.6 What does the whole-file overwrite guarantee, and how is a breach caught?
 
 対象: 管理対象のファイルすべて — herdr の `config.toml`、iTerm2 の Dynamic Profile、WSL では WT の
 `settings.json`。**配置方式は1種類だけで、ファイルごとの例外を持たない**。アプリ自身も書くファイル
 かどうかは方式を分ける理由にならない。
+
+配置先は、そのファイルを読むプログラムが読む場所に合わせる。herdr の config.toml は
+`${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml`(§2.1 の「XDG パスも共通」がこれ) — herdr は
+`XDG_CONFIG_HOME` が設定されていればそちらしか見ず `~/.config` にフォールバックしない
+(実測: XDG 側に壊れた config.toml、`~/.config` 側に正しいものを置くと `herdr config check` は
+XDG 側のパースエラーを報告する)ので、`$HOME/.config` に直書きすると **herdr が読まないファイルを
+配置して exit 0 になる**(実測: 修正前は `XDG_CONFIG_HOME` を設定した隔離ホームで
+`Installed …/.config/herdr/config.toml` と言い、XDG 側は空のままだった)。BACKUP_DIR が
+`XDG_STATE_HOME` を見るのも同じ理由で、スクリプト内で XDG の扱いは非対称にしない。
 
 保証: **exit 0 で終わった run では、その run が配る先を持っていた管理対象は、配置後に dotfiles の
 原本とバイト単位で一致する**。「配る先を持っていた」で限定するのは、非 WSL Linux と WT 未導入の
@@ -209,7 +258,7 @@ exit 0 になる(実測: `~/.local/state` を通常ファイルにしたまっ�
 失敗したかのどちらかで、同一ディレクトリの rename は置き換えるか何もしないかなので配置先は無傷、
 その退避は同じ内容の写しでしかなく、残すと失敗のたびに1本ずつ増える(実測: 丸ごと `cp` する実装は
 読み取り専用の配置先に4回実行すると同一内容の `.bak` が4本になった)。捨てるのはその配置自身のものに
-限る、が退避側の保証で、**run が `Backed up existing config to …` と表示した退避は、その run が終わった
+限る、が退避側の保証で、**run が `Backed up the previous <配置先> to …` と表示した退避は、その run が終わった
 あともそこにある**(同時に2本走らせた場合を除く — 下の境界)。これを機構で担保しているのは、
 退避先を関数のあいだでグローバル変数ではなく戻り値で渡していること(実測: グローバルだった頃は、あとの配置の失敗が、前の配置がユーザーに
 約束した退避を消していた)。
@@ -254,8 +303,12 @@ herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに
   次に成功する run が埋める。代わりに失敗メッセージの側を直し、「何も書かれていない」とは言わずに、
   空のディレクトリが残りうると述べる。
 - **stdout を途中で読むのをやめる呼び出し方には耐えない**。`./setup.sh | head -2` は次の stdout への
-  書き込みで SIGPIPE により run ごと終わる(実測: `PIPESTATUS` は `141 0`)。**診断は stderr に出す**ので、
-  そこまでに出た WARNING は消えず、`> file` で stdout を落としても端末に残る(実測: 配置先を
+  書き込みで SIGPIPE により run ごと終わる(実測: `PIPESTATUS` は `141 0`)。**stdout は進捗
+  (`Up to date` / `Backed up` / `Installed` / herdr 不在の前置き / フォント導入済み / `Done.`)だけ、
+  診断はすべて stderr** — WARNING、末尾の失敗列挙、そして**管理対象を配らなかったという通知**
+  (WT のスキップ2種)も含む。最後のものを stdout に残すと、stdout だけを取る呼び出し側には
+  「何も問題が無かった run」に見えてしまう。だから、そこまでに出た WARNING は消えず、`> file` で
+  stdout を落としても端末に残る(実測: 配置先を
   ディレクトリにした run を `| head -2` に通すと、`cp` の "is a directory" と WARNING 全文が端末に
   出た)。失われるのは run そのもの — 死んだ地点より後の配置は走らず、末尾の失敗列挙はそれらの
   後に来るので出ない(実測: 同じ run に `Finished with` の行は無かった)。これは**直さない**:
@@ -281,9 +334,12 @@ herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに
   書き換えることはない代わりに、ユーザーが張ったリンクは消える。丸ごと `cp` する実装は逆で、
   リンクを辿って**管理対象外のファイルを書き換えていた**(実測)。どちらも「リンクを張った意図は
   残らない」点は同じなので、配置先をリンクにする運用は取らない。ただし**黙っては消さない**:
-  (b) と (c) では `deploy` が置き換えの前に WARNING を出す(失敗には数えない — 管理対象は正しく
-  配置されるため)。退避機構の目的が「上書きを取り消せること」である以上、唯一取り消せない破壊に
-  何も言わないわけにいかない。
+  (b) と (c) では `deploy` が WARNING を出す(失敗には数えない — 管理対象は正しく配置されるため)。
+  退避機構の目的が「上書きを取り消せること」である以上、唯一取り消せない破壊に何も言わないわけに
+  いかない。この警告は **`mv` が成功したあと**に出す — リンクかどうかは `mv` の前にしか訊けないが、
+  そこで言ってしまうと**配置に失敗した run が「リンクは消えた、張り直せ」と言い、リンクは無傷のまま
+  残る**(実測: 読み取り専用ディレクトリの中のリンクに対し、`is about to stop being one` と Fix 文を
+  出した直後に `cp` が失敗し、リンクはそのまま)。実際に置き換えが起きた run だけが言う。
 - **原子性が守るのはプロセスの中断まで**。一時ファイルに書いたデータを `fsync` していないので、
   電源断やカーネルパニックでは rename だけが先に永続化して切り詰められた配置先が残りうる。
   `fsync` は入れない — 守る対象は clone と setup 一発で作り直せる設定ファイル。
@@ -303,13 +359,24 @@ herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに
   中断される(実測: exit 130、一時ファイルなし)が、pid だけを狙った `kill -INT` では bash が子
   プロセスを待っている間に届かず、run は最後まで走って exit 0 になる(実測)。
 - **同時実行は支援しない**。2本同時に起動すると両方が同じ `.bak` のパスを表示し、`.bak` は1本しか
-  残らず、両方 exit 0 になる(実測) — 採番の `while [ -e ]` は TOCTOU なので、
-  「`Backed up existing config to …` と表示した退避はそこにある」という保証は同時実行では成り立たない。
-  コードでは直さない(仕様外)。
+  残らず、両方 exit 0 になる(実測) — 採番の `while [ -e ]` は TOCTOU だから。したがって
+  「`Backed up …` と表示した退避はその run のあともそこにある」という上の保証は、**単独 run に
+  ついてのもの**として読む。保証の側を限定するのであって、破れを免責するのではない: 同時実行を
+  支援しないという決定(排他も採番の原子化もしない)が先にあり、その決定の下では保証の範囲が
+  単独 run までしか伸びない、という順序になっている。同じ理由で一時ファイルの pid も同時実行を
+  安全にはしない(`deploy` の掃除は他 run の一時ファイルも消す — `setup.sh` の `tmp_for` の
+  コメント)。
 
-破れの検出: mac 上での実行(exit 0 で終わること、配置したファイルが原本と `diff` で一致すること、
-2回流してバイト列が変わらないこと、配置後の `herdr config check` が通ること)と、WSL / 非 WSL Linux
-経路の `uname` `wslpath` `cmd.exe` スタブでの到達確認、および失敗経路の実測(書けないホーム・
+破れの検出: **主たるオラクルは `diff`** — 配置先(そのプログラムが実際に読むパス。herdr なら
+`${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml`)と repo の原本を突き合わせ、差分が無いこと。
+保証がバイト単位の一致である以上、判定もそれ1本で足りる。**`herdr config check` は補助**であって
+オラクルではない: これは TOML としてパースできるかしか見ておらず、**config.toml が存在しなくても、
+空ファイルでも、`[keys]` を丸ごと落としても `config: ok` / exit 0 を返す**(実測、3件とも)。
+つまり「配置が起きたか」「dotfiles の内容になったか」を判定できず、何も配らなかった run でも緑になる。
+`diff` が主で、`herdr config check` は「配置されたものが herdr にとって妥当な TOML でもある」ことの
+追加検査、という順序を守る。あわせて mac 上での実行(exit 0 で終わること、2回流して管理対象の
+バイト列が変わらないこと)と、WSL / 非 WSL Linux
+経路の `uname` `osrelease` `wslpath` `cmd.exe` スタブでの到達確認、および失敗経路の実測(書けないホーム・
 配置先がディレクトリ・中断された `cp` で、他の配置が続き、最後に非0で終わり、何が配れなかったかが
 出ること)。**既存の設定があるホームで失敗経路を踏ませること**も要る — まっさらなホームでは退避が
 1本も無く、失敗時に退避をどう扱うかのコードが動かないため、退避が消える不具合が一度見逃された。

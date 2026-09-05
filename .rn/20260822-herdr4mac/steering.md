@@ -35,24 +35,28 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - `setup.sh` が共通部(herdr config)+OS別(darwin: iTerm2 Dynamic Profile 配置と、Homebrew が
   あれば HackGen フォントのインストール / WSL: WT settings.json 配置)の構成で、両OSで
   **配置に失敗しなければ** exit 0 で完了する(darwin では `wslpath`/`cmd.exe` 不在で落ちない、
-  WSL でない Linux でも落ちない)。配置に失敗した run は警告を出して残りを続行し、最後に失敗を
-  列挙して非0で終わる
+  WSL でない Linux でも落ちない — WSL かどうかは `/proc/sys/kernel/osrelease` で判定する。
+  WSL なのに Windows 側へ届かない場合(interop 無効)はスキップではなく配置失敗として数える)。
+  配置に失敗した run は警告を出して残りを続行し、最後に失敗を列挙して非0で終わる
 - herdr/config.toml は OS 共通のまま(OS 別の分岐を持ち込まない)。`[keys]` は変更しない。
   `[theme]` は herdr の UI テーマが `gruvbox-light` であること — 端末そのものは Gruvbox Dark で、
   herdr の UI だけ light にする(ワークスペースの選択状態を判別しやすくするためユーザーが意図した配色)
 - **dotfiles が正**。setup.sh は管理対象のファイルをすべて丸ごと上書きする — 配置方式は1種類だけで、
   ファイルごとの例外を持たない。dotfiles が持つ設定がそのマシンの設定であり、dotfiles からキーを
   消せばマシンからも消える。項目単位でマージする機構は repo に存在しない
-- 配置先が dotfiles の原本と違うとき、上書きの前に BACKUP_DIR へ退避する。載せ替えの初回だけでなく、
-  アプリが設定を書き戻したあとの実行でも退避は起きる(herdr はテーマ名と `onboarding` を書き戻す)。
+- 配置先が dotfiles の原本と違うとき、上書きの前に BACKUP_DIR へ退避する(**例外**: 配置先がリンク先の
+  存在しない symlink のときは、退避すべき内容が無いので退避を取らずに置き換える — design.md §4.6 の境界)。
+  載せ替えの初回だけでなく、アプリが設定を書き戻したあとの実行でも退避は起きる
+  (herdr はテーマ名と `onboarding` を書き戻す)。
   世代管理も剪定もしないので BACKUP_DIR は増える — 不要になったらユーザーが消す。原本と同じ内容の
   配置先には何も書かず、退避も取らない
 
 # Assumptions
 
-- herdr の `config.toml` は OS 共通で、mac でもそのまま `~/.config/herdr/config.toml` に置けば動く —
-  検証済み(配置後の config.toml に対して `herdr config check` が `config: ok`(#10)、mac 実機での
-  動作確認は #5 Steps)
+- herdr の `config.toml` は OS 共通で、mac でもそのまま herdr の XDG パス
+  (`${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml`)に置けば動く — 検証済み(配置後の
+  config.toml が repo の原本と `diff` 一致し、`herdr config check` も `config: ok`(#10)、
+  mac 実機での動作確認は #5 Steps)
 - iTerm2 はユーザーがインストール済み。mac のフォントは Homebrew(cask `font-hackgen-nerd`)が
   あれば setup.sh で入れ、なければスキップ(手動導入でも可)。Win 側のフォントインストールは
   WSL からは行えないため手動(README に手順を記載)
@@ -149,7 +153,8 @@ WSL では WT 配置を行うようにする。
 **Completion criteria**:
 
 - `claude/` が repo に存在せず、`setup.sh` に Claude Code への言及が残っていない
-- mac 上で `setup.sh` が exit 0 で完了し、配置された3ファイルが dotfiles の内容と一致する。
+- mac 上で `setup.sh` が exit 0 で完了し、配置された2ファイル(`config.toml` と `herdr.json` —
+  `settings.json` は WSL 専用)が dotfiles の内容と一致する。
   2回流してもバイト列が変わらない
 - 配置失敗時の挙動(警告 → 続行 → 末尾で列挙 → 非0)が #10 の完了基準のまま保たれている
 
@@ -181,7 +186,10 @@ WSL では WT 配置を行うようにする。
   すべて同じ1つの方式(丸ごと上書き)で配置される
 - mac 上で `setup.sh` が exit 0 で完了し、配置されたファイルが dotfiles の内容と一致する。
   2回流してもバイト列が変わらない
-- `herdr config check` が配置後の config.toml に対して通る
+- 配置先(herdr が実際に読むパス = `${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml`)と repo の
+  原本が `diff` で一致する。`herdr config check` は補助 — 配置されたものが TOML としても妥当である
+  ことの追加検査であって、単体では判定にならない(config.toml が無くても、空でも、`[keys]` を落としても
+  `config: ok` / exit 0 を返す)
 - WSL でない Linux で `wslpath` 不在により setup が落ちない
 - `design.md` と `steering.md` と `setup.sh` が同じことを言っている
 
