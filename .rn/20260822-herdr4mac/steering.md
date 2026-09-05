@@ -63,13 +63,17 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 - iTerm2 / WT の実機での鍵送信確認はユーザーが行う(エージェントは設定ファイルの静的検証まで)
 - シェル自体は統一しない: Win は WT のプロファイル(PowerShell / WSL bash)、Mac は zsh のまま。
   herdr の起動は両OSとも手動
-- `~/.config/herdr/config.toml` は herdr が実行時に書き戻す — 実証済み(setup.sh が repo 版
-  363 B `name = "gruvbox"` を配置したのち、52 分後には 369 B `name = "gruvbox-light"` に変化)。
+- `${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml` は herdr が実行時に書き戻す — 実証済み
+  (setup.sh が repo 版 363 B `name = "gruvbox"` を配置したのち、52 分後には 369 B
+  `name = "gruvbox-light"` に変化)。
   `onboarding = false` の存在と `herdr config reset-keys` の存在も herdr 側が所有者であることを示す
 - WT の `settings.json` も WT 自身が書く。`profiles.list` にはそのマシンの WSL ディストロ由来の
   GUID が入るが、これは WT がそのマシンで生成し直す在庫情報なので丸ごと上書きして構わない、
-  という判断を採っている。**この「WT が作り直す」は WSL 実機で未検証の仮定**であり、
-  丸ごと上書きの正しさを支える唯一の未検証事項として残る(検証は次回 Windows 同期時)
+  という判断を採っている。**この「WT が作り直す」は WSL 実機で未検証の仮定**として残る。
+  未検証はこれ1つではない — 丸ごと上書きの正しさに直接かかるものが2つ(WT がプロファイルを
+  作り直すか / 上書きした settings.json で WT が実際にどう振る舞うか)、setup.sh の判定にかかる
+  ものが1つ(`wslpath` がリテラル `%LOCALAPPDATA%` の翻訳を拒むか — design.md §4.5)。
+  いずれも WSL 実機でしか確かめられず、検証は次回 Windows 同期時
 - **Windows マシンは1台**。`windows-terminal/settings.json` は `profiles.list` にそのマシンの
   WSL ディストロ由来の GUID を抱えたまま配布されるので、丸ごと上書きが成り立つのはこの前提の下だけ。
   2台目に配ると、そのマシンに無いディストロの GUID が持ち込まれ、固有の GUID は消える
@@ -178,6 +182,9 @@ WSL では WT 配置を行うようにする。
 
 - [x] 実装(`3ae7535` `f03f513` `a873819`)
 - [x] 未対応の指摘11件を反映し、design.md §4.6 を結果に揃える(`c1497d7` `a1b641b`)
+- [x] 3巡目の確定指摘(A1〜C7)を反映 — exit 0 が保証を裏切る経路を機構で塞ぎ(終端番兵・`HOME`
+      ガード・XDG 絶対パス検査・`deploy` の戻り値契約)、誤っていた記述(pid 宛 SIGINT・空ディレクトリ・
+      `[keys]` 件数)を実測に合わせた
 - [ ] QA / Design / Craft / Verification expert review — 最終形の setup.sh に対して回す
 
 **Completion criteria**:
@@ -275,6 +282,13 @@ herdr = `gruvbox-light`。dotfiles 側が herdr に `gruvbox`(dark)を持って�
       明るいのが意図した組み合わせであること(ワークスペースの選択状態を判別するため)
 - [ ] 配置方式を1行で書く: dotfiles が正で、管理対象はすべて丸ごと上書き。手元で herdr UI から
       変えた設定を残したいなら dotfiles 側に入れる
+- [ ] 上書きの代償を書く: **配置先にしか無い設定は消える**(残したいものを dotfiles に入れる、が
+      唯一の運用)
+- [ ] 退避について書く: 退避先は `${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backups`、
+      **剪定しないので増え続け、不要になったらユーザーが消す**。いまバックアップの言及が WSL 節に
+      しか無いが、**実装は Mac と WSL でまったく同じ扱い**なので、OS 別ではなく配置方式の説明として
+      1か所に書く
+- [ ] herdr の設定の配置先は `$XDG_CONFIG_HOME` に従うと書く(現 README は `~/.config` 決め打ち)
 - [ ] 値を落とした結果が `design.md` §3.2 / §4.1(README は値を持たない)と一致することを確認する
 - [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
 - [ ] QA / Craft / Verification expert review
@@ -304,7 +318,8 @@ herdr = `gruvbox-light`。dotfiles 側が herdr に `gruvbox`(dark)を持って�
 - Acceptance criteria の全項目に OK/NG と根拠が提示され、ユーザーが /rn:ty で承認している
 
 **未確認のまま残るもの**(承認時にユーザーが受容するか判断する): Win 実機での ctrl+alt 系キー、
-WT settings.json の上書き結果、WT が WSL プロファイルを作り直すか。いずれも次回 Windows 同期時。
+WT settings.json の上書き結果、WT が WSL プロファイルを作り直すか、`wslpath` がリテラル
+`%LOCALAPPDATA%` の翻訳を拒むか(design.md §4.5 / §4.6)。いずれも次回 Windows 同期時。
 
 ## 撤回
 
