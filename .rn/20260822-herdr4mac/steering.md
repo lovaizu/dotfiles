@@ -50,7 +50,9 @@ herdr 操作(prefix `^T`)、プレフィックスなしの即時切替(Win: `ctr
 
 # Assumptions
 
-- herdr の `config.toml` は OS 共通で、mac でもそのまま `~/.config/herdr/config.toml` に置けば動く(未検証)
+- herdr の `config.toml` は OS 共通で、mac でもそのまま `~/.config/herdr/config.toml` に置けば動く —
+  検証済み(配置後の config.toml に対して `herdr config check` が `config: ok`(#10)、mac 実機での
+  動作確認は #5 Steps)
 - iTerm2 はユーザーがインストール済み。mac のフォントは Homebrew(cask `font-hackgen-nerd`)が
   あれば setup.sh で入れ、なければスキップ(手動導入でも可)。Win 側のフォントインストールは
   WSL からは行えないため手動(README に手順を記載)
