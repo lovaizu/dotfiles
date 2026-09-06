@@ -182,8 +182,14 @@ Design: .rn/20260822-herdr4mac/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-06
+- **Last completed**: none yet — plan gate not approved
+- **Next**: get plan-gate sign-off (`/rn:ty` or `/rn:gm`), then start #1
+- **Notes**: PR #12 (draft) at branch `worktree-issue-10`. Before approving, the user should confirm
+  two scope points I raised but that are not yet reflected as decisions in this steering.md:
+  (1) whether this session also establishes an ongoing practice of writing new cross-repo instructions
+  into `claude/CLAUDE.md` going forward, or only places the file; (2) whether seeding the file's initial
+  content from this machine's current dotfiles-project memory entries (report-results-only,
+  check-every-layer, review-anchored-to-goal, readme-intent-not-values, hhkb-alt-cmd-mapping) is
+  the right source, since neither the Issue nor the user's own words named that source explicitly.
