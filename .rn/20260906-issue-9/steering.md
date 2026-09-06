@@ -94,18 +94,21 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] Claude Code のユーザー設定を「repo が持つもの / マシン側に委ねるもの / 他のプログラムが
+- [x] Claude Code のユーザー設定を「repo が持つもの / マシン側に委ねるもの / 他のプログラムが
       所有するもの / 秘密」に仕分ける
-- [ ] 置き換えたものが後から判別できる形を決める(Claude Code と Windows Terminal の設定が
+- [x] 置き換えたものが後から判別できる形を決める(Claude Code と Windows Terminal の設定が
       同じ run で置き換えられる状況を含む)
-- [ ] 宣言と実体が別のもの(プラグイン)の扱いを決める — 実体を入れられない環境・すでに入って
+- [x] 宣言と実体が別のもの(プラグイン)の扱いを決める — 実体を入れられない環境・すでに入って
       いる環境・入れようとして失敗した環境で run がどう終わるか
-- [ ] design-template.md の5節すべてに decision + reasoning で答える
-- [ ] self-check(OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] design-template.md の5節すべてに decision + reasoning で答える
+- [x] self-check(OK/NG per completion criterion, record in checks/1.md)
+- [ ] QA expert review (subagent) — 初回実施済み(PASS、軽微2件)。指摘の一部は Craft/Design/
+      Verification と重複しており修正中。修正後の再確認は不要と判断済みだが再開時に見直す
+- [ ] Craft expert review (subagent, per the task's medium) — 初回実施済み(FAIL、2件)。修正中、
+      修正後に再実施が必要
+- [ ] Verification expert review (subagent, per the task's medium) — 初回実施済み(FAIL、2件)。
+      修正中、修正後に再実施が必要
+- [ ] Design expert review (subagent) — 初回実施済み(PASS、要修正1件)。修正中、修正後に再実施が必要
 
 **Completion criteria**:
 
@@ -260,8 +263,26 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-06
+- **Last completed**: none — plan gate (`/rn:ty`)承認済み、task #1 は設計決定・self-check まで完了、
+  4専門家レビューを初回実施し4件の Valid な指摘を修正エージェントに依頼中(未チェックオフ)
+- **Next**: 修正エージェントの完了を確認し(コミット `docs: fix design.md review findings …` を
+  `git log` で探す)、Craft / Verification / Design の3軸を再実施(QA は初回 PASS のままで良いか
+  再判断)→ 全 OK なら task #1 をチェックオフし `checks/1.md` を完成させてコミット → design sign-off
+  (#2)へ進む
+- **Notes**:
+  - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
+  - **バックグラウンドの修正エージェント(agentId `a2abd66769e3e35f9`)が本セッション終了時点で
+    まだ実行中だった**。完了すれば `.rn/20260906-issue-9/design.md` に4件の修正をコミット・push
+    するはず — 再開時は先に `git log` / `git status` でその結果を確認し、まだなら再実行、済んで
+    いれば重複させない
+  - 修正対象の4件(Valid): (1) §4.1「現物11キー」→ 12キーの誤り、(2) §4.2 が herdr/iTerm2 の
+    バックアップ先も変わることを明示していない、(3) §4.2「実装上の含意」が `backup_path_for()` が
+    `backup_file()` 内からも(`$src` の無い状態で)呼ばれる事実を見落としている、(4) §4.3 が
+    「herdr 連携を両マシンで使う」という前提を steering.md の Assumptions に誤って帰属させている
+  - 見送りにした指摘(Invalid、完了基準を動かさない): README の手順を明示的に紐づける soft gap、
+    太字ラベルの体裁が姉妹 design.md と揃っていない件
+  - `.rn/20260906-issue-9/checks/1.md` は未コミットのまま(実装/修正エージェントの self-check 欄
+    のみ記入済み)。QA/Expert Review 欄はレビュー確定後にコーディネータが埋めてコミットする方針
+    (task-verify-workflow.md の規約通り)
