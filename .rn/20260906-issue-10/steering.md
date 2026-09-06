@@ -185,11 +185,14 @@ so only a genuinely suspended session reads `paused`.)
 - **Status**: paused
 - **Date**: 2026-09-06
 - **Last completed**: none yet — plan gate not approved
-- **Next**: get plan-gate sign-off (`/rn:ty` or `/rn:gm`), then start #1
-- **Notes**: PR #12 (draft) at branch `worktree-issue-10`. Before approving, the user should confirm
-  two scope points I raised but that are not yet reflected as decisions in this steering.md:
-  (1) whether this session also establishes an ongoing practice of writing new cross-repo instructions
-  into `claude/CLAUDE.md` going forward, or only places the file; (2) whether seeding the file's initial
-  content from this machine's current dotfiles-project memory entries (report-results-only,
-  check-every-layer, review-anchored-to-goal, readme-intent-not-values, hhkb-alt-cmd-mapping) is
-  the right source, since neither the Issue nor the user's own words named that source explicitly.
+- **Next**: ask the user directly what they want `claude/CLAUDE.md` to contain (their own words, or
+  re-read Issue #10), then reflect that in Acceptance criteria/Assumptions above before seeking
+  plan-gate sign-off (`/rn:ty` or `/rn:gm`) and starting #1
+- **Notes**: PR #12 (draft) at branch `worktree-issue-10`. The prior assumption that content seeds
+  from this machine's 5 memory entries (report-results-only, check-every-layer, review-anchored-to-goal,
+  readme-intent-not-values, hhkb-alt-cmd-mapping) was explicitly rejected by the user ("全然違う") —
+  do not reuse it. A separate question — whether this session also establishes an ongoing practice of
+  writing future cross-repo instructions into `claude/CLAUDE.md`, vs. just placing the file once — was
+  asked twice (plain text and multiple-choice) and the user found it incomprehensible both times
+  ("意味不明"); it's parked, not resolved. Don't re-ask it the same way — settle the content question
+  first, then only raise this if it still matters.
