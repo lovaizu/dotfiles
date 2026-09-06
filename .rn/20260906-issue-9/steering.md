@@ -267,16 +267,14 @@ so only a genuinely suspended session reads `paused`.)
 - **Date**: 2026-09-06
 - **Last completed**: none — plan gate (`/rn:ty`)承認済み、task #1 は設計決定・self-check まで完了、
   4専門家レビューを初回実施し4件の Valid な指摘を修正エージェントに依頼中(未チェックオフ)
-- **Next**: 修正エージェントの完了を確認し(コミット `docs: fix design.md review findings …` を
-  `git log` で探す)、Craft / Verification / Design の3軸を再実施(QA は初回 PASS のままで良いか
-  再判断)→ 全 OK なら task #1 をチェックオフし `checks/1.md` を完成させてコミット → design sign-off
-  (#2)へ進む
+- **Next**: 修正コミット `af27b08`(push 済み)を前提に、Craft / Verification / Design の3軸を
+  再実施(QA は初回 PASS のままで良いか再判断)→ 全 OK なら task #1 をチェックオフし `checks/1.md`
+  を完成させてコミット → design sign-off (#2)へ進む
 - **Notes**:
   - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
-  - **バックグラウンドの修正エージェント(agentId `a2abd66769e3e35f9`)が本セッション終了時点で
-    まだ実行中だった**。完了すれば `.rn/20260906-issue-9/design.md` に4件の修正をコミット・push
-    するはず — 再開時は先に `git log` / `git status` でその結果を確認し、まだなら再実行、済んで
-    いれば重複させない
+  - **修正は完了・push 済み** — コミット `af27b08`(4件修正)は本セッション中断の直前(コミット
+    `3debea8`)より前に、既にリモートへ着地している(`git log` で確認済み)。再開時に再実行の必要
+    は無い。次に必要なのは3軸(Craft/Verification/Design)の**再レビュー**のみ
   - 修正対象の4件(Valid): (1) §4.1「現物11キー」→ 12キーの誤り、(2) §4.2 が herdr/iTerm2 の
     バックアップ先も変わることを明示していない、(3) §4.2「実装上の含意」が `backup_path_for()` が
     `backup_file()` 内からも(`$src` の無い状態で)呼ばれる事実を見落としている、(4) §4.3 が
