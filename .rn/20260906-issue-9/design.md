@@ -184,7 +184,7 @@ Claude Code の設定を「もう1種類の管理対象ファイル」として�
 Claude Code 自身が書き戻した値は次の run で repo の値に戻る。新しい保証を作らないことが目的であり、
 新しい壊れ方も作らない。
 
-**`settings.json` の中身についての判断(現物11キーの仕分け)**:
+**`settings.json` の中身についての判断(現物12キーの仕分け)**:
 
 | キー | 分類 | 理由 |
 |---|---|---|
@@ -241,18 +241,35 @@ basename** をキーにした flat な namespace で、管理対象の basename 
    そのものが一意性を保証し、規約としての運用負荷が要らなくなる — 「基準を強くする」方向の変更。
 
 **実装上の含意**(task #3/#4 が実装するときの前提としてここに残す): `backup_path_for()` の引数は
-`dst` ではなく `src`(または `src` から計算した相対パス)に変わる。呼び出し元の `deploy()` は既に
-`src` を持っているので新しい情報を必要としない。`backup_file()` が現在 `mkdir -p "$BACKUP_DIR"` を
-呼んでいる箇所は、計算後のバックアップパスの親ディレクトリ(ネストしうる)に対する `mkdir -p` に
-変える。`sweep_tmp_files` / `tmp_for` はパス文字列に対して汎用に動くため、ネストしても変更不要。
-setup.sh 内の「BACKUP_DIR is one flat namespace keyed by basename」というコメント(および
-herdr4mac design.md §4.6 参照部分)は、この変更を実装する際に古い規約を指したまま残さないよう、
-実装タスクで書き換える必要がある。
+`dst` ではなく `src`(または `src` から計算した相対パス)に変わる。呼び出し元は `deploy()` 内に
+2箇所(`sweep_tmp_files` / `BACKUP_TMP` の計算)あるが、いずれも `deploy(src, dst)` のスコープ内で
+`src` を直接持っている。一方で `backup_path_for()` には**もう1つの呼び出し元**があり、それは
+`backup_file()` 内部(`stem="$(backup_path_for "$dst")..."` の行)——`backup_file(dst, tmp)` という
+署名のとおり `src` も repo 内相対パスも一切持たない。つまり「呼び出し元は既に `src` を持っている
+ので新しい情報は要らない」とは言えず、`backup_file()` 自身の呼び出し箇所には新しい情報を渡す
+必要がある。具体的な渡し方は2通りが考えられる:(a) `backup_file()` の署名に repo 内相対パス
+(またはバックアップの計算済みベースパス)を受け取る引数を追加し、`deploy()` が自分の `src` から
+計算して渡す、(b) `deploy()` 側でネスト後のバックアップパスまで事前に計算しておき、
+`backup_file()` は内部で `backup_path_for()` を呼ばずにその計算済みパスをそのまま受け取って使う。
+どちらを取るかは実装タスク(#3/#4)が具体的に決める — ここでは「`deploy()` の2箇所は新しい情報を
+要らないが、`backup_file()` 内部の呼び出し箇所には新しい情報を渡す必要がある」という前提の訂正だけ
+を残す。`backup_file()` が現在 `mkdir -p "$BACKUP_DIR"` を呼んでいる箇所は、計算後のバックアップ
+パスの親ディレクトリ(ネストしうる)に対する `mkdir -p` に変える。`sweep_tmp_files` / `tmp_for` は
+パス文字列に対して汎用に動くため、ネストしても変更不要。setup.sh 内の「BACKUP_DIR is one flat
+namespace keyed by basename」というコメント(および herdr4mac design.md §4.6 参照部分)は、この
+変更を実装する際に古い規約を指したまま残さないよう、実装タスクで書き換える必要がある。
 
 **既存バックアップへの影響**: 変更前に basename 方式で取られたバックアップは、そのままの名前で
 `$BACKUP_DIR` 直下に残る(読み書きしない・削除しない)。変更後の run が新しい木構造の下に新しい
 バックアップを作るだけなので、過去のバックアップを上書きしたり読めなくしたりしない — 移行は
 一方向かつ非破壊的。
+
+この一律適用により、herdr の `config.toml` や iTerm2 の `herdr.json` のバックアップも、今後は
+`$BACKUP_DIR/config.toml.<timestamp>[-N].bak` / `$BACKUP_DIR/herdr.json.<timestamp>[-N].bak` という
+古い flat な置き場所から、`$BACKUP_DIR/herdr/config.toml.<timestamp>[-N].bak` /
+`$BACKUP_DIR/iterm2/herdr.json.<timestamp>[-N].bak` のようなネストした置き場所に変わる。変わるのは
+バックアップの**置き場所**だけであり、これら自身の配置先・冪等性・失敗時の挙動という herdr4mac
+design.md §4.6 が既に保証している再現性には一切影響しない。
 
 **破れの検出**: WSL 相当の環境(隔離 `$HOME` + `windows-terminal/settings.json` と
 `claude-code/settings.json` の双方に既存ファイルを置いた状態)で `./setup.sh` を1回流し、
@@ -299,7 +316,7 @@ herdr4mac design.md §4.6 が「アプリ自身も書くファイル」(herdr �
   ときに warn で言う、という既存の severity 語彙をそのまま再利用する。
 
 **この判断の前提となる未検証の点**: 両マシンとも herdr の Claude Code 連携を使う、というのは
-steering.md の Assumptions が置く前提であり、もしこの前提が崩れたら(将来一方の機械で herdr 連携を
+本設計が置く前提であり、もしこの前提が崩れたら(将来一方の機械で herdr 連携を
 使わなくなったら)、`hooks.SessionStart` のスタンザ自体を repo の `settings.json` から外すという
 別の判断が要る — それは本設計の対象外で、そのときの `design.md` 更新で扱う。
 
