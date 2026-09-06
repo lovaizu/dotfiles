@@ -420,30 +420,35 @@ HHKB の物理位置に合わせているから、丸ごと上書きで配置先
 リテラル、WSL 判定)は全件残っている。
 
 
-## 未完了
-
 ### #5: Evaluation sign-off
 
 **Purpose**: Acceptance criteria の充足をユーザーに提示し、承認を得る。
 
-**Prerequisites**: #8, #10, #11, #12, #14, #16, #17, #18
+**Prerequisites**: #8, #10, #11, #12, #14, #16, #17, #18, #19, #20
 
 **Steps**:
 
 - [x] mac の実機確認: iTerm2 で ⌃⌘[/⌃⌘]/⌃⌘U/⇧Enter/⌃T を raw モードで捕捉し
       `14 5b 14 5d 14 75 0a 14` — 全キー期待どおり。新規ウィンドウでワークスペース切替と
       herdr UI の配色も確認済み
-- [x] Acceptance criteria を1件ずつ検証した結果を提示した(2026-09-05。#17 / #18 の反映後に
-      出し直したのが最新で、7項目すべて OK)
-- [ ] verdict を /rn:ty(approve)または /rn:gm(revise → 対応して再提示)で受ける
+- [x] Acceptance criteria を1件ずつ検証した結果を提示した(最新は 2026-09-06、#19 / #20 の
+      反映後に現在のツリーで実測し直した版。7項目すべて OK)
+- [x] verdict を受けた — 2026-09-06、`/rn:ty` で承認
 
 **Completion criteria**:
 
 - Acceptance criteria の全項目に OK/NG と根拠が提示され、ユーザーが /rn:ty で承認している
 
-**未確認のまま残るもの**(承認時にユーザーが受容するか判断する): Win 実機での ctrl+alt 系キー、
-WT settings.json の上書き結果、WT が WSL プロファイルを作り直すか、`wslpath` がリテラル
-`%LOCALAPPDATA%` の翻訳を拒むか(design.md §4.5 / §4.6)。いずれも次回 Windows 同期時。
+**提示の途中で基準そのものが2回動いた。** #17 / #18 は「値かどうか」「実測が残るか」で線を引いて
+削ったが、ユーザーが**目的(clean clone → setup 一発で再現)から判断しろ**と差し戻し、#19 / #20 で
+引き直した。README は「成果物から読めることは書かない」で 95 → 46 行、setup.sh のコメントは
+「消すと再現が静かに壊れるものだけ」で 240 → 83 行。**Acceptance criteria の1項目め(README)は
+この過程で書き換えている** — 旧基準はキー対応表を要求しており、削除と衝突したため。
+
+**承認時点で未確認のまま受容したもの**: Win 実機での ctrl+alt 系キー、WT settings.json の
+上書き結果、WT が WSL プロファイルを作り直すか、`wslpath` がリテラル `%LOCALAPPDATA%` の翻訳を
+拒むか(design.md §4.5 / §4.6)。いずれも次回 Windows 同期時に確かめる。
+**基準未達2件**も受容: `Badge Color` のコントラスト 4.29:1、選択範囲内のリンク色(#11 に記録)。
 
 ## 撤回
 
