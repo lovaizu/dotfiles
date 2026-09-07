@@ -17,8 +17,10 @@ Design: .rn/20260822-herdr4mac/design.md
   バックアップ名と衝突しない
 - 配置に失敗した場合は既存の管理対象と同じく FAILURES に載り、run が非ゼロで終わる。成功時は
   何をどこへ置いたか・退避を取ったかが実行時に表示される
-- リポジトリの `CLAUDE.md` が、これまで積み上げてきた汎用の指示(報告 / 調査 / レビューの回し方 /
-  ドキュメントの書き方 / HHKB のキー配置)を、特定リポジトリ固有でない形で持っている
+- リポジトリの `CLAUDE.md` が、これまでのセッション記録(`~/.claude/projects/**/*.jsonl`)に
+  現れた私の姿勢・考え方(目的から判断する / 結論と根拠だけ報告する / 平易な語を使う / 本質に
+  削る / 意図は聞き実装は任せる / 調べてから言う / 文書は意図と決定だけ / ゴミを残さない /
+  レビューは目的に錨 / 学びを記録する)を、特定リポジトリ固有でない指示として持っている
 - README が新しい管理対象を意図のレベルで説明し、指示の中身そのものは持たない
 - `.rn/20260822-herdr4mac/design.md` が新しい管理対象を反映している(Claude Code を対象外とする
   記述の解除、構成要素、新しい 4.N)
@@ -31,9 +33,10 @@ Design: .rn/20260822-herdr4mac/design.md
   実機で確認する)
 - 現在このマシンに `~/.claude/CLAUDE.md` は存在しない(確認済み)。よって初回配置はバックアップを
   取らない経路を通る
-- 持ち運びたい指示の元ネタは、現在 dotfiles プロジェクトの memory にある汎用のもの
-  (報告は結果だけ / 層を全部調べてから原因を言う / レビューは目的に錨を下ろす /
-  README は意図だけ / HHKB の alt→cmd)
+- 持ち運びたい指示の元ネタは、セッション記録 `~/.claude/projects/**/*.jsonl` に残る私自身の
+  発言(2026-08-14〜2026-09-07、サブエージェントへの指示と自動通知を除いた 357 件)。memory の
+  5 件を元ネタにする案は却下済み(2026-09-06)。抽出した姿勢は plan gate で提示した草案の
+  とおりで、各項目は発言の引用を根拠に持つ
 - memory の仕組みは今回変更しない。CLAUDE.md はマシンをまたいで持ち運びたい指示を持ち、
   memory はこれまで通り動く。両者の重複はいまは許容する
 - Issue #9(settings.json / statusline / プラグインの再現)は別セッションの範囲であり、
@@ -88,7 +91,7 @@ Design: .rn/20260822-herdr4mac/design.md
 
 **Steps**:
 
-- [ ] 現在の dotfiles memory の5件から、リポジトリ固有でない指示を抽出する
+- [ ] plan gate で承認された草案(セッション記録から抽出した姿勢)を出発点にする
 - [ ] `claude/CLAUDE.md` を書く。各項目は「何をするか」と「なぜか」を持ち、特定リポジトリの
       固有名詞に依存しない
 - [ ] 実機で `~/.claude/CLAUDE.md` を置いた状態で新しいセッションを開き、内容が読まれることを
@@ -182,17 +185,8 @@ Design: .rn/20260822-herdr4mac/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-06
-- **Last completed**: none yet — plan gate not approved
-- **Next**: ask the user directly what they want `claude/CLAUDE.md` to contain (their own words, or
-  re-read Issue #10), then reflect that in Acceptance criteria/Assumptions above before seeking
-  plan-gate sign-off (`/rn:ty` or `/rn:gm`) and starting #1
-- **Notes**: PR #12 (draft) at branch `worktree-issue-10`. The prior assumption that content seeds
-  from this machine's 5 memory entries (report-results-only, check-every-layer, review-anchored-to-goal,
-  readme-intent-not-values, hhkb-alt-cmd-mapping) was explicitly rejected by the user ("全然違う") —
-  do not reuse it. A separate question — whether this session also establishes an ongoing practice of
-  writing future cross-repo instructions into `claude/CLAUDE.md`, vs. just placing the file once — was
-  asked twice (plain text and multiple-choice) and the user found it incomprehensible both times
-  ("意味不明"); it's parked, not resolved. Don't re-ask it the same way — settle the content question
-  first, then only raise this if it still matters.
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
