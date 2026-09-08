@@ -188,12 +188,8 @@ Design: .rn/20260822-herdr4mac/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-08
-- **Last completed**: plan gate — approved by the user in words ("OKなので再開後に作業進めて", the
-  /rn:dn argument on 2026-09-08); no `/rn:ty` was typed, treat the plan as approved and do not re-ask
-- **Next**: #1 design.md に Claude Code 指示の配置を反映する
-- **Notes**: PR #12 (draft) at branch `worktree-issue-10`. The CLAUDE.md body is settled:
-  `.rn/20260906-issue-10/claude-md-agreed.md` (English, addressed to Claude, human = "the user",
-  1 role sentence + 9 bullets). #2 copies it verbatim into `claude/CLAUDE.md`; do not add headings,
-  a title, or lines. Main-repo tree shows `?? .claude/` — that is the two git worktrees, not work.
+- **Status**: not suspended
+- **Date**: -
+- **Last completed**: -
+- **Next**: -
+- **Notes**: -
