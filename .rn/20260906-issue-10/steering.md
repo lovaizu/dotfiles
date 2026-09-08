@@ -63,14 +63,14 @@ Design: .rn/20260822-herdr4mac/design.md
 
 **Steps**:
 
-- [ ] 既存 design.md を通読し、今回の作業が変える h3 を特定する
-- [ ] 1.4 の「Claude Code のユーザー設定も対象外」を、今回取り込む範囲(個人用 CLAUDE.md)と
+- [x] 既存 design.md を通読し、今回の作業が変える h3 を特定する
+- [x] 1.4 の「Claude Code のユーザー設定も対象外」を、今回取り込む範囲(個人用 CLAUDE.md)と
       残る対象外(Issue #9 の設定・プラグイン)に書き分ける
-- [ ] 3.2 の構成要素に `claude/CLAUDE.md` を加える
-- [ ] 新しい 4.N を追加し、配置先の決定(`CLAUDE_CONFIG_DIR` の扱い)・OS 共通部に置く理由・
+- [x] 3.2 の構成要素に `claude/CLAUDE.md` を加える
+- [x] 新しい 4.N を追加し、配置先の決定(`CLAUDE_CONFIG_DIR` の扱い)・OS 共通部に置く理由・
       バックアップ名が衝突しないことを、決定と理由で書く
-- [ ] 5.2 に、memory と CLAUDE.md の重複を許容した判断を書く
-- [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
+- [x] 5.2 に、memory と CLAUDE.md の重複を許容した判断を書く
+- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -188,8 +188,13 @@ Design: .rn/20260822-herdr4mac/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: -
-- **Last completed**: -
-- **Next**: -
-- **Notes**: -
+- **Status**: paused
+- **Date**: 2026-09-08
+- **Last completed**: #1 の成果物と self-check(design.md に §4.8 を新設し、実測に基づいて改稿。
+  コミット `137557e` → `d9936cf`)
+- **Next**: #1 のレビュー指摘対応(fix round 2)。未解決の指摘は
+  `.rn/20260906-issue-10/review-findings-1.md` にそのまま work-order として書いてある
+- **Notes**: #1 の4名レビュー(QA / 設計 / Craft / 検証)が2巡とも fail。fix round 2 を dispatch
+  した直後に中断したので**実装は1行も入っていない** — 上のファイルから再開する。次が fix
+  iteration 3巡目(上限)で、残る NG は記録してユーザーへエスカレーションする。修正後は4名の
+  再レビューを中立枠で回す。PR #12 (draft) at branch `worktree-issue-10`。
