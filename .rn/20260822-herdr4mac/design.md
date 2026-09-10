@@ -11,11 +11,6 @@ dotfiles の目的(Win / Mac の端末環境を clone → setup 一発で再現�
 Mac(iTerm2)対応を追加し、Win(Windows Terminal)側も含めて設定を統一仕様
 (テーマ・フォント・herdr 操作・即時切替キー・⇧Enter)に揃える。
 
-dotfiles の目的のうち**「毎回設定しない」の側は端末に限らない** — マシンを移っても同じところから
-始めたい設定は端末の外にもあり、Claude Code へのユーザー指示(`CLAUDE.md`)がそれに当たる
-(§1.4 / §4.8)。端末の統一とは別のゴールだが、clone → setup 一発という同じ手段の上に乗るので、
-このリポジトリの管理対象に入れる。
-
 ### 1.2 What goes wrong without this?
 
 Mac では herdr の workspace / agent 切替に毎回プレフィックス2ストロークが必要で Win と操作感が
@@ -25,9 +20,7 @@ Mac では herdr の workspace / agent 切替に毎回プレフィックス2ス�
 ### 1.3 What does reaching it require?
 
 統一仕様の明文化(README)、iTerm2 側のキー→バイト列マッピングと色・フォントのプロファイル定義、
-WT 側の別名チョード整理、それらを OS 判定つきでインストールする setup.sh。端末に依らない管理対象
-(Claude Code の指示)については、OS 別の翻訳が無いので、要るのは setup.sh の共通部の配置経路1本と、
-その配置先をどう決めるかの判断だけ(§4.8)。
+WT 側の別名チョード整理、それらを OS 判定つきでインストールする setup.sh。
 
 ### 1.4 What is out of scope?
 
@@ -35,15 +28,9 @@ herdr 本体・iTerm2 のインストール、Win 側フォントのインスト
 手動手順に委ねる)、シェルの統一(Win は PowerShell / WSL bash、Mac は zsh のまま — herdr の中の
 体験が揃えば足りる)、iTerm2 のプロファイル外グローバル設定の管理。
 
-Claude Code については、**ユーザー指示の `CLAUDE.md` だけを管理し、設定とプラグインは対象外**にする。
-一度は設定ごと取り込んだが、端末の統一とは独立に決めるべきことが多く(プラグイン実体の再現方法、
-どの設定を dotfiles で固定するか)、1つの PR に混ぜると判断がまとまらないため切り離し、
-Issue #9 / Issue #10 に分けた。そのうち **Issue #10(`CLAUDE.md`)を先に戻した**のは、これが
-ファイル1個で完結し、中身は指示の文章だけでマシン固有の値を持たないので、**既存の配置方式に乗り、
-方式を増やさない**から(§4.6 / §4.8)。**`settings.json`・statusline・プラグインの実体は
-対象外のまま**(Issue #9) — こちらは再現方法そのものが未決で、決め方によっては配置方式を1種類に
-保てなくなる(プラグインはファイル1個ではなく、設定にはマシン固有の値が混ざる)。
-切り離しの理由が残っているのはこの側だけ。
+**Claude Code のユーザー設定も対象外**。一度は取り込んだが、端末の統一とは独立に決めるべきことが
+多く(プラグイン実体の再現方法、どの設定を dotfiles で固定するか)、1つの PR に混ぜると判断が
+まとまらないため切り離した。要望は Issue #9 / #10 に移してある。
 
 ## 2. Assumptions & Constraints
 
@@ -73,13 +60,12 @@ setup は Win 側も WSL の bash で実行される前提(既存 setup.sh の�
 
 ### 3.1 What is the core idea, and why does it solve the problem?
 
-「共通層+OS別層」の2層構成にする。共通層 = herdr config、Claude Code の指示、統一仕様(README)。
-OS別層 = その仕様を各ターミナルの語彙に翻訳した設定ファイル(WT の settings.json / iTerm2 の
-Dynamic Profile)。仕様を README に1か所で明文化することで、両OSの設定が同じ使い勝手に収束し、
-将来の変更も「仕様を直す → 両OSの翻訳を直す」という手順に固定される。iTerm2 側は
-**Dynamic Profiles**(`~/Library/Application Support/iTerm2/DynamicProfiles/` に置いた JSON を
-自動読み込み)を使う — キー・色・フォントがプロファイル単位で JSON 1ファイルに収まり、既存の
-コピー方式にそのまま乗る。
+「共通層+OS別層」の2層構成にする。共通層 = herdr config と統一仕様(README)。OS別層 = その仕様を
+各ターミナルの語彙に翻訳した設定ファイル(WT の settings.json / iTerm2 の Dynamic Profile)。
+仕様を README に1か所で明文化することで、両OSの設定が同じ使い勝手に収束し、将来の変更も
+「仕様を直す → 両OSの翻訳を直す」という手順に固定される。iTerm2 側は **Dynamic Profiles**
+(`~/Library/Application Support/iTerm2/DynamicProfiles/` に置いた JSON を自動読み込み)を使う —
+キー・色・フォントがプロファイル単位で JSON 1ファイルに収まり、既存のコピー方式にそのまま乗る。
 
 ### 3.2 What are the pieces, and what is each responsible for?
 
@@ -87,18 +73,16 @@ Dynamic Profile)。仕様を README に1か所で明文化することで、両O
   具体的な値(フォント名・サイズ・色の hex・テーマ名・送信バイト列)は持たない — 持つと
   設定ファイルと2か所でメンテすることになる。
 - `herdr/config.toml` — OS 共通の herdr 設定(キー割り当てと、テーマ2層のうち herdr UI 側 — §4.7)。
-- `claude/CLAUDE.md` — Claude Code へのユーザー指示(OS 共通、§4.8)。端末設定ではないので
-  OS 別の翻訳を持つ相手がおらず、共通層のまま配られる。
 - `windows-terminal/settings.json` — 統一仕様の Win 翻訳(ctrl+alt 系のみに整理)。
 - `iterm2/herdr.json` — 統一仕様の Mac 翻訳(⌃⌘ 系 + ⇧Enter + Gruvbox Dark + HackGen)。
-- `setup.sh` — 単一エントリ: 共通部(herdr の config と Claude Code の指示)→ `uname` で分岐 →
-  darwin(iTerm2 配置 + brew があればフォント)/ WSL(WT 配置)。
+- `setup.sh` — 単一エントリ: 共通部(herdr)→ `uname` で分岐 → darwin(iTerm2 配置 + brew があれば
+  フォント)/ WSL(WT 配置)。
 
 ### 3.3 How does work move?
 
-両OSとも `./setup.sh` を実行 → 共通部が herdr config と Claude Code の指示を配置 → OS 判定 →
-darwin なら Dynamic Profile 配置(iTerm2 が監視していて再起動不要で反映)+フォント、WSL なら WT の
-settings.json を配置。使い勝手を変えたいときは README の意図を先に直し、両翻訳ファイルを追随させる。
+両OSとも `./setup.sh` を実行 → 共通部が herdr config を配置 → OS 判定 → darwin なら Dynamic
+Profile 配置(iTerm2 が監視していて再起動不要で反映)+フォント、WSL なら WT の settings.json を
+配置。使い勝手を変えたいときは README の意図を先に直し、両翻訳ファイルを追随させる。
 
 ## 4. Detailed design
 
@@ -147,8 +131,7 @@ diff がないことと未使用 action が残らないことの照合。実機�
 フォントは README が手動導入を認めている任意要素なので、`brew install` の**失敗**も、brew 自体の
 不在も警告に留めて exit 0 を保つ(管理対象ファイルではないため §4.6 の失敗集計にも数えない)。
 両者は同じ知らせ(このマシンにフォントは入らなかった)なので、どちらも同じ警告経路 = stderr に出す。
-WSL 側の分岐が配置するのは WT の settings.json で、herdr config と Claude Code の指示は
-分岐の外の共通部が配る(§4.8)。
+WSL では herdr config と WT settings.json を配置する。
 
 **WSL かどうかはカーネルで判定する** — `/proc/sys/kernel/osrelease` に `microsoft` が含まれるか。
 `uname -s` は WSL でも `Linux` を返すので分岐だけでは区別できず、以前は `wslpath` / `cmd.exe` の
@@ -224,9 +207,9 @@ footprint の一部**(`Packages/<パッケージ名>/` の下)で、Windows が�
 
 ### 4.6 What does the whole-file overwrite guarantee, and how is a breach caught?
 
-対象: 管理対象のファイルすべて — herdr の `config.toml`、Claude Code の `CLAUDE.md`、iTerm2 の
-Dynamic Profile、WSL では WT の `settings.json`。**配置方式は1種類だけで、ファイルごとの例外を
-持たない**。アプリ自身も書くファイルかどうかは方式を分ける理由にならない。
+対象: 管理対象のファイルすべて — herdr の `config.toml`、iTerm2 の Dynamic Profile、WSL では WT の
+`settings.json`。**配置方式は1種類だけで、ファイルごとの例外を持たない**。アプリ自身も書くファイル
+かどうかは方式を分ける理由にならない。
 
 配置先は、そのファイルを読むプログラムが読む場所に合わせる。herdr の config.toml は
 `${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml`(§2.1 の「XDG パスも共通」がこれ) — herdr は
@@ -243,8 +226,7 @@ XDG 側のパースエラーを報告する)ので、`$HOME/.config` に直書�
 (実測: `XDG_CONFIG_HOME=relcfg` で2つのディレクトリから流すと `work/relcfg/…` と
 `elsewhere/relcfg/…` の2か所に配られ、どちらも `Done.` / exit 0)。これは完了基準を2つとも壊す —
 「herdr が読むパスと `diff` 一致」も「2回流してもバイト列が変わらない」も偽になる。判定は
-`%LOCALAPPDATA%` と同じ「`/` で始まるか」1つで、`XDG_CONFIG_HOME` と `XDG_STATE_HOME` の両方に同じ
-ものを当てる(`CLAUDE_CONFIG_DIR` も同じ判定に乗るが、根拠も警告も別 — §4.8)。ただし**黙っては
+`%LOCALAPPDATA%` と同じ「`/` で始まるか」1つで、両変数に同じものを当てる。ただし**黙っては
 戻さない**: herdr の側は仕様に従わず、相対値を herdr 自身の cwd から解決する
 (実測: `XDG_CONFIG_HOME=relcfg` と `./relcfg` 配下の壊れた config.toml で `herdr config check` は
 そのファイルのパースエラーを報告し、`relcfg` の無いディレクトリから同じコマンドを流すと
@@ -300,7 +282,7 @@ dotfiles が持つ値がそのマシンの値になり、dotfiles から消し�
   もう一度名指しする。
 - `warn`(空行+見出し+字下げ+Fix)— 管理対象は正しく配置されているが、run 自身にはできないことを
   読み手に求める(フォント導入、既定プロファイルの設定、消えた symlink の張り直し、絶対パスでない
-  XDG 値と `CLAUDE_CONFIG_DIR` の修正)。**Fix 行があることがブロック形式の理由**。
+  XDG 値の修正)。**Fix 行があることがブロック形式の理由**。
 - 素の `echo`(stderr)— 誰にも何も求めない、このマシンについての事実。管理対象の配り先がここには
   無く、それは欠陥ではない(非 WSL Linux、WT の入っていない Windows 側)。
 
@@ -431,16 +413,14 @@ herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに
 - WT の `settings.json` だけは配置先の全体が置き換わるため、そのマシンの WSL ディストロのプロファイルも
   一度消える。**WT が起動時に作り直す、というのは未検証の仮定**で、WSL 実機での確認は取れていない。
   作り直されなければ、そのマシンのプロファイル一覧は dotfiles が持つものだけになる。
-  **未検証事項はこれ1つではない**(以前ここには「唯一の」と書いてあったが偽だった)。**WSL 実機で
-  しか確かめられないもの**が3つあり、丸ごと上書きの正しさに直接かかるものが2つ、setup.sh の判定に
-  かかるものが1つ:
+  **未検証事項はこれ1つではない**(以前ここには「唯一の」と書いてあったが偽だった)。丸ごと上書きの
+  正しさに直接かかるものが2つ、setup.sh の判定にかかるものが1つ、いずれも WSL 実機でしか
+  確かめられない:
   (1) WT が WSL ディストロのプロファイルを作り直すか(ここ)、
   (2) 上書きした `settings.json` で WT が実際にどう振る舞うか(steering の #5 未確認事項)、
   (3) `wslpath` がリテラル `%LOCALAPPDATA%` の翻訳を拒むか(§4.5)。
   検証はいずれも次回 Windows 同期時。§2.1 の herdr config はここから外れた —
-  `herdr config check` と実機で検証済みになっている。**この3つで未検証事項が尽きるわけではない** —
-  Claude Code 側にも1つ残っており、そちらは実機ではなく資格情報の置き場所が理由で測れないもので、
-  §4.8 に書いてある。
+  `herdr config check` と実機で検証済みになっている。
 - `windows-terminal/settings.json` は `profiles.list` に**それを作ったマシンの WSL ディストロ由来の
   GUID を抱えたまま配布される**。よってこの設計は「**Windows マシンは1台**」という前提の下でのみ
   成り立つ。2台目に配れば、そのマシンに無いディストロの GUID が持ち込まれ、そのマシン固有の GUID は
@@ -463,12 +443,12 @@ herdr の UI から変えたものを dotfiles へ戻す作業はユーザーに
   電源断やカーネルパニックでは rename だけが先に永続化して切り詰められた配置先が残りうる。
   `fsync` は入れない — 守る対象は clone と setup 一発で作り直せる設定ファイル。
 - **管理対象の basename は一意でなければならない**。退避名は `$BACKUP_DIR/$(basename "$1")` に
-  日時を足したものなので、BACKUP_DIR は平坦な名前空間になる。今の4つ(`config.toml` /
-  `CLAUDE.md` / `herdr.json` / `settings.json`)はたまたま衝突しないが、同じ basename の管理対象が
-  2つになれば `.bak` は区別できず、`deploy` の掃除の glob も両者で同一になる。**規律のままにして `deploy` に
+  日時を足したものなので、BACKUP_DIR は平坦な名前空間になる。今の3つ(`config.toml` /
+  `herdr.json` / `settings.json`)はたまたま衝突しないが、同じ basename の管理対象が2つになれば
+  `.bak` は区別できず、`deploy` の掃除の glob も両者で同一になる。**規律のままにして `deploy` に
   検査は置かない** — 理由は §4.5 で Guid を `grep` に委ねたのと同じで、実行時の検査はその run が
   実際に配る basename しか見られず、**OS が違って同じ run に現れない2つ**という、人が最も間違え
-  やすい組み合わせを取りこぼす。`grep -n 'deploy "' setup.sh` は4つを一度に見せ、run には何の費用も
+  やすい組み合わせを取りこぼす。`grep -n 'deploy "' setup.sh` は3つを一度に見せ、run には何の費用も
   かけない。
 - **冪等性は `cmp` が PATH にあることに乗っている**。`cmp -s` の非0はすべて「一致しない」と読むので、
   `cmp` そのものが無い機械(127、`command not found` はリダイレクトで捨てられる)では毎 run が
@@ -560,71 +540,6 @@ README はこの2層について**設定箇所だけ**を書き、色名・hex�
 `schemes` に定義されていること、`iterm2/herdr.json` の前景/背景が WT の Gruvbox Dark と同値で
 あること(#2 の完了基準が 16 色まで含めて突き合わせている)。実機の見た目はユーザーが確認する。
 
-### 4.8 What does the Claude Code user instruction file guarantee, and how is a breach caught?
-
-保証: **exit 0 で終わった run では**、`CLAUDE_CONFIG_DIR` が絶対パスならその直下、そうでなければ
-`$HOME/.claude` 直下の `CLAUDE.md` が、dotfiles の `claude/CLAUDE.md` とバイト単位で一致する。Mac で
-も WSL でも同じ1本の経路で配る。配置そのものは §4.6 の丸ごと上書きに乗る(保証を exit 0 で条件づける
-理由もそちらと同じ)ので、この節が決めるのは**どこへ置くか、なぜそこか**だけで、方式は増やさない。
-
-配置先は、そのファイルを読むプログラムが読む場所に合わせる(§4.6 の原則)。Claude Code の設定ディレク
-トリは既定で `$HOME/.claude`(実測: このマシンの `~/.claude` に Claude Code 自身の `settings.json` /
-`projects/` / `plugins/` がある)。その直下の `CLAUDE.md` は全プロジェクト共通のユーザー指示として読
-まれる(実測: そのファイルを読まなければ答えられない文字列を `~/.claude/CLAUDE.md` に置き、リポジトリ
-と無関係な cwd から `claude -p` を1回流すと、答えは `ZORBLAX-7741-QUV` だけだった)。
-`CLAUDE_CONFIG_DIR` は設定ディレクトリの基点として効く(実測: 空のディレクトリを指して起動すると、
-Claude Code はそこに `.claude.json` / `projects/` / `sessions/` / `backups/` を作り、`$HOME/.claude`
-側には何も増えなかった)。したがって、変数が設定されていればそこを基点にするのは**賭けではなく実測に
-基づく決定**である。既定に固定すれば、変数を設定したマシンでは herdr で測った失敗の形 — **読む側が別
-の場所を見ていて、配置して exit 0 なのに誰も読まない**(§4.6)— に必ず入る。
-
-**測れなかったのは1件**: 移設先(変数が別の場所を指した状態)の直下の `CLAUDE.md` が読まれるか。
-移設先を指した run は資格情報が既定側にあるため `Not logged in · Please run /login` で止まる
-(実測。既定側の `.claude.json` を写しても同じ)。残るのは上の2件の連言だけだが、測っていない
-ので**未検証**として扱う。
-
-相対パスの `CLAUDE_CONFIG_DIR` は無視して既定に戻し、無視したことを WARNING で言う(管理対象は配
-置されているので失敗には数えない)。判定は XDG と同じ「`/` で始まるか」1つ(§4.6)だが、**根拠は
-XDG 仕様ではない** — この変数は XDG ベースディレクトリではない。根拠は、herdr の相対 XDG と**同
-じ壊れ方をすることが実測で確かめられた**方である(実測: `CLAUDE_CONFIG_DIR=relcfg` で2つのディレ
-クトリから起動すると `work/relcfg` と `elsewhere/relcfg` の2か所に設定ディレクトリが作られた)。
-相対値を自分の cwd から解決する以上、既定に戻して配ったパスをその Claude Code が読むとは限らない —
-黙って戻さないのはそのため。
-
-**警告は既存の XDG 経路には相乗りさせず、判定だけを共有する**。判定が同じなのは偶然ではなく、どちら
-も「配置先が run の cwd 次第になる」同じ壊れ方に効いているので、2か所に書けば片方だけ変わる。メッセ
-ージの方は根拠を名指しし、既存の警告は XDG 仕様を名指ししている — そこへ混ぜれば、仕様が何も言ってい
-ない変数について**偽の根拠をユーザーに提示する**ことになる。よって `XDG_IGNORED` には積まず、この変
-数用の状態と warn ブロックを別に持つ。逆に**絶対パスで採用された run は何も言わない** — warn は要求
-の形(§4.6 の通知の3形態)であり、変数のとおりに配った run が読み手に求めることは無い。
-
-**「絶対パスの `CLAUDE_CONFIG_DIR` と既定の両方に配る」は採らない**。読まれない場所に配って exit 0
-になる形を確実に避けられるように見えるが、同じ `CLAUDE.md` を2か所に配れば、basename をキーにした平
-坦な退避名前空間で両者を区別できなくなる(§4.6 の境界)。配置方式も1種類でなくなる。
-
-**配置は OS 分岐の外**、herdr の config と並べて行う。配置先の計算に `uname` の答えが1つも入らないか
-ら — Claude Code は Mac でも WSL でも設定ディレクトリ直下という同じ相対位置を読む。分岐の中に置けば
-同じ配置が両側に写り、片方だけ直す破れができる。§4.5 の3分類では、`CLAUDE.md` はどの run でも**「配
-った」か「失敗」のどちらか**になる — Darwin 側について §4.5 が結論したことの系で、理由も同じ:
-`deploy` は何かをコピーするより前に配置先のディレクトリを `mkdir -p` するので、「配る先が無いのでス
-キップ」が起きない。Claude Code の入っていないマシンでも配るのは、設定ディレクトリが §4.5 の基準で
-DynamicProfiles と同じ**投函箱**の側だから — 空でも正常な状態で、Claude Code 自身がそこに状態を作る
-(上の実測)。ただし**先に置いた `CLAUDE.md` を、あとから入った Claude Code が読むかは測っていない** —
-投函箱であることからの推論であって実測ではない(§4.6 の `.bak` とチルダの段落と同じ立場)。
-
-**退避名は既存の管理対象と衝突しない**: BACKUP_DIR は basename で分かれ、`CLAUDE.md` は他の3つのどれ
-とも違う(§4.6 の境界)。**中身については何も保証しない** — 何を指示として書くかを持つのは、この節でも
-README でもなく `claude/CLAUDE.md` 自身(§3.2)。この節が言えるのは「マシンをまたいで同じ内容のファイ
-ルが同じ場所にある」までで、その指示が Claude の応答をどう変えるかは別の軸にある。
-
-破れの検出: 主たるオラクルは §4.6 と同じ `diff` — 配置先と repo の原本に差分が無いこと。ただし
-`diff` は**そのパスを Claude Code が読んだか**については何も言わない(herdr で `~/.config` 側に配って
-緑になったのと同じ穴)。ここを埋める補助検査はある: リポジトリと無関係な cwd から
-`claude -p '/context'` を1回流すと、読み込まれたユーザー指示のパスが Memory Files の表に出る(実測:
-`| User | /Users/kiyo/.claude/CLAUDE.md | 22 |`)。見るのは**そのパスが配置先と一致するか**だけで、指
-示が効いたかではない。順序は §4.6 と同じ — `diff` が主、`/context` はその次に来る追加検査。
-`CLAUDE_CONFIG_DIR` を設定したマシンでこれを流せば、上の未検証1件もそこで閉じる。
-
 ## 5. Alternatives considered
 
 ### 5.1 Why this shape, and not another?
@@ -649,8 +564,8 @@ README でもなく `claude/CLAUDE.md` 自身(§3.2)。この節が言えるの�
   上書きなら方式は1種類、検証は `diff` 1本で済む。
 
   守ろうとしていた「そのマシンにしか無い設定」を数え上げると、WT が WSL ディストロごとに書く
-  プロファイルは WT 自身が作り直すマシンの目録であり(この「作り直す」は未検証 — §4.6 の境界が
-  挙げる、WSL 実機でしか確かめられない3件のうちの1つ)、
+  プロファイルは WT 自身が作り直すマシンの目録であり(この「作り直す」は未検証 — §4.6 の境界に
+  挙げた3件のうちの1つ)、
   herdr が書き戻すテーマ名と `onboarding` は**上書きで直したい値そのもの**だった。つまり守る対象は
   **現時点では**実在しない。ただしそれは「**Windows マシンは1台**」という前提(§4.6 の境界)の
   下での話で、この前提が崩れれば守る対象は実在する — 2台目に上書きで配れば、そのマシンにしか無い
@@ -668,12 +583,3 @@ Dynamic Profile はデフォルトプロファイル化を自動でできない(
 戻す前に setup を流せばその変更は失われる — 退避された `.bak` から手で拾うことになる。方式を1種類に
 保つ代わりに、この一手間を受け入れた。退避も同じ割り切りで、配置先が原本と違えば毎回1本増え、
 剪定はしない(§4.6) — 溜まった `.bak` を消すのもユーザーの手作業として残る。
-
-Claude Code については、**同じ指示が2か所に住みうる状態を受け入れた**。`CLAUDE.md`(§4.8)は
-マシンをまたいで持ち運びたい指示を持ち、memory(設定ディレクトリの下の `projects/**/memory/`)は
-これまで通りそのマシンで書かれ続ける — memory の仕組みは今回変えない。両者が同じことを言う重複は
-**いまは許容する**。片方に寄せるには「どちらが正か」を決める必要があるが、正の向きが両者で逆になる:
-`CLAUDE.md` は dotfiles が正(配置先の編集は次の setup で消える、§4.6)、memory はそのマシンでの
-やりとりから育つのでマシン側が正。同じ機構に載せれば、育った memory を毎 run 消すか、dotfiles を
-正と呼べなくするかのどちらかになる。重複の費用は Claude が同じことを2度読むことだけなので、
-向きを決められるようになるまで受容する側に倒した。

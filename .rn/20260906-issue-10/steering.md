@@ -1,5 +1,4 @@
 Rn version: 0.8.0
-Design: .rn/20260822-herdr4mac/design.md
 
 # Goal
 
@@ -7,12 +6,14 @@ Design: .rn/20260822-herdr4mac/design.md
 ドキュメントの書き方)を dotfiles で管理し、`./setup.sh` で各マシンの `~/.claude/CLAUDE.md` に
 配置する。マシンを移っても同じ指示から始められるようにし、毎回ゼロから指示を与え直すのをやめる。
 
+設計書は作らない(2026-09-10 判断、lovaizu/ccpm#25)。決めることは「既存の `deploy` に 1 ファイル足す」
+だけで、それはこの steering に書いてある。
+
 # Acceptance criteria
 
 - clone して `./setup.sh` を実行すると、配置先の `CLAUDE.md` がリポジトリの原本と `diff` 一致する
 - 配置は OS 分岐の外(herdr と同じ共通部)で行われ、Mac と WSL の両方で同じ配置先計算が働く
-- `CLAUDE_CONFIG_DIR` が絶対パスで設定されていればそこを基点に配置する。相対パスなら無視して
-  既定(`$HOME/.claude`)を使い、無視したことを警告する(既存の XDG の扱いと一致する)
+- 配置先は `$HOME/.claude/CLAUDE.md` に固定する。`CLAUDE_CONFIG_DIR` は扱わない(2026-09-10 判断)
 - 配置先に既存ファイルがあればバックアップが取られ、そのバックアップ名が既存3つの管理対象の
   バックアップ名と衝突しない
 - 配置に失敗した場合は既存の管理対象と同じく FAILURES に載り、run が非ゼロで終わる。成功時は
@@ -24,15 +25,13 @@ Design: .rn/20260822-herdr4mac/design.md
   埋めない / 会話は日本語・書くものはリポジトリの慣習 / 一般的な語 / 文書は「なぜ」だけ /
   一時ファイルを残さない
 - README が新しい管理対象を意図のレベルで説明し、指示の中身そのものは持たない
-- `.rn/20260822-herdr4mac/design.md` が新しい管理対象を反映している(Claude Code を対象外とする
-  記述の解除、構成要素、新しい 4.N)
 - 既存3ファイル(herdr / Windows Terminal / iTerm2)の配置挙動が変わらない
 
 # Assumptions
 
 - Claude Code は `~/.claude/CLAUDE.md` を全プロジェクト共通のユーザー指示として読む。
-  `CLAUDE_CONFIG_DIR` が設定されている場合はその下を設定ディレクトリとする(未検証 — タスク中に
-  実機で確認する)
+  `CLAUDE_CONFIG_DIR` で設定ディレクトリを移せるが、このリポジトリでは既定の `$HOME/.claude` だけを
+  相手にする
 - 現在このマシンに `~/.claude/CLAUDE.md` は存在しない(確認済み)。よって初回配置はバックアップを
   取らない経路を通る
 - 持ち運びたい指示の元ネタは、セッション記録 `~/.claude/projects/**/*.jsonl` に残る私自身の
@@ -54,50 +53,25 @@ Design: .rn/20260822-herdr4mac/design.md
 
 # Tasks
 
-### #1: design.md に Claude Code 指示の配置を反映する
+### #1: (取り下げ) design.md に Claude Code 指示の配置を反映する
 
-**Purpose**: `.rn/20260822-herdr4mac/design.md` を、Claude Code のユーザー指示を管理対象に含む
-構造として更新する。
-
-**Prerequisites**: none
-
-**Steps**:
-
-- [x] 既存 design.md を通読し、今回の作業が変える h3 を特定する
-- [x] 1.4 の「Claude Code のユーザー設定も対象外」を、今回取り込む範囲(個人用 CLAUDE.md)と
-      残る対象外(Issue #9 の設定・プラグイン)に書き分ける
-- [x] 3.2 の構成要素に `claude/CLAUDE.md` を加える
-- [x] 新しい 4.N を追加し、配置先の決定(`CLAUDE_CONFIG_DIR` の扱い)・OS 共通部に置く理由・
-      バックアップ名が衝突しないことを、決定と理由で書く
-- [x] 5.2 に、memory と CLAUDE.md の重複を許容した判断を書く
-- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
-
-**Completion criteria**:
-
-- design.md を読んだ第三者が、個人用 CLAUDE.md がどこへ何を根拠に配置されるかを、
-  setup.sh を読まずに説明できる
-- 1.4 に「Claude Code のユーザー設定は対象外」と、今回それを扱うことが同時に書かれている状態が
-  ない(記述の食い違いが残っていない)
-- 既存の 4.1〜4.7 のうち、今回の作業が変えない節の本文が変わっていない
-- 新設した節が、他の管理対象の節と同じ「何を保証し、破れをどう検知するか」の形で書かれている
+2026-09-10 に取り下げ。別セッション `.rn/20260822-herdr4mac/design.md` を編集対象にしていたが、
+他セッションの `.rn/` は読むだけで更新しない。今回は記録すべき設計が無いので設計書自体を持たない
+(プラグイン側の是正は lovaizu/ccpm#25)。design.md への変更 2 コミットは元に戻した。
 
 ### #2: 個人用 CLAUDE.md を書く
 
 **Purpose**: リポジトリに `claude/CLAUDE.md` を作り、マシンをまたいで持ち運びたい汎用の指示を
 そこに書く。
 
-**Prerequisites**: #1
+**Prerequisites**: none
 
 **Steps**:
 
 - [ ] plan gate で合意した本文(英語、役割 1 文 + 指示 9 行)をそのまま `claude/CLAUDE.md` にする
 - [ ] 本文を足さない・削らない。英語の自然さだけ整え、特定リポジトリの固有名詞が無いことを確認する
 - [ ] 実機で `~/.claude/CLAUDE.md` を置いた状態で新しいセッションを開き、内容が読まれることを
-      確認する(`CLAUDE_CONFIG_DIR` の扱いを含む)
+      確認する
 - [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -115,19 +89,15 @@ Design: .rn/20260822-herdr4mac/design.md
 
 ### #3: setup.sh に配置を追加する
 
-**Purpose**: `claude/CLAUDE.md` を `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md` へ、既存の
-`deploy` に乗せて配置する。
+**Purpose**: `claude/CLAUDE.md` を `$HOME/.claude/CLAUDE.md` へ、既存の `deploy` に乗せて配置する。
 
 **Prerequisites**: #2
 
 **Steps**:
 
-- [ ] 配置先の基点を決める処理を追加する(絶対パス以外は無視して警告 — 既存 `set_xdg_base` の
-      扱いに揃える)
 - [ ] OS 分岐の外、herdr の配置と並べて `deploy` を呼ぶ
 - [ ] Mac で実行し、初回配置・再実行(Up to date)・既存ファイルがある場合のバックアップ・
       配置先が書けない場合の失敗経路を確認する
-- [ ] 相対パスの `CLAUDE_CONFIG_DIR` を与えて、警告が出て既定へ配置されることを確認する
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -188,13 +158,8 @@ Design: .rn/20260822-herdr4mac/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-08
-- **Last completed**: #1 の成果物と self-check(design.md に §4.8 を新設し、実測に基づいて改稿。
-  コミット `137557e` → `d9936cf`)
-- **Next**: #1 のレビュー指摘対応(fix round 2)。未解決の指摘は
-  `.rn/20260906-issue-10/review-findings-1.md` にそのまま work-order として書いてある
-- **Notes**: #1 の4名レビュー(QA / 設計 / Craft / 検証)が2巡とも fail。fix round 2 を dispatch
-  した直後に中断したので**実装は1行も入っていない** — 上のファイルから再開する。次が fix
-  iteration 3巡目(上限)で、残る NG は記録してユーザーへエスカレーションする。修正後は4名の
-  再レビューを中立枠で回す。PR #12 (draft) at branch `worktree-issue-10`。
+- **Status**: not suspended
+- **Date**:
+- **Last completed**:
+- **Next**:
+- **Notes**:
