@@ -7,8 +7,19 @@ Windows (WSL + Windows Terminal) と Mac (iTerm2) の端末環境を、clone し
 | 何を | どのファイルが持つか |
 |---|---|
 | herdr のキー割り当てと UI テーマ(OS 共通) | `herdr/config.toml` |
+| Claude Code への個人用の指示(OS 共通) | `claude/CLAUDE.md` |
 | Windows Terminal の外観とキー | `windows-terminal/settings.json` |
 | iTerm2 の外観とキー | `iterm2/herdr.json` |
+
+### Claude Code への指示をどこに書くか
+
+指示は 3 層に分かれていて、`claude/CLAUDE.md` が持つのはそのうちの 1 層だけ。
+
+- **`claude/CLAUDE.md` = 基本指針。** どの手順にも、どのリポジトリにも依存しない、ユーザーと Claude の関係そのもの。誰が決めるか、何を渡すか、どう報告するか。プラグインを全部外しても意味が通る。
+- **プラグイン(rn など)= 手順。** 何をどの順でやり、何を残し、どこで止まるか。
+- **スキル = ある領域の知識。**
+
+行を足すときは消去法で決める。手順の 1 ステップならプラグインへ、ある領域の知識ならスキルへ。どちらでもなく、いつでも当てはまる構えだけが `claude/CLAUDE.md` に残る。
 
 ## 直す前に
 
@@ -16,7 +27,7 @@ Windows (WSL + Windows Terminal) と Mac (iTerm2) の端末環境を、clone し
 
 - **端末は暗い配色、その上で動く herdr の UI は明るい配色。** ちぐはぐに見えるが、ワークスペースの選択状態を判別しやすくするために明るい側を明示指定している。端末の明暗に追随させない。
 - **Mac のキーが `⌘` 側にあるのは HHKB の物理位置に合わせているから。** Win の `Alt` と Mac の `⌘` が同じ位置にあるので、同じ指の形で同じ操作になる。「Mac らしい」キーに直すと両 OS の統一が崩れる。
-- **dotfiles が正で、`./setup.sh` は管理対象を丸ごと上書きする。** 端末や herdr の UI から変えた設定は、次の実行で dotfiles の内容に戻る。残したいものは dotfiles 側に入れること。
+- **dotfiles が正で、`./setup.sh` は管理対象を丸ごと上書きする。** 端末や herdr の UI から変えた設定も、置いた先のファイルを手で直した分も、次の実行で dotfiles の内容に戻る。残したいものは dotfiles 側に入れること。
 
 ## セットアップ
 
