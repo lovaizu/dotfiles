@@ -159,7 +159,7 @@ Rn version: 0.8.0
 
 **Steps**:
 
-- [ ] クリーンな状態から `./setup.sh` を実行し、Acceptance criteria を1件ずつ確認する
+- [x] クリーンな状態から `./setup.sh` を実行し、Acceptance criteria を1件ずつ確認する
 - [ ] 結果をユーザーに提示し、`/rn:ty`(承認)または `/rn:gm`(修正)の判定を受ける
 - [ ] `/rn:gm` の場合は指摘に対応して再提示する
 
