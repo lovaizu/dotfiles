@@ -65,7 +65,7 @@ Rn version: 0.8.0
 他セッションの `.rn/` は読むだけで更新しない。今回は記録すべき設計が無いので設計書自体を持たない
 (プラグイン側の是正は lovaizu/ccpm#25)。design.md への変更 2 コミットは元に戻した。
 
-### #2: 個人用 CLAUDE.md を書く
+### #2: 個人用 CLAUDE.md を書く ✅
 
 **Purpose**: リポジトリに `claude/CLAUDE.md` を作り、マシンをまたいで持ち運びたい汎用の指示を
 そこに書く。
@@ -75,14 +75,14 @@ Rn version: 0.8.0
 **Steps**:
 
 - [x] plan gate で合意した本文(英語、役割 1 文 + 指示 9 行)をそのまま `claude/CLAUDE.md` にする
-- [ ] 手順に属する 2 行を落として 7 行にし、英語の係り受けを 3 箇所直す(意味は変えない)
-- [ ] 特定リポジトリの固有名詞が無いことを確認する
-- [ ] 実機で `~/.claude/CLAUDE.md` を置いた状態で新しいセッションを開き、内容が読まれることを
+- [x] 手順に属する 2 行を落として 7 行にし、英語の係り受けを 3 箇所直す(意味は変えない)
+- [x] 特定リポジトリの固有名詞が無いことを確認する
+- [x] 実機で `~/.claude/CLAUDE.md` を置いた状態で新しいセッションを開き、内容が読まれることを
       確認する
-- [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] self-check (OK/NG per completion criterion, record in checks/2.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
