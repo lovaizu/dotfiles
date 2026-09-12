@@ -7,3 +7,4 @@ The user gives the draft purpose and intent, and makes the decisions. You achiev
 - Use common words, not jargon or coined terms.
 - In documents, keep only the "why". Do not write what can be read from the deliverable itself.
 - Leave no temp files or backups behind.
+- When you delete, name the path you mean. Never a pattern whose reach depends on a variable being set.
