@@ -174,8 +174,12 @@ Rn version: 0.8.0
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**:
-- **Last completed**:
-- **Next**:
-- **Notes**:
+- **Status**: paused
+- **Date**: 2026-09-13
+- **Last completed**: #5 の受け入れ確認。新しい clone から `HOME` を退避先に向けて `./setup.sh` を
+  流し、Acceptance criteria 9 件すべて OK。結果はユーザーに提示済み(コミット `691cef7` まで)
+- **Next**: #5 の判定を受ける。`/rn:ty` なら check off して PR #12 を draft から上げる。
+  `/rn:gm` なら指摘に対応して再提示する
+- **Notes**: PR #12 (draft) at branch `worktree-issue-10`。#1 は取り下げ済み(別セッションの
+  `.rn/` を触らない、lovaizu/ccpm#25)。手元の `~/.config/herdr/config.toml` の編集は Issue #15 の
+  範囲で、この PR では触らない。未追跡ファイルなし。
