@@ -97,7 +97,7 @@ Rn version: 0.8.0
   加えたものになっている
 - どの行も手順の一歩ではなく、特定の領域の知識でもない(手順は rn、領域知識はスキルが持つ)
 
-### #3: setup.sh に配置を追加する
+### #3: setup.sh に配置を追加する ✅
 
 **Purpose**: `claude/CLAUDE.md` を `$HOME/.claude/CLAUDE.md` へ、既存の `deploy` に乗せて配置する。
 
@@ -105,13 +105,13 @@ Rn version: 0.8.0
 
 **Steps**:
 
-- [ ] OS 分岐の外、herdr の配置と並べて `deploy` を呼ぶ
-- [ ] Mac で実行し、初回配置・再実行(Up to date)・既存ファイルがある場合のバックアップ・
+- [x] OS 分岐の外、herdr の配置と並べて `deploy` を呼ぶ
+- [x] Mac で実行し、初回配置・再実行(Up to date)・既存ファイルがある場合のバックアップ・
       配置先が書けない場合の失敗経路を確認する
-- [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] self-check (OK/NG per completion criterion, record in checks/3.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium) — N/A(1行の追加、規模に見合わず)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
