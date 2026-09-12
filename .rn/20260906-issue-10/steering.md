@@ -127,7 +127,7 @@ Rn version: 0.8.0
 - 配置に失敗させた実行が FAILURES に載り、非ゼロで終わる
 - 既存3ファイルの配置結果が、この変更の前後で変わらない
 
-### #4: README に管理対象として書く
+### #4: README に管理対象として書く ✅
 
 **Purpose**: README の設定対象表と手順に、個人用 CLAUDE.md を意図のレベルで加える。
 
@@ -135,14 +135,14 @@ Rn version: 0.8.0
 
 **Steps**:
 
-- [ ] 「設定対象」の表に `claude/CLAUDE.md` の行を足す
-- [ ] 3 層(CLAUDE.md / プラグイン / スキル)と、行を足すときの判定を README に書く
-- [ ] 「直す前に」の丸ごと上書きの項が CLAUDE.md にも当てはまることを確認する(必要なら書き足す)
-- [ ] 指示の中身そのものを README に書いていないことを確認する
-- [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] 「設定対象」の表に `claude/CLAUDE.md` の行を足す
+- [x] 3 層(CLAUDE.md / プラグイン / スキル)と、行を足すときの判定を README に書く
+- [x] 「直す前に」の丸ごと上書きの項が CLAUDE.md にも当てはまることを確認する(必要なら書き足す)
+- [x] 指示の中身そのものを README に書いていないことを確認する
+- [x] self-check (OK/NG per completion criterion, record in checks/4.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium) — N/A(QA と Craft が事実確認を兼ねた)
 
 **Completion criteria**:
 
