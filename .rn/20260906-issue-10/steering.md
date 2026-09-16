@@ -163,8 +163,8 @@ Rn version: 0.8.0
 **Steps**:
 
 - [x] クリーンな状態から `./setup.sh` を実行し、Acceptance criteria を1件ずつ確認する
-- [ ] 結果をユーザーに提示し、`/rn:ty`(承認)または `/rn:gm`(修正)の判定を受ける
-- [x] `/rn:gm` の場合は指摘に対応して再提示する
+- [x] 結果をユーザーに提示し、`/rn:ty`(承認)または `/rn:gm`(修正)の判定を受ける
+- [ ] `/rn:gm` の場合は指摘に対応して再提示する
 
 **Completion criteria**:
 
@@ -177,8 +177,8 @@ Rn version: 0.8.0
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-16
+- **Last completed**: #5 の判定受領(`/rn:gm`)と、PR #12 の未解決レビュー 7 件のうち 2 件の対応
+- **Next**: #5 の 3 つ目のステップ。残り 5 件に対応し、終わったら結果を再提示して判定を受ける
+- **Notes**: PR #12 (draft) at branch `worktree-issue-10`。README を書き直した後に付いた未解決スレッド 7 件を `/rn:gm`(引数なし)の PR フィードバックループで処理中。対応済み 2 件 = リード文の重複(`aa313f8`)/ 実行時の警告の説明(`092f66d`)。残り 5 件の first comment databaseId は 4023854162(WSL が説明なしで出る・前提環境を先に書くか)/ 4023861554(Homebrew の無い Mac・失敗時を全部書くのか)/ 4023877064(配色の項が初見で伝わらない)/ 4023886773(「直す前に」が誰向けか分からない)/ 4023891603(「Claude Code への指示をどこに書くか」が何の話か分からない)。再開時は `/rn:gm` を引数なしで実行すればキューが再収集される(4023854162 は担当を起動したが編集前に停止させたので未着手)。`gh` は `GH_TOKEN` で通っている(`~/.config/gh/hosts.yml` は `{}`)ので、再開時に `gh auth status` を先に確認すること。未追跡ファイルなし。
