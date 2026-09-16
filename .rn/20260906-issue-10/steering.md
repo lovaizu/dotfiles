@@ -174,14 +174,8 @@ Rn version: 0.8.0
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-15
-- **Last completed**: #5 の 1 つ目のステップ。新しい clone に隔離した `HOME` を向けて `./setup.sh` を
-  4 回流し、Acceptance criteria 9 件すべて OK。根拠は `checks/5.md`(コミット `8f661ca`)。
-  結果はユーザーに提示済みで、判定は未受領
-- **Next**: #5 の判定を受ける。`/rn:ty` なら 2 つ目のステップを check off して PR #12 を draft から
-  上げる。`/rn:gm` なら指摘に対応して再提示する
-- **Notes**: PR #12 (draft) at branch `worktree-issue-10`。#1 は取り下げ済み(別セッションの `.rn/` を
-  触らない、lovaizu/ccpm#25)。このマシンの `~/.claude/CLAUDE.md` は 8 行目を足した後に `./setup.sh`
-  を流しておらず 7 行のまま — 成果物の欠陥ではなく、マージ後の実行で揃う。手元の
-  `~/.config/herdr/config.toml` の編集は Issue #15 の範囲でこの PR では触らない。未追跡ファイルなし。
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
