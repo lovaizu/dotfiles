@@ -1,6 +1,6 @@
 # dotfiles
 
-Windows (WSL) と Mac で同じ作業環境を使うためのリポジトリ。clone して `./setup.sh` を実行すると、どちらの OS でも端末の配色・フォント・キー操作がそろう。
+Windows (WSL) と Mac で同じ作業環境を使うためのリポジトリ。clone して `./setup.sh` を実行するだけで、どちらの OS でも同じ設定になる。
 
 ## 使い方
 
