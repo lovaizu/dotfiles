@@ -1,6 +1,6 @@
 # dotfiles
 
-Windows (WSL) と Mac で同じ作業環境を使うためのリポジトリ。clone して `./setup.sh` を実行するだけで、どちらの OS でも同じ設定になる。
+Windows (WSL) と Mac で同じ作業環境を使うためのリポジトリ。
 
 ## 使い方
 
