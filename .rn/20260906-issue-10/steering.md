@@ -177,17 +177,8 @@ Rn version: 0.8.0
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-16
-- **Next**: #5 の判定を受ける。`/rn:ty` なら 2 つ目のステップを check off して PR #12 を draft から
-  上げる。`/rn:gm` なら指摘に対応して再提示する
-- **Last completed**: #5 の 1 つ目と 3 つ目のステップ。PR #12 のレビュー 2 件(`claude-md-agreed.md`
-  の要否 / README の詳細過多)に対応し、結果を再提示した。判定は未受領
-- **Notes**: PR #12 (draft) at branch `worktree-issue-10`。レビュー 2 スレッドは返信済みで、解決は
-  レビュアー側の操作待ち。rn 側の欠陥(`/rn:gm` が PR を指す引数でも返信ループに入らない)は
-  lovaizu/ccpm#26 に預けたのでこの PR では触らない。前回 Notes にあった「このマシンの
-  `~/.claude/CLAUDE.md` が 7 行のまま」は `./setup.sh` を実行して解消済み(8 行)。手元の
-  `~/.config/herdr/config.toml` はその実行でリポジトリの値に戻った — 独自の値に戻すかは
-  Issue #15 の範囲で、退避は `~/.local/state/dotfiles-backups/config.toml.20260916155241.bak`。
-  セッション途中で `gh` の認証が切れた(`~/.config/gh/hosts.yml` が `{}`)。いまは `GH_TOKEN` で
-  通っているが、再開時に `gh auth status` を先に確認すること。未追跡ファイルなし。
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
