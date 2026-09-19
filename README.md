@@ -20,7 +20,7 @@ Windows と Mac で同じ作業環境を使うためのリポジトリ。前提�
 入手先は両 OS 共通で [配布元のリリースページ](https://github.com/yuru7/HackGen/releases)。入れるフォントの名前は端末の設定ファイルにある。
 
 - **Windows: 必ず手動。** WSL から Windows へはインストールできない。
-- **Mac: Homebrew があれば `./setup.sh` が入れる。** 無い、または失敗したときだけ手動。
+- **Mac: `./setup.sh` が入れる。**
 
 ## 直す前に
 
