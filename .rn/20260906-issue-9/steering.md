@@ -263,24 +263,8 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-06
-- **Last completed**: none — plan gate (`/rn:ty`)承認済み、task #1 は設計決定・self-check まで完了、
-  4専門家レビューを初回実施し4件の Valid な指摘を修正エージェントに依頼中(未チェックオフ)
-- **Next**: 修正コミット `af27b08`(push 済み)を前提に、Craft / Verification / Design の3軸を
-  再実施(QA は初回 PASS のままで良いか再判断)→ 全 OK なら task #1 をチェックオフし `checks/1.md`
-  を完成させてコミット → design sign-off (#2)へ進む
-- **Notes**:
-  - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
-  - **修正は完了・push 済み** — コミット `af27b08`(4件修正)は本セッション中断の直前(コミット
-    `3debea8`)より前に、既にリモートへ着地している(`git log` で確認済み)。再開時に再実行の必要
-    は無い。次に必要なのは3軸(Craft/Verification/Design)の**再レビュー**のみ
-  - 修正対象の4件(Valid): (1) §4.1「現物11キー」→ 12キーの誤り、(2) §4.2 が herdr/iTerm2 の
-    バックアップ先も変わることを明示していない、(3) §4.2「実装上の含意」が `backup_path_for()` が
-    `backup_file()` 内からも(`$src` の無い状態で)呼ばれる事実を見落としている、(4) §4.3 が
-    「herdr 連携を両マシンで使う」という前提を steering.md の Assumptions に誤って帰属させている
-  - 見送りにした指摘(Invalid、完了基準を動かさない): README の手順を明示的に紐づける soft gap、
-    太字ラベルの体裁が姉妹 design.md と揃っていない件
-  - `.rn/20260906-issue-9/checks/1.md` は未コミットのまま(実装/修正エージェントの self-check 欄
-    のみ記入済み)。QA/Expert Review 欄はレビュー確定後にコーディネータが埋めてコミットする方針
-    (task-verify-workflow.md の規約通り)
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
