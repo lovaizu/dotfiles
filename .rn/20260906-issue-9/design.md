@@ -77,10 +77,20 @@ herdr / iTerm2 / WT では無くなったはずの「マシンごとに揃わな
   だけで、repo の宣言からエントリを削除したときに対応する `claude plugin marketplace remove` /
   `claude plugin uninstall` は作らない。理由: (1) この dotfiles の利用状況(1人用、年数回の対話的
   実行)では、宣言からプラグインを削除する操作自体が追加より頻度が低く、発生時に手動で
-  `claude plugin uninstall` すれば足りる。(2) 残存したインストール済みプラグインは、正しくない
-  ファイルが配置され続ける・古い設定が動き続けるといった実害を持たない — 単に使われなくなった
-  追加物が残るだけで、Acceptance criteria が問題にしている「repo の意図と機械の状態がずれる」害とは
-  性質が異なる。(3) この非対称を対象に含めるなら、追加側と同じ3分類(入れられない/すでに入っている/
+  `claude plugin uninstall` すれば足りる。(2) 残存したインストール済みプラグインが持たない実害は
+  「正しくないファイルが配置され続ける」ことに限られる — ここまでは無害。しかし機能面は正直に
+  書く必要がある: `enabledPlugins` の宣言を repo から削除しても、Claude Code はそのプラグインを
+  `defaultEnabled` の値にフォールバックさせるだけで、この値は**既定で `true`**
+  (`settings-reference.md` の `enabledPlugins`: "A plugin with no entry at any scope falls back
+  to its `defaultEnabled` value"。`plugins-reference.md` の `defaultEnabled`: "Defaults to
+  `true`"。このマシンに入っている `rn` プラグインの manifest
+  (`~/.claude/plugins/cache/ccpm/rn/0.8.0/.claude-plugin/plugin.json`)はこの既定を上書きしていない
+  ことを確認済み)。つまり**宣言を消すだけではプラグインが無効化される保証はなく、機能としては
+  有効なまま残りうる** — 明確に無効化したいなら `claude plugin disable <plugin>@<marketplace>` を
+  利用者が別途手動で実行する必要がある。この非対称(宣言は消せても機能は止まらないかもしれない)が
+  あっても対象外にできるのは、この dotfiles の目的が「そのマシンと同じ設定で動く」ことであり、
+  明示的な無効化はユーザーが能動的に行う操作であって `setup.sh` の役目(設定を配り、それで動く
+  状態にする)の外にあるため。(3) この非対称を対象に含めるなら、追加側と同じ3分類(入れられない/すでに入っている/
   失敗)をアンインストール側にも作る必要があり、複雑さに見合わない(steering.md Rules「レビューは
   目的に錨を下ろす」)。
 
@@ -113,11 +123,22 @@ herdr / iTerm2 / WT では無くなったはずの「マシンごとに揃わな
   は不要で、`cp` が新規作成先に元のモードを写すことは steering.md Assumptions がすでに実測済み。
 - マシンは mac 1台と Windows 1台のみ。丸ごと上書きが成立するのはこの前提の下だけで、
   「両マシンが同じ Claude Code 設定を志向する」という前提込みで初めて成り立つ。
-- **`permissions.additionalDirectories` での `~` 展開は未検証の仮定**。公式ドキュメントが示す
-  `additionalDirectories` の設定例は相対パス `["../docs/"]` のみで `~` の使用例が無く、他の権限
-  ルール(`Read(~/Documents/*.pdf)`)や `sandbox.filesystem.allowWrite`(`~/.kube`)に `~` 展開の
-  実例があっても、`additionalDirectories` 自体で同じ展開が効くかは公式ドキュメントから確認できない
-  (§4.1)。task #3/#4 が隔離環境での実測で確定させる対象として残す。
+- **`permissions.additionalDirectories` での `~` 展開は未検証の仮定**。公式ドキュメント
+  (`settings-reference.md`)が示す `additionalDirectories` の設定例は相対パス `["../docs/"]` のみで
+  `~` の使用例が無く、他の権限ルール(`Read(~/Documents/*.pdf)`)や
+  `sandbox.filesystem.allowWrite`(`~/.kube`)に `~` 展開の実例があっても、`additionalDirectories`
+  自体で同じ展開が効くかは公式ドキュメントから確認できない(§4.1)。「ドキュメントを読んだ」ことと
+  「このキーで `~` 展開が実機で効くこと」は別で、後者は未実測。task #3/#4 が隔離環境で
+  `additionalDirectories: ["~/.claude/plugins/cache"]` を設定し、権限確認プロンプトが出ないことを
+  実測して確定させる。もし `~` 展開が効かないと分かった場合は絶対パスに置き換える案があるが、それは
+  Windows/Mac で値が異なるマシン固有値になり repo が持てなくなるため、その場合はこのキー自体を
+  この設計から外す判断になる。
+- **`herdr-agent-state.sh` 不在時に Claude Code 自体が壊れないかは未検証**。根拠は steering.md の
+  Acceptance criteria「dotfiles が原本を持たない設定を壊さない…それが無いマシンでも Claude Code が
+  壊れた状態にならず」という文言 — `setup.sh` 側は exit 0 で終わり `warn` を出すことしか保証できず、
+  `hooks.SessionStart` の呼び出し先が無い状態で Claude Code 自身のセッションが壊れないかどうかは
+  確認していない。steering.md task #4 の「隔離した `$HOME` で実測する」ステップ(「他のプログラムが
+  所有する設定が無い環境」を実測対象に挙げている)がこれを確定させる(§4.3)。
 
 ### 2.2 What binds the solution?
 
@@ -221,7 +242,7 @@ Claude Code 自身が書き戻した値は次の run で repo の値に戻る。
 | `enabledPlugins` / `extraKnownMarketplaces` | repo が持つ(宣言として) | 実体化は §4.4 で別扱い |
 | `outputStyle` / `theme` | repo が持つ(値のみ) | 組み込み名の指定であり、対応する定義ファイルは無い(2.1)。定義ファイルを持つカスタム値は対象外(Issue #10) |
 | `effortLevel` / `tui` / `skipDangerousModePermissionPrompt` / `remoteControlAtStartup` / `agentPushNotifEnabled` | repo が持つ | Acceptance criteria に個別の名指しは無いが、秘密性・マシン固有性が無く、「そのマシンと同じ設定で動く」を構成する値。丸ごと上書きである以上、個別に「対象外」と決めない限りは repo が持つ側に入る(2.2) |
-| `permissions.additionalDirectories` | repo が持つ | worktree でのプラグイン開発時、プラグインが自身の参照ファイル(`references/` など)を読もうとするたびに同じ許可確認が出る構造的な摩擦がある。この許可が無いと、§4.4 が実体化したプラグインの参照ファイル読み込みで毎回確認プロンプトが出て、Acceptance criteria の「repo が宣言したプラグインが有効なものとして使える状態」を体験として損なう — この許可は §4.4 の実体化と対になって初めて意味を持つ。値は `~/.claude/plugins/cache` に固定して repo に持たせ、`~/.claude/plugins` 全体には広げない(marketplace 登録情報やインストール状態の json まで許可する具体的な必要がまだ無いため、ユーザーとの合意によりこの範囲に確定)。**ただし `~` 展開自体は未検証**: 公式ドキュメント(`settings-reference.md`)が示す `additionalDirectories` の設定例は相対パス `["../docs/"]` のみで、`~` を使った例は無い。`~` 展開の実例があるのは他の権限ルール(`Read(~/Documents/*.pdf)` など)や `sandbox.filesystem.allowWrite`(`~/.kube` の例)であり、`additionalDirectories` というキー自体で同じ展開が効くかは公式ドキュメントからは確認できていない — 「ドキュメントを読んだ」ことと「このキーで `~` 展開が実機で効くこと」は別で、後者は未実測。この点は task #3/#4 が隔離環境で `additionalDirectories: ["~/.claude/plugins/cache"]` を設定し、権限確認プロンプトが出ないことを実測して確定させる。もし `~` 展開が効かないと分かった場合は、絶対パスに置き換える案があるが、それは Windows/Mac で値が異なるマシン固有値になり repo が持てなくなるため、その場合はこのキー自体をこの設計から外す判断になる |
+| `permissions.additionalDirectories` | repo が持つ | worktree でのプラグイン開発時、プラグインが自身の参照ファイル(`references/` など)を読もうとするたびに同じ許可確認が出る構造的な摩擦がある。この許可が無いと、§4.4 が実体化したプラグインの参照ファイル読み込みで毎回確認プロンプトが出て、Acceptance criteria の「repo が宣言したプラグインが有効なものとして使える状態」を体験として損なう — この許可は §4.4 の実体化と対になって初めて意味を持つ。値は `~/.claude/plugins/cache` に固定して repo に持たせ、`~/.claude/plugins` 全体には広げない(marketplace 登録情報やインストール状態の json まで許可する具体的な必要がまだ無いため、ユーザーとの合意によりこの範囲に確定)。ただし `~` 展開自体は未検証(§2.1) |
 
 **マシン側に委ねる設定**: 現在のキーには該当なし。2台がまったく同じ設定を志向するという前提
 (2.1)の下でのみ丸ごと上書きが成立しており、意図的にマシンごとに変えたい値は今は存在しない。
@@ -342,14 +363,9 @@ herdr4mac design.md §4.6 が「アプリ自身も書くファイル」(herdr �
   未確認)。iTerm2 の「herdr プロファイルが既定になっていない」警告(herdr4mac design.md §4.5)と
   同じ構図 — 配置は正しく終わっているのに、外部の前提が満たされていないと効果が出ない設定がある
   ときに warn で言う、という既存の severity 語彙をそのまま再利用する。
-  **本設計はここで、フックの呼び出し失敗が Claude Code のセッション自体を壊さない(起動できる・
-  使える)ことを前提にしているが、これは実機で未検証の仮定である**。setup.sh 側が exit 0 で終わり
-  warn を出すことは保証できても、`hooks.SessionStart` の呼び出し先が無い状態で Claude Code 自身が
-  壊れないかどうかは別の話で、この設計はそれを確認していない。steering.md の Acceptance criteria
-  「dotfiles が原本を持たない設定を壊さない…それが無いマシンでも Claude Code が壊れた状態に
-  ならず、必要なものがあるなら読み手にそれが分かる」の「壊れた状態にならず」の部分が、まさにこの
-  未検証点そのものである。steering.md task #4 の「隔離した `$HOME` で実測する」ステップ(「他の
-  プログラムが所有する設定が無い環境」を実測対象に挙げている)が、この未検証点を確かめる場になる。
+  **本設計はここで、フックの呼び出し失敗が Claude Code のセッション自体を壊さないことを前提に
+  しているが、これは2.1で名指しした未検証の仮定である**(steering.md Acceptance criteria「壊れた
+  状態にならず」に対応し、steering.md task #4 の隔離環境での実測が確定させる)。
 
 **この判断の前提となる未検証の点**: 両マシンとも herdr の Claude Code 連携を使う、というのは
 本設計が置く前提であり、もしこの前提が崩れたら(将来一方の機械で herdr 連携を
@@ -374,8 +390,8 @@ repo が持たない — **マシン側に委ねる**(コマンドを再実行�
 **ファイル配置とは別の機構にする理由**: `deploy()` は「ファイルを丸ごと置き換え、cmp -s で idempotent
 性を測る」ことに特化しており、コマンドの成功/失敗/冪等性はこの型に合わない。無理に `deploy()` を
 経由させると、「配置されたかどうか」を判定する `cmp -s` に相当するものが無いコマンド実行を、
-ファイル配置の関数に混ぜることになり、§4.6 が置いた「`deploy()` は常に0を返す」という契約の意味が
-薄れる。そこで**別の小さな機構**として追加するが、**severity の語彙は増やさない** — 既存の
+ファイル配置の関数に混ぜることになり、herdr4mac design.md §4.6 が置いた「`deploy()` は常に0を返す」
+という契約の意味が薄れる。そこで**別の小さな機構**として追加するが、**severity の語彙は増やさない** — 既存の
 `record_failure` / `warn` / 素の `echo` をそのまま使う。
 
 **severity の割り当て(3つの環境それぞれで run がどう終わるか)**:
