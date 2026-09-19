@@ -154,7 +154,7 @@ Rn version: 0.8.0
 - README に指示の本文・具体的な文言が引き写されていない
 - 既存の記述と重複した説明が増えていない
 
-### #5: Evaluation sign-off
+### #5: Evaluation sign-off ✅
 
 **Purpose**: Acceptance criteria を通しで確認し、結果をユーザーに提示して承認を得る。
 
