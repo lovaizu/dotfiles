@@ -177,8 +177,8 @@ Rn version: 0.8.0
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-19
-- **Last completed**: #4 README covers the personal CLAUDE.md
-- **Next**: #5 present the acceptance-criteria table (`checks/5.md` 2026-09-19 再確認、9件OK)to the user again and get the `/rn:ty`/`/rn:gm` verdict — it was presented this session but the verdict was never given
-- **Notes**: PR #12 review round's 7 threads are all addressed (`a732e11`/`dfae91c`/`3ae08bc`/`dbeb9f1`/`17889c3`); nothing left to fix unless the verdict raises something new
+- **Status**: not suspended
+- **Date**: -
+- **Last completed**: -
+- **Next**: -
+- **Notes**: -
