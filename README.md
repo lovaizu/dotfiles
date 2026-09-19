@@ -1,6 +1,9 @@
 # dotfiles
 
-Windows (WSL) と Mac で同じ作業環境を使うためのリポジトリ。
+Windows と Mac で同じ作業環境を使うためのリポジトリ。前提にしている環境はこの 2 つ。
+
+- **Windows: WSL + Windows Terminal。** 作業するのは WSL の中で、端末は Windows 側のアプリ。
+- **Mac: iTerm2。**
 
 ## 使い方
 
