@@ -102,13 +102,12 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
       いる環境・入れようとして失敗した環境で run がどう終わるか
 - [x] design-template.md の5節すべてに decision + reasoning で答える
 - [x] self-check(OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent) — 初回実施済み(PASS、軽微2件)。指摘の一部は Craft/Design/
-      Verification と重複しており修正中。修正後の再確認は不要と判断済みだが再開時に見直す
-- [ ] Craft expert review (subagent, per the task's medium) — 初回実施済み(FAIL、2件)。修正中、
-      修正後に再実施が必要
-- [ ] Verification expert review (subagent, per the task's medium) — 初回実施済み(FAIL、2件)。
-      修正中、修正後に再実施が必要
-- [ ] Design expert review (subagent) — 初回実施済み(PASS、要修正1件)。修正中、修正後に再実施が必要
+- [x] QA expert review (subagent) — 初回PASSを据え置き(以降の修正は内容の正確性の訂正のみで、
+      検証手法自体は変えていないため再実施不要と判断)
+- [x] Craft expert review (subagent, per the task's medium) — 4ラウンドの修正後、最終確認でOK
+- [x] Verification expert review (subagent, per the task's medium) — 4ラウンドの修正後、
+      最終確認でOK
+- [x] Design expert review (subagent) — 4ラウンドの修正後、最終確認でOK
 
 **Completion criteria**:
 
