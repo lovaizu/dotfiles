@@ -1,41 +1,41 @@
 # dotfiles
 
-Windows と Mac で同じ作業環境を使うためのリポジトリ。前提にしている環境はこの 2 つ。
+A repository for using the same working environment on Windows and Mac. It assumes these two environments.
 
-- **Windows: WSL + Windows Terminal。** 作業するのは WSL の中で、端末は Windows 側のアプリ。
-- **Mac: iTerm2。**
+- **Windows: WSL + Windows Terminal.** Work happens inside WSL; the terminal is a Windows-side app.
+- **Mac: iTerm2.**
 
-## 使い方
+## Usage
 
-両 OS とも、これだけ。
+On both OSes, this is all you need.
 
 ```sh
 ./setup.sh
 ```
 
-何をどこへ置いたか、退避を取ったか、何に失敗したかは `./setup.sh` が実行時に表示する。
+`./setup.sh` prints, as it runs, what it placed where, what it backed up, and what failed.
 
-### フォント
+### Fonts
 
-入手先は両 OS 共通で [配布元のリリースページ](https://github.com/yuru7/HackGen/releases)。入れるフォントの名前は端末の設定ファイルにある。
+The source is the same on both OSes: the [distributor's release page](https://github.com/yuru7/HackGen/releases). The name of the font to install is in the terminal's config file.
 
-- **Windows: 必ず手動。** WSL から Windows へはインストールできない。
-- **Mac: `./setup.sh` が入れる。**
+- **Windows: always manual.** You can't install from WSL to Windows.
+- **Mac: `./setup.sh` installs it.**
 
-## 設定を直す前に
+## Before you fix a setting
 
-設定ファイルを素直に読むと直したくなるが、意図してそうしている点が3つある。
+Reading the config files straightforwardly makes you want to fix them, but there are 3 points that are intentional as they are.
 
-- **端末は暗い配色、その上で動く herdr の UI は明るい配色。** ちぐはぐに見えるが、ワークスペースの選択状態を判別しやすくするために明るい側を明示指定している。端末の明暗に追随させない。
-- **端末から herdr を呼ぶキーが Win は `Ctrl+Alt`、Mac は `Ctrl+⌘` なのは、キーボード(HHKB)では同じ物理キーだから。** スペースの隣のこのキーは Win で `Alt`、Mac で `⌘` として働く。Mac 側を「Mac らしい」キーに直すと、同じ指の形で同じ操作にならなくなる。
-- **dotfiles が正で、`./setup.sh` は管理対象を丸ごと上書きする。** 端末や herdr の UI から変えた設定も、置いた先のファイルを手で直した分も、次の実行で dotfiles の内容に戻る。残したいものは dotfiles 側に入れること。
+- **The terminal uses a dark color scheme, while the herdr UI running on top of it uses a light one.** This looks inconsistent, but the light side is explicitly specified to make it easier to tell which workspace is selected. It's not meant to follow the terminal's light/dark setting.
+- **The key that calls herdr from the terminal is `Ctrl+Alt` on Windows and `Ctrl+⌘` on Mac, because on the keyboard (HHKB) it's the same physical key.** This key next to the space bar works as `Alt` on Windows and `⌘` on Mac. If you "fix" the Mac side to a more "Mac-like" key, the same finger shape stops producing the same action.
+- **dotfiles is the source of truth, and `./setup.sh` overwrites everything it manages, wholesale.** Any settings changed from the terminal's or herdr's UI, and any manual edits to the files they're placed in, revert to what's in dotfiles on the next run. Put anything you want to keep into dotfiles itself.
 
-## Claude Code に指示を足す前に
+## Before you add an instruction to Claude Code
 
-指示は 3 層に分かれていて、`claude/CLAUDE.md` が持つのはそのうちの 1 層だけ。
+Instructions are split into 3 layers, and `claude/CLAUDE.md` holds only one of them.
 
-- **`claude/CLAUDE.md` = 基本指針。** どの手順にも、どのリポジトリにも依存しない、Claude との関係そのもの。プラグインを全部外しても意味が通る。
-- **プラグイン(rn など)= 手順。** 何をどの順でやり、何を残し、どこで止まるか。
-- **スキル = ある領域の知識。** その領域で何が定石で、何を避けるか。
+- **`claude/CLAUDE.md` = basic policy.** It doesn't depend on any procedure or any repository — it's the relationship with Claude itself. It should still make sense even with every plugin removed.
+- **Plugins (rn, etc.) = procedures.** What to do, in what order, what to keep, and where to stop.
+- **Skills = knowledge of a domain.** What's the standard approach in that domain, and what to avoid.
 
-行を足すときは消去法で決める。手順の 1 ステップならプラグインへ、ある領域の知識ならスキルへ。どちらでもなければ `claude/CLAUDE.md` に残る。
+When adding a line, decide by elimination: if it's one step of a procedure, it goes to a plugin; if it's knowledge of a domain, it goes to a skill. If it's neither, it stays in `claude/CLAUDE.md`.
