@@ -72,6 +72,17 @@ herdr / iTerm2 / WT では無くなったはずの「マシンごとに揃わな
   §2.1 に留め、対応を作り込まない。
 - **他のプログラムが所有するファイルの中身**。`~/.claude/hooks/herdr-agent-state.sh` は herdr が
   所有するので、その中身・更新方法には触れない(§4.3)。
+- **宣言から消えたプラグイン/marketplace のアンインストール・登録解除**。§4.4 が決めるのは
+  `enabledPlugins` / `extraKnownMarketplaces` への**追加**方向(marketplace add → plugin install)
+  だけで、repo の宣言からエントリを削除したときに対応する `claude plugin marketplace remove` /
+  `claude plugin uninstall` は作らない。理由: (1) この dotfiles の利用状況(1人用、年数回の対話的
+  実行)では、宣言からプラグインを削除する操作自体が追加より頻度が低く、発生時に手動で
+  `claude plugin uninstall` すれば足りる。(2) 残存したインストール済みプラグインは、正しくない
+  ファイルが配置され続ける・古い設定が動き続けるといった実害を持たない — 単に使われなくなった
+  追加物が残るだけで、Acceptance criteria が問題にしている「repo の意図と機械の状態がずれる」害とは
+  性質が異なる。(3) この非対称を対象に含めるなら、追加側と同じ3分類(入れられない/すでに入っている/
+  失敗)をアンインストール側にも作る必要があり、複雑さに見合わない(steering.md Rules「レビューは
+  目的に錨を下ろす」)。
 
 ## 2. Assumptions & Constraints
 
@@ -102,6 +113,11 @@ herdr / iTerm2 / WT では無くなったはずの「マシンごとに揃わな
   は不要で、`cp` が新規作成先に元のモードを写すことは steering.md Assumptions がすでに実測済み。
 - マシンは mac 1台と Windows 1台のみ。丸ごと上書きが成立するのはこの前提の下だけで、
   「両マシンが同じ Claude Code 設定を志向する」という前提込みで初めて成り立つ。
+- **`permissions.additionalDirectories` での `~` 展開は未検証の仮定**。公式ドキュメントが示す
+  `additionalDirectories` の設定例は相対パス `["../docs/"]` のみで `~` の使用例が無く、他の権限
+  ルール(`Read(~/Documents/*.pdf)`)や `sandbox.filesystem.allowWrite`(`~/.kube`)に `~` 展開の
+  実例があっても、`additionalDirectories` 自体で同じ展開が効くかは公式ドキュメントから確認できない
+  (§4.1)。task #3/#4 が隔離環境での実測で確定させる対象として残す。
 
 ### 2.2 What binds the solution?
 
@@ -205,7 +221,7 @@ Claude Code 自身が書き戻した値は次の run で repo の値に戻る。
 | `enabledPlugins` / `extraKnownMarketplaces` | repo が持つ(宣言として) | 実体化は §4.4 で別扱い |
 | `outputStyle` / `theme` | repo が持つ(値のみ) | 組み込み名の指定であり、対応する定義ファイルは無い(2.1)。定義ファイルを持つカスタム値は対象外(Issue #10) |
 | `effortLevel` / `tui` / `skipDangerousModePermissionPrompt` / `remoteControlAtStartup` / `agentPushNotifEnabled` | repo が持つ | Acceptance criteria に個別の名指しは無いが、秘密性・マシン固有性が無く、「そのマシンと同じ設定で動く」を構成する値。丸ごと上書きである以上、個別に「対象外」と決めない限りは repo が持つ側に入る(2.2) |
-| `permissions.additionalDirectories` | repo が持つ | worktree でのプラグイン開発時、プラグインが自身の参照ファイル(`references/` など)を読もうとするたびに同じ許可確認が出る構造的な摩擦がある。`~` を使った相対パス(`~/.claude/plugins/cache`)で固定して repo に持たせることで、両OSで同じ意味を持ったまま摩擦を解消できる(Claude Code 公式ドキュメント https://code.claude.com/docs/en/permissions.md の "Working directories" 節に `~/common-configs` という `~` 使用例があり、`additionalDirectories` で `~` 展開が効くことを確認済み)。値は `~/.claude/plugins/cache` のみに絞る(`~/.claude/plugins` 全体には広げない — marketplace 登録情報やインストール状態の json まで許可する具体的な必要がまだ無いため、ユーザーとの合意によりこの範囲に確定) |
+| `permissions.additionalDirectories` | repo が持つ | worktree でのプラグイン開発時、プラグインが自身の参照ファイル(`references/` など)を読もうとするたびに同じ許可確認が出る構造的な摩擦がある。この許可が無いと、§4.4 が実体化したプラグインの参照ファイル読み込みで毎回確認プロンプトが出て、Acceptance criteria の「repo が宣言したプラグインが有効なものとして使える状態」を体験として損なう — この許可は §4.4 の実体化と対になって初めて意味を持つ。値は `~/.claude/plugins/cache` に固定して repo に持たせ、`~/.claude/plugins` 全体には広げない(marketplace 登録情報やインストール状態の json まで許可する具体的な必要がまだ無いため、ユーザーとの合意によりこの範囲に確定)。**ただし `~` 展開自体は未検証**: 公式ドキュメント(`settings-reference.md`)が示す `additionalDirectories` の設定例は相対パス `["../docs/"]` のみで、`~` を使った例は無い。`~` 展開の実例があるのは他の権限ルール(`Read(~/Documents/*.pdf)` など)や `sandbox.filesystem.allowWrite`(`~/.kube` の例)であり、`additionalDirectories` というキー自体で同じ展開が効くかは公式ドキュメントからは確認できていない — 「ドキュメントを読んだ」ことと「このキーで `~` 展開が実機で効くこと」は別で、後者は未実測。この点は task #3/#4 が隔離環境で `additionalDirectories: ["~/.claude/plugins/cache"]` を設定し、権限確認プロンプトが出ないことを実測して確定させる。もし `~` 展開が効かないと分かった場合は、絶対パスに置き換える案があるが、それは Windows/Mac で値が異なるマシン固有値になり repo が持てなくなるため、その場合はこのキー自体をこの設計から外す判断になる |
 
 **マシン側に委ねる設定**: 現在のキーには該当なし。2台がまったく同じ設定を志向するという前提
 (2.1)の下でのみ丸ごと上書きが成立しており、意図的にマシンごとに変えたい値は今は存在しない。
@@ -326,6 +342,14 @@ herdr4mac design.md §4.6 が「アプリ自身も書くファイル」(herdr �
   未確認)。iTerm2 の「herdr プロファイルが既定になっていない」警告(herdr4mac design.md §4.5)と
   同じ構図 — 配置は正しく終わっているのに、外部の前提が満たされていないと効果が出ない設定がある
   ときに warn で言う、という既存の severity 語彙をそのまま再利用する。
+  **本設計はここで、フックの呼び出し失敗が Claude Code のセッション自体を壊さない(起動できる・
+  使える)ことを前提にしているが、これは実機で未検証の仮定である**。setup.sh 側が exit 0 で終わり
+  warn を出すことは保証できても、`hooks.SessionStart` の呼び出し先が無い状態で Claude Code 自身が
+  壊れないかどうかは別の話で、この設計はそれを確認していない。steering.md の Acceptance criteria
+  「dotfiles が原本を持たない設定を壊さない…それが無いマシンでも Claude Code が壊れた状態に
+  ならず、必要なものがあるなら読み手にそれが分かる」の「壊れた状態にならず」の部分が、まさにこの
+  未検証点そのものである。steering.md task #4 の「隔離した `$HOME` で実測する」ステップ(「他の
+  プログラムが所有する設定が無い環境」を実測対象に挙げている)が、この未検証点を確かめる場になる。
 
 **この判断の前提となる未検証の点**: 両マシンとも herdr の Claude Code 連携を使う、というのは
 本設計が置く前提であり、もしこの前提が崩れたら(将来一方の機械で herdr 連携を
@@ -404,6 +428,8 @@ task #5 の「隔離した `$HOME` で実測する」がこれを確定させる
 (a) `claude` / `jq` が無い状態、(b) marketplace・plugin ともに未導入の状態、(c) すでに導入済みの
 状態、(d) 何らかの理由で `add` / `install` が失敗する状態(例: ネットワーク遮断)。それぞれが
 上記1〜3のどの経路をたどり、run がどの exit code で終わるかを確認する。
+
+**宣言からの削除(アンインストール・marketplace 登録解除)は対象外** — 理由は1.4。
 
 ## 5. Alternatives considered
 
