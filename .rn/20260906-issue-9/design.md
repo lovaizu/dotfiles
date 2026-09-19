@@ -29,8 +29,13 @@ herdr / iTerm2 / WT では無くなったはずの「マシンごとに揃わな
 
 ### 1.3 What does reaching it require?
 
-- `~/.claude/settings.json` の各キーを「repo が持つ/マシン側に委ねる/他のプログラムが所有する/
-  秘密」に仕分け、repo が持つと決めた内容だけを repo の原本にする(§4.1)。
+- `~/.claude/settings.json` の各キーを「repo が持つ/マシン側に委ねる/秘密」に仕分け、repo が
+  持つと決めた内容だけを repo の原本にする(§4.1)。これとは別に、`settings.json` が**参照する
+  ファイル**については「他のプログラムが所有するか」を仕分けの基準にする — `hooks.SessionStart`
+  が指す `~/.claude/hooks/herdr-agent-state.sh` はこの基準で管理対象から外す(§4.3)。「repo が
+  持つ/マシン側に委ねる/他のプログラムが所有する/秘密」という4区分自体は変えないが、キーの仕分け
+  (§4.1)と参照先ファイルの除外判断(§4.3)は別の対象に対する別の仕分けであり、「他のプログラムが
+  所有する」は settings.json のキーには一度も現れない(現物のキーにそのような値は無い)。
 - その原本を、既存の `deploy()`(丸ごと上書き)にそのまま乗せる — Claude Code 用に新しい配置方式を
   作らない(Rules「配置方式を増やさない」)。`statusLine` が指す `scripts/statusline.sh` も同じ扱いの
   管理対象にする(§4.1)。
@@ -47,8 +52,8 @@ herdr / iTerm2 / WT では無くなったはずの「マシンごとに揃わな
 - **Claude Code の指示書(`CLAUDE.md` / 出力スタイルの中身)**。steering.md の Goal が明示的に
   Issue #10 へ切り出している。`outputStyle` / `theme` という**設定値**(組み込み名の指定)は本設計の
   対象だが、`~/.claude/output-styles/` や `~/.claude/themes/` に**カスタム定義ファイルを置く**ことは
-  対象外 — 現在の値(`Concise` / `light`)は Claude Code 組み込みで、そのファイル群に依存しないことが
-  steering.md の Assumptions で確認済み。
+  対象外 — 現在の outputStyle/theme の値は Claude Code 組み込みのもので、そのファイル群に依存しない
+  ことが steering.md の Assumptions で確認済み。
 - **資格情報・トークン**。`~/.claude/settings.json` の実物にそのようなキーは無い(確認済み)。
   Claude Code の認証情報は別の仕組み(このマシンでは未調査だが、少なくとも `settings.json` の外)に
   あるという前提を置く。将来 `settings.json` に秘密性のあるキーが増えたら、このキーだけは repo の
@@ -162,12 +167,17 @@ Claude Code の設定を「もう1種類の管理対象ファイル」として�
 2. `claude-code/scripts/statusline.sh` を `deploy()` で配置する(1と独立)。
 3. `$HOME/.claude/hooks/herdr-agent-state.sh` の存在を確認する。無ければ `warn`(1の成否と独立 —
    1が失敗していても、していなくても同じ判定をする)。
-4. repo 側 `claude-code/settings.json` を `jq` で読み、`extraKnownMarketplaces` の各エントリに
+4. 続けて既存の OS 分岐(Darwin: iTerm2 / フォント、それ以外: WSL 判定 → WT)に入る。
+5. repo 側 `claude-code/settings.json` を `jq` で読み、`extraKnownMarketplaces` の各エントリに
    ついて `claude plugin marketplace add` を(事前チェック付きで)呼ぶ。すべてのマーケットプレイス
    処理が終わってから、`enabledPlugins` の `true` エントリについて `claude plugin install` を
    (事前チェック付きで)呼ぶ — marketplace が先に存在しないと install が意味を持たないための順序
-   (2.1で名指しした未測定のコマンド冪等性には依存しない作り)。
-5. 続けて既存の OS 分岐(Darwin: iTerm2 / フォント、それ以外: WSL 判定 → WT)に入る。
+   (2.1で名指しした未測定のコマンド冪等性には依存しない作り)。**この位置(既存の OS 分岐より後ろ)
+   に置く理由**: `setup.sh` は `set -euo pipefail` の下で動き、既存の `deploy()` / `warn` が常に
+   0を返すよう作られているのはこの `set -e` の巻き込みを避けるためである(§2.2)。新規に追加する
+   このコマンド呼び出しの実装が同じ厳密さでガードし損ねた場合、その失敗が既存の OS 分岐(iTerm2/WT
+   の配置、既存の再現そのもの)まで巻き込んで止めてしまうリスクがある — このステップを既存の OS
+   分岐の後ろに置くことで、その巻き込みが既存の再現に及ぶ前に既存の再現を終わらせておく。
 6. 最後に既存の `FAILURES` 集計へ合流する — Claude Code 関連の `record_failure` も、herdr /
    iTerm2 / WT の `record_failure` も同じ1つの配列・同じ1つの終端判定(`REACHED_END`)に乗る。
 
@@ -184,7 +194,8 @@ Claude Code の設定を「もう1種類の管理対象ファイル」として�
 Claude Code 自身が書き戻した値は次の run で repo の値に戻る。新しい保証を作らないことが目的であり、
 新しい壊れ方も作らない。
 
-**`settings.json` の中身についての判断(現物12キーの仕分け)**:
+**`settings.json` の中身についての判断(確認時点で13キー — この数字は Claude Code 自身の書き戻し
+で今後も変わりうるため、検証した時点の値として扱う)**:
 
 | キー | 分類 | 理由 |
 |---|---|---|
@@ -194,6 +205,7 @@ Claude Code 自身が書き戻した値は次の run で repo の値に戻る。
 | `enabledPlugins` / `extraKnownMarketplaces` | repo が持つ(宣言として) | 実体化は §4.4 で別扱い |
 | `outputStyle` / `theme` | repo が持つ(値のみ) | 組み込み名の指定であり、対応する定義ファイルは無い(2.1)。定義ファイルを持つカスタム値は対象外(Issue #10) |
 | `effortLevel` / `tui` / `skipDangerousModePermissionPrompt` / `remoteControlAtStartup` / `agentPushNotifEnabled` | repo が持つ | Acceptance criteria に個別の名指しは無いが、秘密性・マシン固有性が無く、「そのマシンと同じ設定で動く」を構成する値。丸ごと上書きである以上、個別に「対象外」と決めない限りは repo が持つ側に入る(2.2) |
+| `permissions.additionalDirectories` | repo が持つ | worktree でのプラグイン開発時、プラグインが自身の参照ファイル(`references/` など)を読もうとするたびに同じ許可確認が出る構造的な摩擦がある。`~` を使った相対パス(`~/.claude/plugins/cache`)で固定して repo に持たせることで、両OSで同じ意味を持ったまま摩擦を解消できる(Claude Code 公式ドキュメント https://code.claude.com/docs/en/permissions.md の "Working directories" 節に `~/common-configs` という `~` 使用例があり、`additionalDirectories` で `~` 展開が効くことを確認済み)。値は `~/.claude/plugins/cache` のみに絞る(`~/.claude/plugins` 全体には広げない — marketplace 登録情報やインストール状態の json まで許可する具体的な必要がまだ無いため、ユーザーとの合意によりこの範囲に確定) |
 
 **マシン側に委ねる設定**: 現在のキーには該当なし。2台がまったく同じ設定を志向するという前提
 (2.1)の下でのみ丸ごと上書きが成立しており、意図的にマシンごとに変えたい値は今は存在しない。
@@ -362,7 +374,10 @@ repo が持たない — **マシン側に委ねる**(コマンドを再実行�
    Acceptance criteria が「repo が宣言したプラグインが有効なものとして使える状態」を、モデル名や
    statusLine の表示と**同じ並びで**新しいマシンでの再現条件に挙げている — フォントと違い
    「入らなくても実害が無い」と明言された任意要素ではなく、明示的な再現対象そのものなので、
-   ファイル配置の失敗と同格の severity を与える。
+   ファイル配置の失敗と同格の severity を与える。ここでの `record_failure` は herdr4mac design.md
+   §4.6 の『配る先を持っていた管理対象が、そこに届かなかった』というファイル配置の基準の適用では
+   ない — 対象はファイルではなくコマンド呼び出しであり、この設計での `record_failure` は
+   『Acceptance criteria が明示する再現対象が実現したか』という別の基準に基づく適用である。
 
 **この3分類がなぜ「未測定のコマンド冪等性に依存しない」設計になっているか**(2.1で名指しした
 未検証点への対処): 2.と3.の分岐を「まず実行してみて、返ってきたエラーが `already exists` 相当か
