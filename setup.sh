@@ -226,6 +226,8 @@ if ! command -v herdr &>/dev/null; then
 fi
 deploy "$DOTFILES_DIR/herdr/config.toml" "$HERDR_CONFIG"
 
+deploy "$DOTFILES_DIR/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+
 case "$(uname -s)" in
   Darwin)
     # Deployed whether or not iTerm2 is on this machine, and deploy's mkdir -p makes
