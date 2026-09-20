@@ -284,3 +284,9 @@ so only a genuinely suspended session reads `paused`.)
     design.md §5.1 の「setup.sh に別途書く案は不採用」という当初の判断を反転理由とともに記録。
     README の対応する3説明(いずれも上記変更で陳腐化 or ノイズ)は削除(`cb05c1e`/`bd09bc2`/`b8820c3`)。
     ユーザーによる各返信内容の確認と、スレッドのresolveが未了
+  - 上記コミット後、自己検証(隔離 `$HOME` で3回連続 `./setup.sh` 実行)で追加の欠陥を発見・修正
+    (`92ac571`): plugin導入とhooks.SessionStart登録の事前チェックが実際には機能していなかった
+    (deploy()が毎回両キーを消すため「導入済み」判定が構造的に成立しない。hooks.SessionStart側は
+    さらに `grep -q` + `set -o pipefail` によるSIGPIPEの誤判定も併発)。実害は無かったが事前
+    チェックを撤去し無条件呼び出しに変更、design.md §4.2 に記録。関連2スレッドに追記コメント済み。
+    marketplace側の事前チェックは正常に機能しており変更していない
