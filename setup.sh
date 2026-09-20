@@ -8,7 +8,8 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 source "$DOTFILES_DIR/lib/deploy.sh"
-source "$DOTFILES_DIR/lib/darwin.sh"
+source "$DOTFILES_DIR/lib/iterm2.sh"
+source "$DOTFILES_DIR/lib/hackgen_font.sh"
 source "$DOTFILES_DIR/lib/windows_terminal.sh"
 source "$DOTFILES_DIR/lib/herdr_integration.sh"
 source "$DOTFILES_DIR/lib/ccpm_plugin.sh"
@@ -48,7 +49,10 @@ deploy "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
 deploy "$DOTFILES_DIR/claude/scripts/statusline.sh" "$HOME/.claude/scripts/statusline.sh"
 
 case "$(uname -s)" in
-  Darwin) deploy_darwin ;;
+  Darwin)
+    deploy_iterm2_profile
+    install_hackgen_font
+    ;;
   *) deploy_windows_terminal ;;
 esac
 
