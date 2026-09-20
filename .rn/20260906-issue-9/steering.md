@@ -228,11 +228,12 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] 「設定対象」に Claude Code の行を足す
-- [ ] 素直に読むと欠陥に見えるが意図している点があれば「直す前に」に足す
-- [ ] `setup.sh` が実行できず人がやるしかない手順があれば足す
-- [ ] self-check(OK/NG per completion criterion, record in checks/6.md)
-- [ ] Craft expert review (subagent, per the task's medium)
+- [x] 「設定対象」に Claude Code の行を足す
+- [x] 素直に読むと欠陥に見えるが意図している点があれば「直す前に」に足す
+- [x] `setup.sh` が実行できず人がやるしかない手順があれば足す(調査の結果、該当なしと判断)
+- [x] self-check(OK/NG per completion criterion, record in checks/6.md)
+- [x] Craft expert review (subagent, per the task's medium) — 2周の修正(代名詞・構造・重複の解消、
+      その修正で混入した根拠超えの断定の除去)を経て OK
 
 **Completion criteria**:
 
