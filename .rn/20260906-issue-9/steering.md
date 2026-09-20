@@ -262,13 +262,8 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-20
-- **Last completed**: #4 setup.sh が Claude Code 設定を再現(QA/Craft/Verification/Design全軸OK)
-- **Next**: #5 宣言だけでは入らないもの(プラグイン)まで再現する
+- **Status**: not suspended
+- **Date**:
+- **Last completed**:
+- **Next**:
 - **Notes**:
-  - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
-  - task #4 のレビューで見つかった「repo からファイルごと管理を外しても配置済みファイルが消えない」
-    という `deploy()` 全体の特性は、対応不要と判断し Issue #17
-    (https://github.com/lovaizu/dotfiles/issues/17、chezmoiへの移行を提案)に切り出し済み。
-    このセッションのタスクとしては扱わない
