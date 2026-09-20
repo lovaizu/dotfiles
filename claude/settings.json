@@ -37,7 +37,6 @@
   "outputStyle": "Concise",
   "effortLevel": "high",
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
   "remoteControlAtStartup": false,
   "agentPushNotifEnabled": true
