@@ -165,16 +165,16 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] Claude Code の設定を再現する処理を `setup.sh` に足す
-- [ ] 置き換えたものが後から判別できる形を #1 の設計どおりに実装する
-- [ ] 隔離した `$HOME` で実測する(何も無い環境 / 再実行 / マシン側で書き換えたあと /
+- [x] Claude Code の設定を再現する処理を `setup.sh` に足す
+- [x] 置き換えたものが後から判別できる形を #1 の設計どおりに実装する
+- [x] 隔離した `$HOME` で実測する(何も無い環境 / 再実行 / マシン側で書き換えたあと /
       Claude Code と Windows Terminal の設定が同じ run で置き換えられる経路 /
       他のプログラムが所有する設定が無い環境 / 再現に失敗する経路)
-- [ ] self-check(OK/NG per completion criterion, record in checks/4.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] self-check(OK/NG per completion criterion, record in checks/4.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [x] Design expert review (subagent)
 
 **Completion criteria**:
 
