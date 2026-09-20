@@ -267,7 +267,7 @@ so only a genuinely suspended session reads `paused`.)
 - **Status**: paused
 - **Date**: 2026-09-20
 - **Last completed**: #6 README updated (Craft 2周の修正を経てOK)
-- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、PRレビュー5スレッドは
+- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、PRレビュー6スレッドは
   `/rn:gm`(無引数)で処理済み(未解決のまま著者側resolve待ち)、ユーザーの `/rn:ty`/`/rn:gm` 判定待ち
 - **Notes**:
   - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
@@ -276,7 +276,11 @@ so only a genuinely suspended session reads `paused`.)
     呼ぶため `settings.json` の `model` が非決定的に書き戻されることがあり、次回実行が
     `Up to date` ではなく `Backed up + Installed` になることがある(最終状態・exit codeには
     無影響)
-  - PRレビュー5スレッド対応済み(`/rn:gm` 無引数): README.md:25 は記述を圧縮(`2e30733`)、
-    settings.json:40 は `skipDangerousModePermissionPrompt` を削除(`55c20a5`)、残り3件
-    (`enabledPlugins`/`extraKnownMarketplaces`/`hooks.SessionStart` の各キー)は既存設計どおり
-    修正不要と理由を返信。ユーザーによる各返信内容の確認と、スレッドのresolveが未了
+  - PRレビュー6スレッド対応済み(`/rn:gm` 無引数、2周目)。1周目(`2e30733`/`55c20a5`)より後、
+    レビュアーが「宣言をsetup.shが読んで実体化する」設計自体への疑義を再提起し、設計を反転:
+    `enabledPlugins`/`extraKnownMarketplaces`/`hooks.SessionStart` の3キーを `claude/settings.json`
+    から削除し、setup.sh 側にハードコードした明示コマンド(`claude plugin marketplace add` /
+    `install`、`herdr integration install claude`)で実体化するよう変更(`cf755b1`/`bf6c12c`)。
+    design.md §5.1 の「setup.sh に別途書く案は不採用」という当初の判断を反転理由とともに記録。
+    README の対応する3説明(いずれも上記変更で陳腐化 or ノイズ)は削除(`cb05c1e`/`bd09bc2`/`b8820c3`)。
+    ユーザーによる各返信内容の確認と、スレッドのresolveが未了
