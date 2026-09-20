@@ -1,7 +1,7 @@
 {
   "permissions": {
     "additionalDirectories": [
-      "/Users/kiyo/.claude/plugins/cache"
+      "~/.claude/plugins/cache"
     ]
   },
   "model": "opus",
