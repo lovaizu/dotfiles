@@ -262,8 +262,12 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-20
+- **Last completed**: #1 design.md 作成(4専門家レビュー全軸OK、チェックオフ済み)
+- **Next**: #2 design sign-off — design.md をユーザーに提示済み、`/rn:ty`(承認)または `/rn:gm`
+  (修正)の判定待ち
+- **Notes**:
+  - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
+  - このセッション中に origin/main(PR #12 マージ済み)へリベース・force-push 済み。以降の作業は
+    リベース後の履歴の上で継続する
