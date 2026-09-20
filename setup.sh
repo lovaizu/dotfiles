@@ -60,7 +60,7 @@ tmp_for() {
 # basename. Two destinations can share a basename (claude/settings.json and
 # windows-terminal/settings.json both land in a settings.json); their repo
 # paths never collide, so this guarantees uniqueness without a convention to
-# maintain by hand (design.md 4.3).
+# maintain by hand (.rn/20260906-issue-9/design.md §4.3).
 backup_path_for() {
   printf '%s/%s' "$BACKUP_DIR" "$1"
 }
@@ -155,7 +155,7 @@ deploy() {
   local src="$1" dst="$2" src_rel dir backup="" was_link=""
   # Every caller passes src as "$DOTFILES_DIR/...", so stripping that prefix
   # gives the file's path within the repository -- the key backup_path_for
-  # keys backups on (design.md 4.3).
+  # keys backups on (.rn/20260906-issue-9/design.md §4.3).
   src_rel="${src#"$DOTFILES_DIR"/}"
   sweep_tmp_files "$dst"
   sweep_tmp_files "$(backup_path_for "$src_rel")"
@@ -243,7 +243,7 @@ case "$(uname -s)" in
     # Deployed whether or not iTerm2 is on this machine, and deploy's mkdir -p makes
     # the directory: a Mac without iTerm2 still has to end the run with the
     # profile in place. The WSL arm does the opposite with LocalState
-    # (design.md 4.5).
+    # (.rn/20260822-herdr4mac/design.md §4.5).
     iterm_dir="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
     deploy "$DOTFILES_DIR/iterm2/herdr.json" "$iterm_dir/herdr.json"
 
@@ -326,7 +326,8 @@ case "$(uname -s)" in
       # would carry into wt_dir, where the [ -d ] below finds no such directory
       # and the run ends 0 saying Windows Terminal is not installed -- a managed
       # file missed and counted as a skip. What wslpath answers for a Windows path
-      # begins with /, so that is the test. What it rests on: design.md 4.5.
+      # begins with /, so that is the test. What it rests on:
+      # .rn/20260822-herdr4mac/design.md §4.5.
       case "$appdata" in
         /*)
           wt_dir="$appdata/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
@@ -357,7 +358,7 @@ case "$(uname -s)" in
     ;;
 esac
 
-# herdr integration realization (design.md 4.1/4.2): hooks.SessionStart and
+# herdr integration realization (.rn/20260906-issue-9/design.md §4.1/§4.2): hooks.SessionStart and
 # the $HOME/.claude/hooks/herdr-agent-state.sh script it calls are not
 # settings.json data -- `herdr integration install claude` writes
 # hooks.SessionStart into the live settings.json itself and deploys the
@@ -394,14 +395,15 @@ else
     "Fix: once the reason above is gone, re-run ./setup.sh."
 fi
 
-# Plugin realization (design.md 4.2): the marketplace and plugin this repo
+# Plugin realization (.rn/20260906-issue-9/design.md §4.2): the marketplace and plugin this repo
 # uses are not settings.json data -- Claude Code writes enabledPlugins/
 # extraKnownMarketplaces back into the live file itself once a plugin is
 # installed, so keeping them in the repo's settings.json would be a second,
-# driftable copy of runtime state, not configuration (design.md 5.1). This
-# step names them directly instead. Placed after the OS branch so a failure
-# here cannot pull iTerm2/Windows Terminal into it, and record_failure here
-# cannot make #4's placement result look any different (design.md 3.3, 4.2).
+# driftable copy of runtime state, not configuration (design.md §5.1, same
+# file). This step names them directly instead. Placed after the OS branch so
+# a failure here cannot pull iTerm2/Windows Terminal into it, and
+# record_failure here cannot make #4's placement result look any different
+# (design.md §3.3, §4.2, same file).
 CCPM_MARKETPLACE_NAME="ccpm"
 CCPM_MARKETPLACE_REPO="lovaizu/ccpm"
 CCPM_PLUGIN_ID="rn@ccpm"
@@ -423,8 +425,9 @@ else
   marketplaces_now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
 
   # Checked before calling `add`, rather than trusting `add` to be safe to
-  # repeat: precheck-then-invoke makes the three outcomes in design.md 4.2
-  # hold whether or not the command itself turns out to be idempotent (2.1).
+  # repeat: precheck-then-invoke makes the three outcomes in
+  # .rn/20260906-issue-9/design.md §4.2 hold whether or not the command
+  # itself turns out to be idempotent (§2.1, same file).
   # Marketplace registration is not settings.json data (it survives the
   # wholesale deploy() above), so "already present" is a real, reachable
   # state here -- worth skipping, since `add` re-clones the marketplace repo.
