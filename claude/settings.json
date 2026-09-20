@@ -23,17 +23,6 @@
     "type": "command",
     "command": "sh \"$HOME/.claude/scripts/statusline.sh\""
   },
-  "enabledPlugins": {
-    "rn@ccpm": true
-  },
-  "extraKnownMarketplaces": {
-    "ccpm": {
-      "source": {
-        "source": "github",
-        "repo": "lovaizu/ccpm"
-      }
-    }
-  },
   "outputStyle": "Concise",
   "effortLevel": "high",
   "tui": "fullscreen",

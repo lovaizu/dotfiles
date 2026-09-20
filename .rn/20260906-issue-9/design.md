@@ -19,7 +19,10 @@ herdr / iTerm2 / Windows Terminal と同じように、`~/.claude/settings.json`
 ### 1.3 What does reaching it require?
 
 settings.json の各キーを repo が持つか判定し(§4.1)、既存の `deploy()` でコピーする。加えて、
-宣言だけでは入らないプラグインを、その宣言を読んでコマンドで実体化する処理を足す(§4.2)。
+このリポジトリが使う marketplace/plugin を、setup.sh に書いた明示的なコマンドで実体化する処理を
+足す(§4.2)。当初は「宣言(settings.json)を読んで実体化する」形だったが、レビューで指摘された
+とおり `enabledPlugins`/`extraKnownMarketplaces` は Claude Code 自身が書き戻すランタイムの状態で
+あって設定ではないため、settings.json からは削り、setup.sh 側に直接書く形に変更した(§5.1)。
 
 ### 1.4 What is out of scope?
 
@@ -54,18 +57,20 @@ marketplace にログイン不要で通ることを実測済み(Issue #9 コメ�
 
 ### 3.2 What are the pieces, and what is each responsible for?
 
-- `claude/settings.json`(新規、repo) — `$HOME/.claude/settings.json` の原本
+- `claude/settings.json`(新規、repo) — `$HOME/.claude/settings.json` の原本。marketplace/plugin の
+  宣言は持たない(ランタイムの状態であって設定ではないため — §5.1)
 - `claude/scripts/statusline.sh`(新規、repo) — `settings.json` の `statusLine` が指す実体
-- setup.sh への追加処理 — settings.json の宣言を読み、marketplace/plugin をコマンドで実体化する
+- setup.sh への追加処理 — このリポジトリが使う marketplace/plugin を名指しした宣言そのものであり、
+  同時にそれをコマンドで実体化する処理でもある(settings.json を読まない)
 
 ### 3.3 How does work move?
 
 1. `claude/settings.json` を `deploy()` で配置する
 2. `claude/scripts/statusline.sh` を `deploy()` で配置する(1と独立)
 3. 既存の OS 別処理(iTerm2/WT)はそのまま
-4. settings.json の `extraKnownMarketplaces` → `claude plugin marketplace add`、`enabledPlugins` →
-   `claude plugin install` を、事前チェック付きで実行する(§4.2)。既存の OS 分岐より後ろに置き、
-   この処理の失敗が既存の再現(iTerm2/WT)を巻き込まないようにする。
+4. setup.sh にハードコードした marketplace(`ccpm`)・plugin(`rn@ccpm`)を、`claude plugin
+   marketplace add` / `claude plugin install` で事前チェック付きで実行する(§4.2)。既存の OS 分岐
+   より後ろに置き、この処理の失敗が既存の再現(iTerm2/WT)を巻き込まないようにする。
 
 ## 4. Detailed design
 
@@ -88,9 +93,10 @@ marketplace にログイン不要で通ることを実測済み(Issue #9 コメ�
 
 ### 4.2 What does the plugin realization step guarantee, and how is a breach caught?
 
-**保証**: settings.json の宣言(`enabledPlugins` / `extraKnownMarketplaces`)を読み、対応する
-プラグインが使える状態にする。宣言自体は repo が持つが、実体はマシン側に委ねる(コマンドを
-再実行すれば同じ実体が再現できるため)。
+**保証**: このリポジトリが使う marketplace(`ccpm` → `lovaizu/ccpm`)・plugin(`rn@ccpm`)を、
+setup.sh にハードコードしたコマンドで使える状態にする。宣言(何を入れるか)と実体化(どう入れるか)
+は同じ setup.sh の中にあるが、読むものは何もない — settings.json はもう見ない。実体はマシン側に
+委ねる(コマンドを再実行すれば同じ実体が再現できるため)。
 
 **3つの環境での終わり方**:
 
@@ -101,10 +107,11 @@ marketplace にログイン不要で通ることを実測済み(Issue #9 コメ�
 | 入れようとして失敗した | `record_failure`、run 全体を非0で終える |
 
 事前に現在の状態を確認してから実行する(precheck-then-invoke)ことで、コマンド自体が2回目の呼び出し
-に冪等かどうかを知らなくてもこの3分類が成立する(2.1)。ただし precheck に使う具体的なコマンド・
-出力の読み方は未測定 — task #5 の隔離環境での実測で確定させる。
+に冪等かどうかを知らなくてもこの3分類が成立する(2.1)。precheck は `claude plugin marketplace list
+--json` / `claude plugin list --json` を読み、marketplace は `name`、plugin は `id` と
+`enabled == true` で照合する(task #5 で実測、確定)。
 
-**破れの検出**: 隔離 `$HOME` で上記3パターン(コマンド無し/未導入/導入済み/失敗)を実測する
+**破れの検出**: 隔離 `$HOME` で上記3パターン(コマンド無し/未導入/導入済み/失敗)を実測した
 (task #5)。
 
 ### 4.3 What does the backup-namespace change guarantee, and how is a breach caught?
@@ -124,9 +131,22 @@ marketplace にログイン不要で通ることを実測済み(Issue #9 コメ�
 
 ### 5.1 Why this shape, and not another?
 
-キー単位の差分マージは採らない(配置方式を増やさない Rules に反する)。プラグイン一覧を setup.sh
-側に別途書く案は採らない(settings.json と二重の情報源になり、片方だけ更新して食い違う余地が
-生まれる)。
+キー単位の差分マージは採らない(配置方式を増やさない Rules に反する)。
+
+marketplace/plugin をどこに書くかは、当初「settings.json に宣言し、setup.sh がそれを読んで実体化
+する」形にしていた。理由は「プラグイン一覧を setup.sh 側に別途書くと、settings.json と二重の情報源
+になり、片方だけ更新して食い違う余地が生まれる」というものだった。
+
+これはレビュー(PR #11)で誤りだと指摘された。`enabledPlugins`/`extraKnownMarketplaces` は
+Claude Code 自身が `claude plugin install` の実行後に書き戻す値であり、そもそも「repo が持つ設定」
+ではない — 実行してみないと正しい値が定まらないランタイムの記録であって、static な設定ファイルの
+一部として repo 管理下に置くものではない。書き戻しの結果を repo にコピーして持ち帰る運用は静的な
+設定と動的な状態を同じファイルに混ぜることになり、それ自体が二重の情報源だった。
+
+そのため settings.json から `enabledPlugins`/`extraKnownMarketplaces` を削り、marketplace/plugin の
+名指し(何を入れるか)は setup.sh 側にのみハードコードした。情報源は setup.sh 一箇所になり、
+当初懸念していた「settings.json と setup.sh の食い違い」はそもそも起こり得ない(settings.json は
+marketplace/plugin を宣言しなくなったため)。
 
 ### 5.2 What did we trade away?
 
