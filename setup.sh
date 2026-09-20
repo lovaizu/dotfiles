@@ -55,10 +55,14 @@ tmp_for() {
   printf '%s%s' "$(tmp_prefix_for "$1")" "$$"
 }
 
-# BACKUP_DIR is one flat namespace keyed by basename, so the managed files must
-# have basenames that differ -- a rule and not a runtime check (design.md 4.6).
+# BACKUP_DIR is a tree that mirrors the repository: the key is the managed
+# file's path relative to DOTFILES_DIR, not the deploy destination's
+# basename. Two destinations can share a basename (claude/settings.json and
+# windows-terminal/settings.json both land in a settings.json); their repo
+# paths never collide, so this guarantees uniqueness without a convention to
+# maintain by hand (design.md 4.3).
 backup_path_for() {
-  printf '%s/%s' "$BACKUP_DIR" "$(basename "$1")"
+  printf '%s/%s' "$BACKUP_DIR" "$1"
 }
 
 sweep_tmp_files() {
@@ -121,17 +125,17 @@ record_failure() {
 # outlives the call, and a later deploy's cleanup then deleted a backup the run
 # had already promised (measured).
 backup_file() {
-  local dst="$1" tmp="$2" stem bak count=1
+  local dst="$1" tmp="$2" src_rel="$3" stem bak count=1
   # -e reads through a symlink, so a dangling one takes no backup at all: deploy
   # replaces the link with a regular file and there is nothing to restore.
   [ -e "$dst" ] || return 0
-  mkdir -p "$BACKUP_DIR" || return 1
-  stem="$(backup_path_for "$dst").$(date +%Y%m%d%H%M%S)"
+  stem="$(backup_path_for "$src_rel").$(date +%Y%m%d%H%M%S)"
   bak="$stem.bak"
   while [ -e "$bak" ]; do
     bak="$stem-$count.bak"
     count=$((count + 1))
   done
+  mkdir -p "$(dirname "$bak")" || return 1
   # Written through a temp file and renamed: a Ctrl-C during the copy leaves the
   # script through the INT trap before cp's exit status could be tested, and a
   # part-written .bak stayed behind under that name (measured).
@@ -148,9 +152,13 @@ backup_file() {
 # bare line added here failed in silence and let the run end 0 having deployed
 # nothing (measured).
 deploy() {
-  local src="$1" dst="$2" dir backup="" was_link=""
+  local src="$1" dst="$2" src_rel dir backup="" was_link=""
+  # Every caller passes src as "$DOTFILES_DIR/...", so stripping that prefix
+  # gives the file's path within the repository -- the key backup_path_for
+  # keys backups on (design.md 4.3).
+  src_rel="${src#"$DOTFILES_DIR"/}"
   sweep_tmp_files "$dst"
-  sweep_tmp_files "$(backup_path_for "$dst")"
+  sweep_tmp_files "$(backup_path_for "$src_rel")"
   if cmp -s "$src" "$dst" 2>/dev/null; then
     echo "Up to date: $dst"
     return 0
@@ -160,8 +168,8 @@ deploy() {
   fi
   dir="$(dirname "$dst")"
   DEPLOY_TMP="$(tmp_for "$dst")"
-  BACKUP_TMP="$(tmp_for "$(backup_path_for "$dst")")"
-  if mkdir -p "$dir" && cp "$src" "$DEPLOY_TMP" && backup="$(backup_file "$dst" "$BACKUP_TMP")"; then
+  BACKUP_TMP="$(tmp_for "$(backup_path_for "$src_rel")")"
+  if mkdir -p "$dir" && cp "$src" "$DEPLOY_TMP" && backup="$(backup_file "$dst" "$BACKUP_TMP" "$src_rel")"; then
     BACKUP_TMP=""
     # -f because a read-only dst makes mv ask, but only when stdin is a tty, which is
     # exactly how a person runs this. The prompt defaults to "no" and mv then exits 0
@@ -227,6 +235,24 @@ fi
 deploy "$DOTFILES_DIR/herdr/config.toml" "$HERDR_CONFIG"
 
 deploy "$DOTFILES_DIR/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+deploy "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
+deploy "$DOTFILES_DIR/claude/scripts/statusline.sh" "$HOME/.claude/scripts/statusline.sh"
+
+# hooks.SessionStart in claude/settings.json names this path, but the file
+# itself is herdr's own Claude Code integration to install, not a dotfiles
+# managed file (design.md 4.1) -- so this only checks it is there and does not
+# deploy it. Missing, it leaves SessionStart pointing at nothing, but
+# settings.json itself is correctly in place, so this is a warn and not a
+# record_failure.
+if [ ! -e "$HOME/.claude/hooks/herdr-agent-state.sh" ]; then
+  warn "$HOME/.claude/hooks/herdr-agent-state.sh does not exist." \
+    "settings.json's hooks.SessionStart calls this script, but it belongs to" \
+    "herdr's own Claude Code integration, not to this dotfiles repo -- nothing" \
+    "here installs or manages it. Without it, SessionStart has nowhere to" \
+    "call, but settings.json itself was deployed correctly." \
+    "Fix: install or update herdr's Claude Code integration, then re-run" \
+    "./setup.sh."
+fi
 
 case "$(uname -s)" in
   Darwin)
