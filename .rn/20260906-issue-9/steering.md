@@ -128,8 +128,8 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] `design.md` をユーザーに提示する
-- [ ] `/rn:ty`(承認)または `/rn:gm`(修正 → 指摘に対応して再提示)で判定を受ける
+- [x] `design.md` をユーザーに提示する
+- [x] `/rn:ty`(承認)または `/rn:gm`(修正 → 指摘に対応して再提示)で判定を受ける
 
 **Completion criteria**:
 
