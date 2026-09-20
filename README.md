@@ -22,13 +22,21 @@ The source is the same on both OSes: the [distributor's release page](https://gi
 - **Windows: always manual.** You can't install from WSL to Windows.
 - **Mac: `./setup.sh` installs it.**
 
+### Claude Code
+
+- `claude/settings.json` → `~/.claude/settings.json`. Model, theme, output style, statusline, and which plugins are enabled are all declared here.
+- `claude/scripts/statusline.sh` → the file `settings.json`'s `statusLine` points at.
+- A plugin listed in `settings.json` is only a declaration. `./setup.sh` also reads it and installs and enables the plugin itself, so it ends up usable and not just declared.
+
 ## Before you fix a setting
 
-Reading the config files straightforwardly makes you want to fix them, but there are 3 points that are intentional as they are.
+Reading the config files straightforwardly makes you want to fix them, but there are 5 points that are intentional as they are.
 
 - **The terminal uses a dark color scheme, while the herdr UI running on top of it uses a light one.** This looks inconsistent, but the light side is explicitly specified to make it easier to tell which workspace is selected. It's not meant to follow the terminal's light/dark setting.
 - **The key that calls herdr from the terminal is `Ctrl+Alt` on Windows and `Ctrl+⌘` on Mac, because on the keyboard (HHKB) it's the same physical key.** This key next to the space bar works as `Alt` on Windows and `⌘` on Mac. If you "fix" the Mac side to a more "Mac-like" key, the same finger shape stops producing the same action.
 - **dotfiles is the source of truth, and `./setup.sh` overwrites everything it manages, wholesale.** Any settings changed from the terminal's or herdr's UI, and any manual edits to the files they're placed in, revert to what's in dotfiles on the next run. Put anything you want to keep into dotfiles itself.
+- **`settings.json`'s `hooks.SessionStart` names a script this repo doesn't include.** That script is herdr's own Claude Code integration, not a dotfiles-managed file, so `./setup.sh` only checks that it's there and warns if it's missing. It never installs or overwrites it.
+- **`settings.json`'s `permissions.additionalDirectories` lists a directory holding installed plugins' own files.** It's there so reading those files doesn't prompt for permission every time; it's not a leftover to prune.
 
 ## Before you add an instruction to Claude Code
 
