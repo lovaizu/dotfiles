@@ -266,16 +266,22 @@ so only a genuinely suspended session reads `paused`.)
 
 - **Status**: paused
 - **Date**: 2026-09-20
-- **Last completed**: #7 step1 — Acceptance criteria 提示、PRレビュー6スレッド対応、自己検証での
-  追加バグ修正まで完了
-- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、PRレビュー(2周・計6
-  スレッド)は `/rn:gm`(無引数)で処理済み、自己検証で見つけた追加の欠陥修正(`92ac571`)も
-  design.md・スレッド追記まで完了。ユーザーの `/rn:ty`/`/rn:gm` 判定待ち
+- **Last completed**: #7 step1 — Acceptance criteria 提示、PRレビュー(setup.shの1スレッドに対する
+  複数往復)対応まで完了。setup.shをlib/配下に関心事ごとの関数へ分割(`741c96f`〜`bbfdc9d`)、
+  design.md参照だった箇所を削除
+- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、PRレビューはsetup.shの
+  構造(コメント量・ファイル分割・命名規則の根拠)について複数往復で対応済み(スレッド自体は著者
+  判断待ちで未resolve)。ユーザーの `/rn:ty`/`/rn:gm` 判定待ち
 - **Notes**:
   - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft、未resolve
-    スレッド複数あり、著者判断待ち)
+    スレッド1件(setup.shの構造について)あり、著者判断待ち)
+  - setup.shは`lib/deploy.sh`(デプロイ機構本体)・`lib/iterm2.sh`・`lib/hackgen_font.sh`・
+    `lib/windows_terminal.sh`・`lib/herdr_integration.sh`・`lib/ccpm_plugin.sh`に分割済み。
+    setup.sh自体は何をどの順でデプロイするかの一覧のみ。挙動は隔離した$HOMEで4パターン
+    (新規/再実行/ツール欠如/書き込み失敗)を分割の都度再検証し、分割前と一致することを確認済み
   - 提示済みの内容で2点、ユーザーに判断材料として明示済み: (a) Windows/WSL 実機は未検証のまま
-    (Assumptions が元から明記), (b) プラグイン実体化で `claude` CLI を呼ぶため `settings.json` の
-    `model` が非決定的に書き戻されることがあり、次回実行が `Up to date` ではなく
-    `Backed up + Installed` になることがある(最終状態・exit codeには無影響)
+    (Assumptions が元から明記。今回の分割はDarwin側のみtouchしており、この前提は変わらず), (b)
+    プラグイン実体化で `claude` CLI を呼ぶため `settings.json` の `model` が非決定的に書き戻される
+    ことがあり、次回実行が `Up to date` ではなく `Backed up + Installed` になることがある
+    (最終状態・exit codeには無影響)
   - 経緯・理由は git log と design.md 参照(§4.2・§5.1 が今回の設計反転とバグ修正の記録)
