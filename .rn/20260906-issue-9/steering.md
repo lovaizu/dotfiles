@@ -251,7 +251,7 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] Acceptance criteria を1つずつ実行し、結果をユーザーに提示する
+- [x] Acceptance criteria を1つずつ実行し、結果をユーザーに提示する
 - [ ] `/rn:ty`(承認)または `/rn:gm`(修正 → 指摘に対応して再提示)で判定を受ける
 
 **Completion criteria**:
@@ -264,8 +264,14 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**:
-- **Last completed**:
-- **Next**:
+- **Status**: paused
+- **Date**: 2026-09-20
+- **Last completed**: #6 README updated (Craft 2周の修正を経てOK)
+- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、ユーザーの `/rn:ty`/`/rn:gm` 判定待ち
 - **Notes**:
+  - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
+  - 提示済みの内容で2点、ユーザーに判断材料として明示済み: (a) Windows/WSL 実機は未検証のまま
+    (design.md/steering.md の Assumptions が元から明記), (b) プラグイン実体化で `claude` CLI を
+    呼ぶため `settings.json` の `model` が非決定的に書き戻されることがあり、次回実行が
+    `Up to date` ではなく `Backed up + Installed` になることがある(最終状態・exit codeには
+    無影響)
