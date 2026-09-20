@@ -238,22 +238,6 @@ deploy "$DOTFILES_DIR/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 deploy "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
 deploy "$DOTFILES_DIR/claude/scripts/statusline.sh" "$HOME/.claude/scripts/statusline.sh"
 
-# hooks.SessionStart in claude/settings.json names this path, but the file
-# itself is herdr's own Claude Code integration to install, not a dotfiles
-# managed file (design.md 4.1) -- so this only checks it is there and does not
-# deploy it. Missing, it leaves SessionStart pointing at nothing, but
-# settings.json itself is correctly in place, so this is a warn and not a
-# record_failure.
-if [ ! -e "$HOME/.claude/hooks/herdr-agent-state.sh" ]; then
-  warn "$HOME/.claude/hooks/herdr-agent-state.sh does not exist." \
-    "settings.json's hooks.SessionStart calls this script, but it belongs to" \
-    "herdr's own Claude Code integration, not to this dotfiles repo -- nothing" \
-    "here installs or manages it. Without it, SessionStart has nowhere to" \
-    "call, but settings.json itself was deployed correctly." \
-    "Fix: install or update herdr's Claude Code integration, then re-run" \
-    "./setup.sh."
-fi
-
 case "$(uname -s)" in
   Darwin)
     # Deployed whether or not iTerm2 is on this machine, and deploy's mkdir -p makes
@@ -372,6 +356,30 @@ case "$(uname -s)" in
     fi
     ;;
 esac
+
+# herdr integration realization (design.md 4.1/4.2): hooks.SessionStart and
+# the $HOME/.claude/hooks/herdr-agent-state.sh script it calls are not
+# settings.json data -- `herdr integration install claude` writes
+# hooks.SessionStart into the live settings.json itself and deploys the
+# script it names (measured against an isolated $HOME), so keeping that key
+# in the repo's settings.json would be a second, driftable copy of what
+# herdr already manages, same reasoning as the plugin realization below.
+# Placed after the OS branch for the same reason as that step: a failure
+# here cannot pull iTerm2/Windows Terminal into it.
+if ! command -v herdr &>/dev/null; then
+  warn "herdr is missing, so its Claude Code SessionStart hook was not realized." \
+    "Turning it into an installed hook needs the herdr command itself." \
+    "settings.json itself was still deployed above and is unaffected." \
+    "Fix: install herdr, then re-run ./setup.sh."
+elif herdr integration status 2>/dev/null | grep -q '^claude: current'; then
+  echo "herdr claude integration already current. Skipping."
+elif herdr integration install claude; then
+  echo "Installed/updated herdr's claude integration."
+else
+  record_failure "herdr's claude integration was not installed." \
+    "\`herdr integration install claude\` said why just above." \
+    "Fix: once the reason above is gone, re-run ./setup.sh."
+fi
 
 # Plugin realization (design.md 4.2): the marketplace and plugin this repo
 # uses are not settings.json data -- Claude Code writes enabledPlugins/

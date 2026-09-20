@@ -68,9 +68,11 @@ marketplace にログイン不要で通ることを実測済み(Issue #9 コメ�
 1. `claude/settings.json` を `deploy()` で配置する
 2. `claude/scripts/statusline.sh` を `deploy()` で配置する(1と独立)
 3. 既存の OS 別処理(iTerm2/WT)はそのまま
-4. setup.sh にハードコードした marketplace(`ccpm`)・plugin(`rn@ccpm`)を、`claude plugin
-   marketplace add` / `claude plugin install` で事前チェック付きで実行する(§4.2)。既存の OS 分岐
-   より後ろに置き、この処理の失敗が既存の再現(iTerm2/WT)を巻き込まないようにする。
+4. `herdr integration install claude` を事前チェック付きで実行する(§4.1)。既存の OS 分岐より
+   後ろに置き、この処理の失敗が既存の再現(iTerm2/WT)を巻き込まないようにする。
+5. setup.sh にハードコードした marketplace(`ccpm`)・plugin(`rn@ccpm`)を、`claude plugin
+   marketplace add` / `claude plugin install` で事前チェック付きで実行する(§4.2)。4と同じ理由で
+   OS 分岐より後ろに置く。
 
 ## 4. Detailed design
 
@@ -82,9 +84,15 @@ marketplace にログイン不要で通ることを実測済み(Issue #9 コメ�
 **キーの仕分け**(確認時点で13キー、Claude Code 自身の書き戻しで今後変わりうる): 秘密・マシン
 固有値は無し(確認済み)、すべて repo が持つ。うち2点だけ理由が要る:
 
-- `hooks.SessionStart` が指す `~/.claude/hooks/herdr-agent-state.sh` は herdr 自身が所有・上書きする
-  ファイルなので管理対象にしない。settings.json 配置後に存在確認だけ行い、無ければ warn する
-  (`record_failure` にはしない — settings.json 自体は正しく配置されているため)
+- `hooks.SessionStart` は settings.json に持たない。`herdr integration install claude` が
+  `~/.claude/hooks/herdr-agent-state.sh` を配置するのと同時に、このキー自体を生きている
+  settings.json へ書き込むことを隔離 `$HOME` で実測済み(空の `$HOME` に repo の settings.json を
+  置いた状態で実行 → `hooks.SessionStart` が追加され、2回目の実行は再現性がある = 冪等)。
+  repo 側に書くと herdr が書き戻す値と二重の情報源になる点は §4.2 の
+  `enabledPlugins`/`extraKnownMarketplaces` と同じ理由。setup.sh は §4.2 のプラグインと同じ
+  precheck-then-invoke 形で、`herdr integration status` の出力(`claude: current` かどうか)を見て
+  から `herdr integration install claude` を呼ぶ(既存の OS 分岐より後ろ、§3.3 の4)。`herdr` が
+  無ければ `warn`(`record_failure` にはしない — settings.json 自体は正しく配置されているため)。
 - `permissions.additionalDirectories`(`~/.claude/plugins/cache` 固定)— これが無いと §4.2 で
   実体化したプラグインの参照ファイル読み込みで毎回許可確認が出る
 
