@@ -366,13 +366,26 @@ esac
 # herdr already manages, same reasoning as the plugin realization below.
 # Placed after the OS branch for the same reason as that step: a failure
 # here cannot pull iTerm2/Windows Terminal into it.
+#
+# No precheck: the wholesale deploy() above always redeploys settings.json
+# from the repo copy, which does not carry hooks.SessionStart, so this step
+# always starts from "not registered" and always needs to run, by this
+# repo's own design (same reasoning as the plugin step below). A
+# `herdr integration status | grep -q ...` precheck was tried and measured
+# broken besides: `grep -q` exits as soon as it matches, closing the pipe
+# while `herdr integration status` is still writing, which kills it with
+# SIGPIPE -- under this script's `set -o pipefail` that non-zero exit fails
+# the whole pipeline regardless of what grep matched, so the "already
+# current" branch could never be taken (measured: three consecutive runs
+# against an isolated $HOME all took the install branch, never the skip
+# one). `herdr integration install claude` is measured idempotent (three
+# consecutive real runs, same end state, no duplicate SessionStart entry),
+# so calling it unconditionally is safe.
 if ! command -v herdr &>/dev/null; then
   warn "herdr is missing, so its Claude Code SessionStart hook was not realized." \
     "Turning it into an installed hook needs the herdr command itself." \
     "settings.json itself was still deployed above and is unaffected." \
     "Fix: install herdr, then re-run ./setup.sh."
-elif herdr integration status 2>/dev/null | grep -q '^claude: current'; then
-  echo "herdr claude integration already current. Skipping."
 elif herdr integration install claude; then
   echo "Installed/updated herdr's claude integration."
 else
@@ -401,18 +414,20 @@ if ! command -v claude &>/dev/null; then
     "Fix: install claude, then re-run ./setup.sh."
 elif ! command -v jq &>/dev/null; then
   warn "jq is missing, so the $CCPM_MARKETPLACE_NAME marketplace and the $CCPM_PLUGIN_ID plugin were not realized." \
-    "Reading \`claude plugin marketplace list --json\` / \`claude plugin list" \
-    "--json\` to check what is already present, before deciding whether to" \
-    "add/install, needs jq." \
+    "Reading \`claude plugin marketplace list --json\` to check whether the" \
+    "marketplace is already present, before deciding whether to add it," \
+    "needs jq." \
     "settings.json itself was still deployed above and is unaffected." \
     "Fix: install jq, then re-run ./setup.sh."
 else
   marketplaces_now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
-  installed_now="$(claude plugin list --json 2>/dev/null || echo '[]')"
 
   # Checked before calling `add`, rather than trusting `add` to be safe to
   # repeat: precheck-then-invoke makes the three outcomes in design.md 4.2
   # hold whether or not the command itself turns out to be idempotent (2.1).
+  # Marketplace registration is not settings.json data (it survives the
+  # wholesale deploy() above), so "already present" is a real, reachable
+  # state here -- worth skipping, since `add` re-clones the marketplace repo.
   if echo "$marketplaces_now" | jq -e --arg n "$CCPM_MARKETPLACE_NAME" '.[] | select(.name == $n)' >/dev/null; then
     echo "Marketplace $CCPM_MARKETPLACE_NAME already configured. Skipping."
   elif claude plugin marketplace add "$CCPM_MARKETPLACE_REPO"; then
@@ -425,12 +440,18 @@ else
       "Fix: once the reason above is gone, re-run ./setup.sh."
   fi
 
+  # No precheck here, unlike the marketplace above: "already installed and
+  # enabled" cannot be a state this step finds itself in. The wholesale
+  # deploy() above always redeploys settings.json from the repo copy, which
+  # does not carry enabledPlugins (4.2) -- so every run starts with the
+  # plugin off, by this repo's own design, and always needs re-enabling.
+  # A precheck for it would never take its skip branch. `claude plugin
+  # install` is measured idempotent (2.1: two consecutive real runs, same
+  # end state, no error), so calling it unconditionally is safe.
   # -y answers the marketplace-declared-command prompt a plugin's install can
   # raise, so this does not sit waiting for input that a non-interactive run
   # never sends.
-  if echo "$installed_now" | jq -e --arg id "$CCPM_PLUGIN_ID" '.[] | select(.id == $id and .enabled == true)' >/dev/null; then
-    echo "Plugin $CCPM_PLUGIN_ID already installed and enabled. Skipping."
-  elif claude plugin install "$CCPM_PLUGIN_ID" -y; then
+  if claude plugin install "$CCPM_PLUGIN_ID" -y; then
     echo "Installed plugin $CCPM_PLUGIN_ID."
   else
     record_failure "Plugin $CCPM_PLUGIN_ID was not installed." \
