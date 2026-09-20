@@ -24,9 +24,7 @@ The source is the same on both OSes: the [distributor's release page](https://gi
 
 ### Claude Code
 
-- **`claude/settings.json` becomes `~/.claude/settings.json`.** Model, theme, output style, statusline, and which plugins are enabled are all declared here.
-- **`claude/scripts/statusline.sh` is the script `settings.json`'s `statusLine` points at.**
-- **A plugin listed in `settings.json` is only a declaration.** `./setup.sh` reads that declaration and installs and enables the plugin itself, so it ends up usable, not just declared.
+- **`claude/settings.json` is Claude Code's user settings.** A plugin listed there is only a declaration — `./setup.sh` reads that declaration and installs and enables the plugin itself, so it ends up usable, not just declared.
 
 ## Before you fix a setting
 
