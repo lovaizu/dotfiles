@@ -200,13 +200,14 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] プラグインの実体を用意する処理を `setup.sh` に足す
-- [ ] 隔離した `$HOME` で実測する(実体が無い環境 / すでに入っている環境 / 用意できない環境 /
+- [x] プラグインの実体を用意する処理を `setup.sh` に足す
+- [x] 隔離した `$HOME` で実測する(実体が無い環境 / すでに入っている環境 / 用意できない環境 /
       用意に失敗する環境)
-- [ ] self-check(OK/NG per completion criterion, record in checks/5.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] self-check(OK/NG per completion criterion, record in checks/5.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium) — 1周目 NG(`jq` parse error が
+      `set -euo pipefail` 下で伝播せず沈黙成功になる欠陥)→ 修正 → 再レビューで OK
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
