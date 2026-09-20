@@ -22,10 +22,6 @@ The source is the same on both OSes: the [distributor's release page](https://gi
 - **Windows: always manual.** You can't install from WSL to Windows.
 - **Mac: `./setup.sh` installs it.**
 
-### Claude Code
-
-- **`claude/settings.json` is Claude Code's user settings.** A plugin listed there is only a declaration — `./setup.sh` reads that declaration and installs and enables the plugin itself, so it ends up usable, not just declared.
-
 ## Before you fix a setting
 
 Reading the config files straightforwardly makes you want to fix them, but there are 5 points that are intentional as they are.
