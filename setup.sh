@@ -373,6 +373,66 @@ case "$(uname -s)" in
     ;;
 esac
 
+# Plugin realization (design.md 4.2): enabledPlugins/extraKnownMarketplaces in
+# settings.json are a declaration, not the plugin itself, so deploy()ing the
+# file above does not put the marketplace or the plugin on this machine.
+# Placed after the OS branch so a failure here cannot pull iTerm2/Windows
+# Terminal into it, and record_failure here cannot make #4's placement result
+# look any different (design.md 3.3, 4.2).
+if ! command -v claude &>/dev/null || ! command -v jq &>/dev/null; then
+  warn "claude and/or jq is missing, so no plugin declared in settings.json was realized." \
+    "extraKnownMarketplaces/enabledPlugins in settings.json is only a" \
+    "declaration -- turning it into an actual marketplace and an installed," \
+    "enabled plugin needs both commands to read it and act on it." \
+    "settings.json itself was still deployed above and is unaffected." \
+    "Fix: install claude and jq, then re-run ./setup.sh."
+elif [ -e "$HOME/.claude/settings.json" ]; then
+  # Read the copy just deployed, not $DOTFILES_DIR/claude/settings.json: if
+  # deploy() above failed to write it (record_failure already fired for that),
+  # there is nothing on this machine yet to act on either, so this whole step
+  # is skipped rather than repeating a failure already on record.
+  claude_settings="$HOME/.claude/settings.json"
+  marketplaces_now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
+  installed_now="$(claude plugin list --json 2>/dev/null || echo '[]')"
+
+  # Checked before calling `add`, rather than trusting `add` to be safe to
+  # repeat: precheck-then-invoke makes the three outcomes in design.md 4.2
+  # hold whether or not the command itself turns out to be idempotent (2.1).
+  # Only the github source form is handled because it is the only one
+  # claude/settings.json declares; nothing here has exercised any other.
+  while IFS=$'\t' read -r mp_name mp_repo; do
+    [ -n "$mp_name" ] || continue
+    if echo "$marketplaces_now" | jq -e --arg n "$mp_name" '.[] | select(.name == $n)' >/dev/null; then
+      echo "Marketplace $mp_name already configured. Skipping."
+    elif claude plugin marketplace add "$mp_repo"; then
+      echo "Added marketplace $mp_name ($mp_repo)."
+    else
+      record_failure "Marketplace $mp_name ($mp_repo) was not added." \
+        "\`claude plugin marketplace add\` said why just above." \
+        "A plugin enabledPlugins declares from this marketplace could not be" \
+        "installed either, as a result." \
+        "Fix: once the reason above is gone, re-run ./setup.sh."
+    fi
+  done < <(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.value.source.source == "github") | "\(.key)\t\(.value.source.repo)"' "$claude_settings")
+
+  # -y answers the marketplace-declared-command prompt a plugin's install can
+  # raise, so this does not sit waiting for input that a non-interactive run
+  # never sends.
+  while IFS= read -r plugin_id; do
+    [ -n "$plugin_id" ] || continue
+    if echo "$installed_now" | jq -e --arg id "$plugin_id" '.[] | select(.id == $id and .enabled == true)' >/dev/null; then
+      echo "Plugin $plugin_id already installed and enabled. Skipping."
+    elif claude plugin install "$plugin_id" -y; then
+      echo "Installed plugin $plugin_id."
+    else
+      record_failure "Plugin $plugin_id was not installed." \
+        "\`claude plugin install\` said why just above -- a marketplace named" \
+        "above not having been added is the usual reason." \
+        "Fix: once the reason above is gone, re-run ./setup.sh."
+    fi
+  done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$claude_settings")
+fi
+
 # Not tidiness: under set -u, bash 3.2 reads "${arr[@]}" on an empty array as an
 # unbound variable and kills the script on the spot, and with an EXIT trap set the
 # run then ends 0 -- it used to die quietly (measured, /bin/bash 3.2.57).
