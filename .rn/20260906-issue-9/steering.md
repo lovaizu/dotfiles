@@ -267,7 +267,8 @@ so only a genuinely suspended session reads `paused`.)
 - **Status**: paused
 - **Date**: 2026-09-20
 - **Last completed**: #6 README updated (Craft 2周の修正を経てOK)
-- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、ユーザーの `/rn:ty`/`/rn:gm` 判定待ち
+- **Next**: #7 Evaluation sign-off — Acceptance criteria の結果は提示済み、PRレビュー5スレッドは
+  `/rn:gm`(無引数)で処理済み(未解決のまま著者側resolve待ち)、ユーザーの `/rn:ty`/`/rn:gm` 判定待ち
 - **Notes**:
   - branch: `worktree-issue-9` / PR: https://github.com/lovaizu/dotfiles/pull/11 (draft)
   - 提示済みの内容で2点、ユーザーに判断材料として明示済み: (a) Windows/WSL 実機は未検証のまま
@@ -275,3 +276,7 @@ so only a genuinely suspended session reads `paused`.)
     呼ぶため `settings.json` の `model` が非決定的に書き戻されることがあり、次回実行が
     `Up to date` ではなく `Backed up + Installed` になることがある(最終状態・exit codeには
     無影響)
+  - PRレビュー5スレッド対応済み(`/rn:gm` 無引数): README.md:25 は記述を圧縮(`2e30733`)、
+    settings.json:40 は `skipDangerousModePermissionPrompt` を削除(`55c20a5`)、残り3件
+    (`enabledPlugins`/`extraKnownMarketplaces`/`hooks.SessionStart` の各キー)は既存設計どおり
+    修正不要と理由を返信。ユーザーによる各返信内容の確認と、スレッドのresolveが未了
