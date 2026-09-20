@@ -144,10 +144,10 @@ Claude Code のユーザー設定にも広げる(Issue #9)。いまは端末だ�
 
 **Steps**:
 
-- [ ] repo が持つと決めた設定を repo に置く
-- [ ] 秘密とマシン固有の値が入っていないことを確認する
-- [ ] 原本だけを与えた環境で Claude Code が起動し、いまのマシンと同じ設定で動くことを確認する
-- [ ] self-check(OK/NG per completion criterion, record in checks/3.md)
+- [x] repo が持つと決めた設定を repo に置く
+- [x] 秘密とマシン固有の値が入っていないことを確認する
+- [x] 原本だけを与えた環境で Claude Code が起動し、いまのマシンと同じ設定で動くことを確認する
+- [x] self-check(OK/NG per completion criterion, record in checks/3.md)
 
 **Completion criteria**:
 
