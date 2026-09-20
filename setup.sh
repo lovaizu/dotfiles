@@ -400,37 +400,60 @@ elif [ -e "$HOME/.claude/settings.json" ]; then
   # hold whether or not the command itself turns out to be idempotent (2.1).
   # Only the github source form is handled because it is the only one
   # claude/settings.json declares; nothing here has exercised any other.
-  while IFS=$'\t' read -r mp_name mp_repo; do
-    [ -n "$mp_name" ] || continue
-    if echo "$marketplaces_now" | jq -e --arg n "$mp_name" '.[] | select(.name == $n)' >/dev/null; then
-      echo "Marketplace $mp_name already configured. Skipping."
-    elif claude plugin marketplace add "$mp_repo"; then
-      echo "Added marketplace $mp_name ($mp_repo)."
-    else
-      record_failure "Marketplace $mp_name ($mp_repo) was not added." \
-        "\`claude plugin marketplace add\` said why just above." \
-        "A plugin enabledPlugins declares from this marketplace could not be" \
-        "installed either, as a result." \
-        "Fix: once the reason above is gone, re-run ./setup.sh."
-    fi
-  done < <(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.value.source.source == "github") | "\(.key)\t\(.value.source.repo)"' "$claude_settings")
+  # Captured into a variable first, with jq's own exit status checked by the
+  # `if`, rather than piped straight into `done < <(...)`: under set -euo
+  # pipefail a process substitution's exit status never reaches the script, so
+  # a jq parse failure on $claude_settings (e.g. hand-edited into invalid
+  # JSON) would otherwise run the loop zero times and reach Done. as if
+  # nothing had been declared, with no warn and no record_failure.
+  if marketplaces_decl="$(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.value.source.source == "github") | "\(.key)\t\(.value.source.repo)"' "$claude_settings")"; then
+    while IFS=$'\t' read -r mp_name mp_repo; do
+      [ -n "$mp_name" ] || continue
+      if echo "$marketplaces_now" | jq -e --arg n "$mp_name" '.[] | select(.name == $n)' >/dev/null; then
+        echo "Marketplace $mp_name already configured. Skipping."
+      elif claude plugin marketplace add "$mp_repo"; then
+        echo "Added marketplace $mp_name ($mp_repo)."
+      else
+        record_failure "Marketplace $mp_name ($mp_repo) was not added." \
+          "\`claude plugin marketplace add\` said why just above." \
+          "A plugin enabledPlugins declares from this marketplace could not be" \
+          "installed either, as a result." \
+          "Fix: once the reason above is gone, re-run ./setup.sh."
+      fi
+    done < <(printf '%s\n' "$marketplaces_decl")
+  else
+    record_failure "settings.json's extraKnownMarketplaces could not be read." \
+      "\`jq\` failed to parse $claude_settings -- see its message just above." \
+      "Every marketplace it declares was skipped, and so was every plugin" \
+      "that depends on one of them." \
+      "Fix: correct settings.json (jq -e . \"$claude_settings\" reproduces the" \
+      "parse error), then re-run ./setup.sh."
+  fi
 
   # -y answers the marketplace-declared-command prompt a plugin's install can
   # raise, so this does not sit waiting for input that a non-interactive run
   # never sends.
-  while IFS= read -r plugin_id; do
-    [ -n "$plugin_id" ] || continue
-    if echo "$installed_now" | jq -e --arg id "$plugin_id" '.[] | select(.id == $id and .enabled == true)' >/dev/null; then
-      echo "Plugin $plugin_id already installed and enabled. Skipping."
-    elif claude plugin install "$plugin_id" -y; then
-      echo "Installed plugin $plugin_id."
-    else
-      record_failure "Plugin $plugin_id was not installed." \
-        "\`claude plugin install\` said why just above -- a marketplace named" \
-        "above not having been added is the usual reason." \
-        "Fix: once the reason above is gone, re-run ./setup.sh."
-    fi
-  done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$claude_settings")
+  if plugins_decl="$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$claude_settings")"; then
+    while IFS= read -r plugin_id; do
+      [ -n "$plugin_id" ] || continue
+      if echo "$installed_now" | jq -e --arg id "$plugin_id" '.[] | select(.id == $id and .enabled == true)' >/dev/null; then
+        echo "Plugin $plugin_id already installed and enabled. Skipping."
+      elif claude plugin install "$plugin_id" -y; then
+        echo "Installed plugin $plugin_id."
+      else
+        record_failure "Plugin $plugin_id was not installed." \
+          "\`claude plugin install\` said why just above -- a marketplace named" \
+          "above not having been added is the usual reason." \
+          "Fix: once the reason above is gone, re-run ./setup.sh."
+      fi
+    done < <(printf '%s\n' "$plugins_decl")
+  else
+    record_failure "settings.json's enabledPlugins could not be read." \
+      "\`jq\` failed to parse $claude_settings -- see its message just above." \
+      "Every plugin it declares was skipped." \
+      "Fix: correct settings.json (jq -e . \"$claude_settings\" reproduces the" \
+      "parse error), then re-run ./setup.sh."
+  fi
 fi
 
 # Not tidiness: under set -u, bash 3.2 reads "${arr[@]}" on an empty array as an
