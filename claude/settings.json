@@ -4,13 +4,11 @@
       "~/.claude/plugins/cache"
     ]
   },
-  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "sh \"$HOME/.claude/scripts/statusline.sh\""
   },
   "outputStyle": "Concise",
-  "effortLevel": "high",
   "tui": "fullscreen",
   "theme": "auto",
   "remoteControlAtStartup": false,
