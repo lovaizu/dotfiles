@@ -52,16 +52,16 @@ repo の状態に戻る — これはこの repo の他の設定と同じ振る�
 
 **Steps**:
 
-- [ ] `claude/settings.json` から `model` と `effortLevel` の2キーを削除する
-- [ ] repo 内に他の固定記述がないか確認する(過去セッションの `.rn/` は除く)
-- [ ] `./setup.sh` を流し、`~/.claude/settings.json` が repo と一致することを確認する
-- [ ] 新しい Claude Code セッションで、設定エラーがなく、モデルと effort が既定値であること、
+- [x] `claude/settings.json` から `model` と `effortLevel` の2キーを削除する
+- [x] repo 内に他の固定記述がないか確認する(過去セッションの `.rn/` は除く)
+- [x] `./setup.sh` を流し、`~/.claude/settings.json` が repo と一致することを確認する
+- [x] 新しい Claude Code セッションで、設定エラーがなく、モデルと effort が既定値であること、
       statusline にモデル名と effort が表示されることを確認する
-- [ ] `/effort` で値を選んで `~/.claude/settings.json` に書き込ませ、`./setup.sh` で消えることを確認する
-- [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] `/effort` で値を選んで `~/.claude/settings.json` に書き込ませ、`./setup.sh` で消えることを確認する
+- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
