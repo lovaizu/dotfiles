@@ -83,8 +83,8 @@ repo の状態に戻る — これはこの repo の他の設定と同じ振る�
 
 **Steps**:
 
-- [ ] Acceptance criteria の確認結果をユーザーに提示する
-- [ ] `/rn:ty`(承認)または `/rn:gm`(修正 → 対応して再提示)で判断を受ける
+- [x] Acceptance criteria の確認結果をユーザーに提示する
+- [x] `/rn:ty`(承認)または `/rn:gm`(修正 → 対応して再提示)で判断を受ける
 
 **Completion criteria**:
 
