@@ -13,6 +13,7 @@ source "$DOTFILES_DIR/lib/hackgen_font.sh"
 source "$DOTFILES_DIR/lib/windows_terminal.sh"
 source "$DOTFILES_DIR/lib/herdr_integration.sh"
 source "$DOTFILES_DIR/lib/ccpm_plugin.sh"
+source "$DOTFILES_DIR/lib/tools.sh"
 
 # herdr reads $XDG_CONFIG_HOME when set and never falls back to ~/.config,
 # so a hard $HOME/.config here would deploy a file herdr never reads and
@@ -38,6 +39,8 @@ if [ -n "${XDG_IGNORED:-}" ]; then
     "different config.toml from the one deployed here." \
     "Fix: set it to an absolute path, or unset it, and re-run ./setup.sh."
 fi
+
+install_tools
 
 if ! command -v herdr &>/dev/null; then
   echo "herdr not found. Its config is managed here all the same:"
