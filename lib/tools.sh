@@ -6,6 +6,7 @@
 install_tools() {
   install_herdr
   install_jq
+  install_starship
 }
 
 install_herdr() {
@@ -73,4 +74,38 @@ install_jq() {
       fi
       ;;
   esac
+}
+
+install_starship() {
+  if command -v starship &>/dev/null; then
+    echo "starship already installed. Skipping."
+    return 0
+  fi
+  case "$(uname -s)" in
+    Darwin)
+      if ! command -v brew &>/dev/null; then
+        warn "Homebrew is not installed, so starship was not installed either." \
+          "Fix: install Homebrew, or starship by hand, and re-run ./setup.sh."
+      elif ! brew install starship; then
+        warn "brew install starship failed." \
+          "brew said why just above." \
+          "Fix: once the reason is gone, re-run ./setup.sh."
+      fi
+      ;;
+    *)
+      # The official installer into ~/.local/bin, beside herdr: its default
+      # /usr/local/bin needs sudo (read, 2026-10-18).
+      if ! mkdir -p "$HOME/.local/bin" ||
+        ! curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin"; then
+        warn "starship's installer failed." \
+          "It said why just above." \
+          "Fix: once the reason is gone, re-run ./setup.sh."
+      fi
+      ;;
+  esac
+  if ! command -v starship &>/dev/null; then
+    warn "starship is still not found on PATH, so new shells keep their old prompt and tab title." \
+      "If it was installed above, its directory is not on PATH." \
+      "Fix: add it to PATH, then re-run ./setup.sh."
+  fi
 }

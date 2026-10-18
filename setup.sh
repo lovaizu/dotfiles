@@ -15,12 +15,14 @@ source "$DOTFILES_DIR/lib/herdr_integration.sh"
 source "$DOTFILES_DIR/lib/ccpm_plugin.sh"
 source "$DOTFILES_DIR/lib/tools.sh"
 source "$DOTFILES_DIR/lib/cmd_eikana.sh"
+source "$DOTFILES_DIR/lib/shell_prompt.sh"
 
 # herdr reads $XDG_CONFIG_HOME when set and never falls back to ~/.config,
 # so a hard $HOME/.config here would deploy a file herdr never reads and
 # still call the run a success (measured).
 set_xdg_base XDG_CONFIG_HOME "${XDG_CONFIG_HOME:-}" "$HOME/.config"
 HERDR_CONFIG="$xdg_base/herdr/config.toml"
+SHELL_PROMPT="$xdg_base/shell/prompt.sh"
 
 # Backups get their own tree: iTerm2 reads every file in DynamicProfiles
 # except names starting with a dot or ending in a tilde (measured in the
@@ -51,6 +53,8 @@ deploy "$DOTFILES_DIR/herdr/config.toml" "$HERDR_CONFIG"
 deploy "$DOTFILES_DIR/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 deploy "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
 deploy "$DOTFILES_DIR/claude/scripts/statusline.sh" "$HOME/.claude/scripts/statusline.sh"
+
+realize_shell_prompt "$SHELL_PROMPT"
 
 case "$(uname -s)" in
   Darwin)
