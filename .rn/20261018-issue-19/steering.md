@@ -1,6 +1,6 @@
 ---
 rn: 0.9.0
-pr: (opened next)
+pr: https://github.com/lovaizu/dotfiles/pull/32
 status: running
 artifact-language: English
 conversation-language: Japanese
