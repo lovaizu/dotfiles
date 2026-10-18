@@ -1,0 +1,52 @@
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+#!/bin/bash
+set -euo pipefail
+{{ template "warn.sh" . }}
+# herdr titles the terminal tab "<hostname>: <workspace>", and every WSL
+# distro of one PC starts with the PC's hostname, so without this the tabs of
+# different distros read the same.
+
+# Prints the wsl.conf in $1 with hostname = $2 under [network], keeping
+# everything else as it is.
+wsl_conf_with_hostname() {
+  { cat "$1" 2>/dev/null || true; } | awk -v name="$2" '
+    /^[[:space:]]*\[/ {
+      in_net = ($0 ~ /^[[:space:]]*\[network\][[:space:]]*$/)
+      print
+      if (in_net && !done) { print "hostname = " name; done = 1 }
+      next
+    }
+    in_net && /^[[:space:]]*hostname[[:space:]]*=/ { next }
+    { print }
+    END { if (!done) { if (NR) print ""; print "[network]"; print "hostname = " name } }
+  '
+}
+
+realize_wsl_hostname() {
+  [ -n "${WSL_DISTRO_NAME:-}" ] || return 0
+  local name="$WSL_DISTRO_NAME" conf=/etc/wsl.conf want
+  if [ "$(hostname)" = "$name" ]; then
+    echo "Hostname is already the distro name ($name). Skipping."
+    return 0
+  fi
+  want="$(wsl_conf_with_hostname "$conf" "$name")"
+  if [ "$want" != "$(cat "$conf" 2>/dev/null)" ]; then
+    echo "Setting hostname = $name in $conf (sudo asks for the password):"
+    if ! printf '%s\n' "$want" | sudo tee "$conf" >/dev/null; then
+      warn "$conf was not changed." \
+        "sudo said why just above." \
+        "Until this is fixed, herdr's tab shows this PC's name, the same in every distro." \
+        "Fix: once the reason is gone, re-run chezmoi apply."
+      return 1
+    fi
+  fi
+  # WSL reads wsl.conf only when the distro starts.
+  warn "The hostname becomes $name only after this distro restarts." \
+    "Until then, herdr's tab shows this PC's name, the same in every distro." \
+    "Fix: close its terminals, run 'wsl --terminate $name' in PowerShell," \
+    "open it again, and re-run chezmoi apply."
+  return 1
+}
+
+realize_wsl_hostname
+{{ end -}}

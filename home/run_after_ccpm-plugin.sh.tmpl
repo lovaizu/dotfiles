@@ -1,0 +1,39 @@
+#!/bin/bash
+# The marketplace and plugin are named here, not in settings.json: Claude
+# Code writes enabledPlugins back into the live file once a plugin is
+# installed, so a copy in the repo would be runtime state, not configuration.
+set -euo pipefail
+{{ template "warn.sh" . }}
+marketplace_name="ccpm"
+marketplace_repo="lovaizu/ccpm"
+plugin_id="rn@ccpm"
+
+for cmd in claude jq; do
+  if ! command -v "$cmd" &>/dev/null; then
+    warn "$cmd is missing, so the $marketplace_name marketplace and the $plugin_id plugin were not set up." \
+      "Fix: install $cmd, then re-run chezmoi apply."
+    exit 1
+  fi
+done
+
+# Checked before calling `add` rather than trusting it to be safe to repeat:
+# `add` re-clones the marketplace repo.
+marketplaces_now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
+if ! echo "$marketplaces_now" | jq -e --arg n "$marketplace_name" '.[] | select(.name == $n)' >/dev/null; then
+  if ! claude plugin marketplace add "$marketplace_repo"; then
+    warn "Marketplace $marketplace_name ($marketplace_repo) was not added." \
+      "\`claude plugin marketplace add\` said why just above, and the" \
+      "$plugin_id plugin from it could not be installed either." \
+      "Fix: once the reason above is gone, re-run chezmoi apply."
+    exit 1
+  fi
+fi
+
+# Measured idempotent (two real runs, same end state). -y answers the
+# install's own prompt so a run never sits waiting for input.
+if ! claude plugin install "$plugin_id" -y; then
+  warn "Plugin $plugin_id was not installed." \
+    "\`claude plugin install\` said why just above." \
+    "Fix: once the reason above is gone, re-run chezmoi apply."
+  exit 1
+fi

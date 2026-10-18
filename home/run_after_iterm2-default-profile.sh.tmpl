@@ -1,0 +1,29 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+# Only warns: the profile file itself is placed either way.
+set -euo pipefail
+{{ template "warn.sh" . }}
+# Must match "Guid" in the herdr.json profile -- JSON has no comments to
+# say so. Out of sync, this compares against a profile no file defines and
+# the warning below fires on every run, even when herdr already is default.
+iterm_profile_guid="8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038"
+iterm_default_menu="iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default"
+if default_guid="$(defaults read com.googlecode.iterm2 "Default Bookmark Guid" 2>/dev/null)"; then
+  if [ "$default_guid" != "$iterm_profile_guid" ]; then
+    warn "the 'herdr' profile is not iTerm2's default profile." \
+      "The ctrl+cmd key mappings apply only to windows using that profile," \
+      "so herdr workspace switching will not work in other windows." \
+      "Fix: set it as the default in" \
+      "  $iterm_default_menu" \
+      "then open a NEW window (existing windows keep their old profile)."
+  fi
+else
+  warn "iTerm2 has no preferences on this machine, so which profile is its default is unknown." \
+    "That is what a Mac looks like where iTerm2 has never been installed or" \
+    "never been started. The profile itself is deployed and iTerm2 will" \
+    "read it when it first runs, so nothing was missed here." \
+    "Fix: after installing and starting iTerm2, set the default profile in" \
+    "  $iterm_default_menu" \
+    "Re-running chezmoi apply then says whether it took."
+fi
+{{ end -}}
