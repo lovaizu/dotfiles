@@ -1,0 +1,9 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  Claude Code and herdr write enabledPlugins and hooks back into this file,
+  so only the keys kept in the repo are set and the rest is left as found.
+  A key dropped from the repo stays on the machine until removed here.
+*/ -}}
+{{- $live := dict -}}
+{{- if .chezmoi.stdin -}}{{- $live = fromJson .chezmoi.stdin -}}{{- end -}}
+{{- mergeOverwrite $live (include ".chezmoitemplates/claude-settings.json" | fromJson) | toPrettyJson -}}
