@@ -1,14 +1,3 @@
----
-rn: 0.9.0
-pr: https://github.com/lovaizu/dotfiles/pull/30
-status: running
-artifact-language: English
-conversation-language: Japanese
-readme: README.md
-design: (なし)
-verification: (なし)
----
-
 # Goal
 
 ユーザーに判断を求めるとき、開いている判断は常に1つだけにする(Issue #18)。
