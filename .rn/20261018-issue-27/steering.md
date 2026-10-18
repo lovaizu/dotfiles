@@ -82,8 +82,8 @@ clone して `./setup.sh` を流すだけで次の Mac でもこの状態にな�
 
 **Steps**:
 
-- [ ] Acceptance criteria の確認結果をユーザーに提示する
-- [ ] `/rn:ty`(承認)または `/rn:gm`(修正 → 対応して再提示)で判断を受ける
+- [x] Acceptance criteria の確認結果をユーザーに提示する
+- [x] `/rn:ty`(承認)または `/rn:gm`(修正 → 対応して再提示)で判断を受ける
 
 **Completion criteria**:
 
