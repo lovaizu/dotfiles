@@ -26,7 +26,8 @@ UI 全体を反転させずに選択を見分けられる。あわせて、明�
 - A1: Dark のとき、herdr の UI 全体(未選択の Space 名・区切り線を含む)がターミナルの暗い背景の上で
   読め、選択中の Space / Agent 行が色で見分けられる
 - A2: Windows Terminal・iTerm2 のどちらでも、ターミナル側の手動操作だけで Gruvbox Light に切り替えられ、
-  herdr の UI も Light に揃い、選択行が見分けられる。Dark に戻すのも同じ操作でできる
+  herdr の UI も Light に揃い、選択行が見分けられる。Dark に戻すのも同じ操作でできる。iTerm2 では herdr が
+  その場で追従し、Windows Terminal では herdr に付け直す(detach して attach)と追従する
 
 ## Must-be quality
 
@@ -46,10 +47,16 @@ UI 全体を反転させずに選択を見分けられる。あわせて、明�
   テーマを切り替え、再起動は要らない
 - Fact, Issue #15 より(ユーザーが決定): 選択行の色は Dark で `#504945`、Light で `#d5c4a1`。今より弱い
   ハイライトになることは承知のうえ
-- Assumption: iTerm2 の Change Profile と Windows Terminal の手動スキーム変更で、ターミナルが color-scheme
-  変更通知を herdr に送る(未検証。送らなければ herdr は再アタッチまで前のテーマのまま)
-- Assumption: Windows Terminal で `Gruvbox Light` を選んだとき、ターミナルが自分を light と報告する
-  (スキームの背景色から判定されるかは未検証)
+- Fact, iTerm2 のソース(gnachman/iTerm2 `PTYSession.m` の `textViewBackgroundColorDidChangeFrom:to:`)を
+  読んで確認(2026-10-18、このマシンは iTerm2 3.7.4): 背景色の明暗が変わると、きっかけを問わず(Change
+  Profile を含む)mode 2031 を有効にしたアプリへ `CSI ? 997 ; 1|2 n` を送る。明暗は背景色から判定する
+- Fact, microsoft/terminal#18375 が未解決(2026-10-18 確認): Windows Terminal は mode 2031 の変更通知を
+  送らない。手動でスキームを変えても herdr は前のテーマのまま。Issue #15 はこの場合「付け直すまで前の
+  テーマ」を受け入れている
+- Fact, microsoft/terminal の OSC 11 応答に関する issue(#19904 など)より: Windows Terminal は背景色の問い
+  合わせ(OSC 11)に答える
+- Assumption: herdr は attach のたびに OSC 11 で背景色を問い合わせ、その明暗でテーマを選ぶ(バイナリに
+  OSC 11 の問い合わせ文字列があることだけ確認。付け直しで追従するかは未検証)
 
 # Rules
 
