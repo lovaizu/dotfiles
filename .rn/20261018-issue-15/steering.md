@@ -1,6 +1,6 @@
 ---
 rn: 0.9.0
-pr: (not yet opened)
+pr: https://github.com/lovaizu/dotfiles/pull/31
 status: running
 artifact-language: English (code, commits, README, PR); the `.rn/` record in Japanese, as .claude/rules/language.md sets
 conversation-language: Japanese
