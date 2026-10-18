@@ -16,6 +16,7 @@ source "$DOTFILES_DIR/lib/ccpm_plugin.sh"
 source "$DOTFILES_DIR/lib/tools.sh"
 source "$DOTFILES_DIR/lib/cmd_eikana.sh"
 source "$DOTFILES_DIR/lib/shell_prompt.sh"
+source "$DOTFILES_DIR/lib/wsl_hostname.sh"
 
 # herdr reads $XDG_CONFIG_HOME when set and never falls back to ~/.config,
 # so a hard $HOME/.config here would deploy a file herdr never reads and
@@ -62,7 +63,10 @@ case "$(uname -s)" in
     install_hackgen_font
     realize_cmd_eikana
     ;;
-  *) deploy_windows_terminal ;;
+  *)
+    deploy_windows_terminal
+    realize_wsl_hostname
+    ;;
 esac
 
 realize_herdr_integration

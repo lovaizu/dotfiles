@@ -3,9 +3,6 @@ onboarding = false
 delivery = "terminal"
 
 [ui]
-# The focused pane's shell sets "<host>: <dir>"; herdr's default title
-# would name the PC instead of the WSL distro, and no directory.
-window_title = "{terminal_title}"
 show_agent_labels_on_pane_borders = true
 agent_panel_sort = "priority"
 

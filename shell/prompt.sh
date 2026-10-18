@@ -6,8 +6,9 @@ command -v starship >/dev/null 2>&1 || return 0
 # what tells their tabs apart.
 _prompt_host="${WSL_DISTRO_NAME:-$(hostname -s)}"
 
-# The tab shows the host instead of the prompt. Under herdr this title
-# reaches the tab through herdr's window_title.
+# The tab shows the host instead of the prompt. herdr replaces this title
+# with its own "<hostname>: <workspace>", which is why lib/wsl_hostname.sh
+# gives each distro its name as hostname too.
 _prompt_title() {
   # Through a variable: a quoted or escaped ~ keeps its backslash in zsh and
   # bash 3.2 (measured).

@@ -10,8 +10,9 @@
 # Acceptance criteria
 
 - `./setup.sh` のあと新しいシェルを開くと、プロンプトが Starship の既定のもので、ホスト名を含まない
-- タブタイトルがプロンプトのたびに `<環境名>: <ディレクトリ>` になる(ディレクトリを移ると追従する)。
-  環境名は WSL では distro 名、Mac ではマシン名
+- herdr の外では、タブタイトルがプロンプトのたびに `<環境名>: <ディレクトリ>` になる(ディレクトリを移ると追従する)
+- herdr の中では、タブタイトルが herdr 既定の `<環境名>: <スペース名>` になる
+- 環境名は WSL では distro 名、Mac ではマシン名
 - Starship が無ければ `./setup.sh` が入れる。入れられなければ理由と手順を出す
 - シェルの設定ファイル(Mac は `~/.zshrc`、WSL は `~/.bashrc`)は置き換えず、必要な行を1回だけ足す。
   何度流しても増えない
@@ -19,11 +20,13 @@
 
 # Assumptions
 
-- distro 名は WSL が `$WSL_DISTRO_NAME` で渡す。ホスト名を変える方式は、パスワード入力と distro の再起動が
-  要るので採らない(2026-10-18 ユーザー判断)
+- herdr の中ではタブのタイトルを herdr が決める(`ui.window_title`、既定 `{hostname}: {workspace}`)。
+  `{terminal_title}` にするとスペースの多くで Claude Code の作業名が出て環境が分からないので、既定のままにする
+  (2026-10-18 ユーザー判断)
+- herdr の `{hostname}` は OS のホスト名なので、WSL では `/etc/wsl.conf` で各 distro のホスト名を distro 名にする。
+  パスワード入力と distro の再起動が1回要る(2026-10-18 ユーザー判断)。distro 名は WSL が `$WSL_DISTRO_NAME` で渡す
 - このMacのシェルは zsh、Starship 1.25.1 は Homebrew で導入済み。`~/.zshrc` には手で書いた
   `starship init zsh` が2行ある(確認済み)
-- タブは herdr の中で使われる。herdr の中のシェルが出すタイトルがタブまで届くかは **未検証**(実機で確かめる)
 - Windows 側は実機で確かめる必要がある(このMacからは確かめられない)
 
 # Rules
@@ -42,10 +45,12 @@
 
 **Steps**:
 
-- [ ] Starship が無ければ入れる(Mac は Homebrew、WSL は公式インストーラ)
-- [ ] タイトルを出す処理を repo に置き、シェルの設定ファイルに読み込む行を1回だけ足す
-- [ ] このMacで流し、新しいタブでプロンプト・タイトル・2回目の実行で行が増えないことを確かめる
-- [ ] herdr の中でもタブにタイトルが出るか確かめる
+- [x] Starship が無ければ入れる(Mac は Homebrew、WSL は公式インストーラ)
+- [x] タイトルを出す処理を repo に置き、シェルの設定ファイルに読み込む行を1回だけ足す
+- [x] このMacで流し、タイトルの出力と、2回目の実行で行が増えないことを確かめる
+- [x] herdr の中のタブを確かめる(`{terminal_title}` を試し、既定に戻すと決めた)
+- [x] WSL では `/etc/wsl.conf` のホスト名を distro 名にする
+- [ ] Mac の iTerm2 だけのタブの表示をユーザーに確かめてもらう
 - [ ] Windows(WSL)で同じことをユーザーに確かめてもらう
 
 **Completion criteria**:
