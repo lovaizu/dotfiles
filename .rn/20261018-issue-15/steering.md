@@ -1,13 +1,4 @@
----
-rn: 0.9.0
-pr: https://github.com/lovaizu/dotfiles/pull/31
-status: running
-artifact-language: English (code, commits, README, PR); the `.rn/` record in Japanese, as .claude/rules/language.md sets
-conversation-language: Japanese
-readme: README.md
-design: docs/design.md
-verification: docs/verification.md
----
+PR: https://github.com/lovaizu/dotfiles/pull/31
 
 # Goal
 
