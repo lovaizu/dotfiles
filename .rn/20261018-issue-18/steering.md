@@ -1,6 +1,6 @@
 ---
 rn: 0.9.0
-pr: (draft PR を開いたら記入)
+pr: https://github.com/lovaizu/dotfiles/pull/30
 status: running
 artifact-language: English
 conversation-language: Japanese
