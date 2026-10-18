@@ -11,14 +11,10 @@ verification: docs/verification.md
 
 # Goal
 
-herdr の UI テーマをターミナルと同じ Gruvbox の明暗に揃え、Windows と Mac の両方で Gruvbox Light と Dark を
-ターミナル側の手動切り替えで使えるようにする(Issue #15)。
+Gruvbox のダークとライトを両方使えるようにし、初期値(ダーク)を herdr とターミナルで合わせる(Issue #15)。
 
-いまは herdr だけが `gruvbox-light` に固定され、ターミナルは Gruvbox Dark。選択中の Space 行を目立たせる
-ためだったが、それ以外の UI は暗い背景の上に明るい背景向けの色で描かれ、未選択の Space 名は背景に対して
-1.67:1 しかなく読みにくい。herdr に選択行の色を直接決める `[theme.custom] active_row_bg` ができたので、
-UI 全体を反転させずに選択を見分けられる。また、いまは herdr・iTerm2・Windows Terminal がそれぞれ一つの
-配色に固定され、どちらの機械でも light で作業する手段がないので、それを作る。
+いまは herdr だけが `gruvbox-light` に固定され、ターミナルは Gruvbox Dark で、暗い背景の上に明るい背景向けの
+色が載って読みにくい。また配色がそれぞれ一つに固定されていて、light で作業する手段がない。
 
 # Acceptance criteria
 
@@ -27,8 +23,9 @@ UI 全体を反転させずに選択を見分けられる。また、いまは h
 - A1: Dark のとき、herdr の UI がターミナルと同じ Gruvbox Dark で描かれ、未選択の Space 名・区切り線が
   暗い背景向けの色になって読める(いまの未選択名 1.67:1 のような、背景に溶ける文字がない)。選択中の
   Space / Agent 行は背景色で見分けられ、その行の名前も読める
-- A2: Windows Terminal・iTerm2 のどちらでも、ターミナル側の手動操作だけで Gruvbox Light に切り替えられ、
-  herdr の UI も Light に揃い、選択行が見分けられる。Dark に戻すのも同じ操作でできる
+- A2: Windows Terminal・iTerm2 のどちらでも、ターミナル側の手動操作で Gruvbox Light に切り替えられ、
+  herdr の UI も Light に揃い、選択行が見分けられる。Dark に戻すのも同じ操作でできる。herdr が揃うのは
+  その場でも、付け直したあとでもよい
 
 ## Must-be quality
 
@@ -47,6 +44,8 @@ UI 全体を反転させずに選択を見分けられる。また、いまは h
 - Fact, `windows-terminal/settings.json` を読んで確認: `Gruvbox Dark` と `Gruvbox Light` の両スキームが
   定義済みで、全プロファイルが継承する `profiles.defaults.colorScheme` が `Gruvbox Dark`(各プロファイルは
   上書きしていない)
+- Fact, decided by the user(2026-10-18): 求めるのは「ダークとライトを使えるようにする」「初期値を合わせる」
+  の2点。Windows Terminal で herdr がその場で追従しないことは妨げにならない
 - Fact, `lib/tools.sh` を読んで確認: setup.sh は herdr が入っていれば更新しない
 - Assumption: Windows 機(WSL)の herdr の版は未確認
 - Fact, Issue #15 より(0.8.2 で検証済みと記載): herdr は OS ではなくターミナルの color-scheme 変更通知で
