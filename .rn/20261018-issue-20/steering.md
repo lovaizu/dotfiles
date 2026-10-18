@@ -60,11 +60,11 @@
 ### #3: PR を仕上げる
 
 - [x] PR 本文に、何を採らなかったか・なぜか、と確認の結果を書く
-- [ ] レビューに出す
+- [x] レビューに出す(2026-10-18 Ready for review)
 
 # State
 
 - **Status**: not suspended
-- **Next**: #3 PR を仕上げる
+- **Next**: レビューの指摘に対応する
 - **Notes**: draft PR #35。比較は `--setting-sources local`(ユーザーの CLAUDE.md を読ませない)+
   `--append-system-prompt-file` で旧/新を渡す。振る舞いが変わらない行は削る候補としてユーザーに相談する
