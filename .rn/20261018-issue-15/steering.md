@@ -73,10 +73,11 @@ rn は使わない(`/rn:on` していない)。サインオフは設けず、下
   `[theme.custom.dark]` に `active_row_bg = "#504945"`、`[theme.custom.light]` に `"#d5c4a1"`
 - [x] `iterm2/`: light 配色の 2 つ目の動的プロファイル(既定にはしない、それ以外は `herdr` と同じ)
 - [x] `README.md`: テーマの不一致を意図とする項目を消す
-- [ ] 実機確認: Mac で herdr が Dark で揃うこと、Change Profile で Light に揃うこと、`./setup.sh` が通ること
+- [x] 実機確認: Mac で herdr が Dark で揃うこと、Change Profile で Light に揃うこと、`./setup.sh` が通ること
 
 # State
 
-- **Next**: 実機確認のうち目で見る部分をユーザーに依頼中(iTerm2 への Apple Events の権限がなく、窓を開けない)。`./setup.sh` は通り、`herdr config check` は ok
+- **Next**: PR の説明を書いた。Ready にするかはユーザー判断
 - **Notes (setup)**: このブランチが main (#32) より古いまま `./setup.sh` を流し、`~/.claude/CLAUDE.md` が1行戻った。バックアップから戻し、main をマージ済み
+- **Checked (2026-10-18, Mac)**: ユーザーが目で確認。Dark で揃う、`herdr light` に Change Profile で Light に揃う、Light でも ctrl+cmd のキーが効く。Dark へ戻すのは未確認(ユーザーが不要と判断)
 - **Notes**: Windows 機の herdr の版と、Windows で付け直して Light に揃うかは未確認。Windows 機はここにない
