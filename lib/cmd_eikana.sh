@@ -1,9 +1,11 @@
-CMD_EIKANA_CASK="dominion525/tap/cmd-eikana"
+CMD_EIKANA_TAP="dominion525/tap"
+CMD_EIKANA_CASK="$CMD_EIKANA_TAP/cmd-eikana"
 CMD_EIKANA_BUNDLE_ID="io.github.dominion525.cmd-eikana"
 
-# Prints the PID of every process holding a Quartz event tap, one per line.
-# CGEventTapInformation is 48 bytes with tappingProcess at byte 24, so the
-# 7th of each 12 uint32s (measured on arm64, macOS 26).
+# Prints the PID of every process holding an enabled Quartz event tap, one
+# per line. CGEventTapInformation is 48 bytes: tappingProcess is the 7th of
+# its 12 uint32s and the enabled bool the low byte of the 9th (measured on
+# arm64, macOS 26).
 event_tap_owners() {
   osascript -l JavaScript \
     -e 'ObjC.import("CoreGraphics"); ObjC.import("Foundation");' \
@@ -12,14 +14,23 @@ event_tap_owners() {
     -e 'var d = $.NSMutableData.dataWithLength(48 * n[0]); $.CGGetEventTapList(n[0], d.mutableBytes, n);' \
     -e 'd.base64EncodedStringWithOptions(0).js' |
     base64 -d | od -v -A n -t u4 | tr -s ' ' '\n' | sed '/^$/d' |
-    awk 'NR % 12 == 7'
+    awk 'NR % 12 == 7 { pid = $0 } NR % 12 == 9 && $0 % 256 != 0 { print pid }'
+}
+
+# The original cask shares the token, so `brew list --cask` with either name
+# succeeds for both (measured); only the install receipt tells them apart.
+cmd_eikana_installed_tap() {
+  local receipt
+  receipt="$(brew --prefix)/Caskroom/cmd-eikana/.metadata/INSTALL_RECEIPT.json"
+  [ -f "$receipt" ] || return 0
+  grep -o '"tap": *"[^"]*"' "$receipt" | head -n 1 | cut -d '"' -f 4
 }
 
 # The app is what selects the input source, so the guarantee is "it holds a
-# key tap", not "it is installed". It creates the tap only once both
-# Input Monitoring and Accessibility are granted, and neither can be granted
-# from a script, nor read back from one: the TCC database is closed to the
-# terminal without Full Disk Access (measured).
+# key tap", not "it is installed". It creates the tap only once it has been
+# granted keyboard access, and that can neither be granted from a script nor
+# read back by one: the TCC database is closed to the terminal without Full
+# Disk Access (measured).
 realize_cmd_eikana() {
   local cost=(
     "Until this is fixed, left and right ⌘ alone do nothing, and the only"
@@ -31,11 +42,19 @@ realize_cmd_eikana() {
       "Fix: install Homebrew and re-run ./setup.sh."
     return 0
   fi
-  if brew list --cask "$CMD_EIKANA_CASK" &>/dev/null; then
+  local installed_tap
+  installed_tap="$(cmd_eikana_installed_tap)"
+  if [ "$installed_tap" = "$CMD_EIKANA_TAP" ]; then
     echo "⌘英かな already installed. Skipping."
+  elif [ -n "$installed_tap" ]; then
+    # Not replaced here: uninstalling an app the user put in is their call.
+    record_failure "The original cmd-eikana cask is installed, not the Apple Silicon fork." \
+      "The original runs under Rosetta and hangs on macOS 26." \
+      "Fix: brew uninstall --cask cmd-eikana, then re-run ./setup.sh."
+    return 0
   # Current Homebrew refuses a cask from a tap that was never tapped
   # (measured), so the tap comes first.
-  elif ! brew tap dominion525/tap || ! brew install --cask "$CMD_EIKANA_CASK"; then
+  elif ! brew tap "$CMD_EIKANA_TAP" || ! brew install --cask "$CMD_EIKANA_CASK"; then
     record_failure "brew install --cask $CMD_EIKANA_CASK failed." \
       "brew said why just above." \
       "${cost[@]}" \
@@ -44,23 +63,32 @@ realize_cmd_eikana() {
   fi
 
   # First launch is what registers it as a login item and asks for the
-  # permissions; later launches come from that login item.
+  # permissions; later launches come from that login item. A failed open is
+  # caught by the pgrep below, with its own message.
   if ! pgrep -f "/⌘英かな.app/Contents/MacOS/" >/dev/null; then
-    open -b "$CMD_EIKANA_BUNDLE_ID"
+    open -b "$CMD_EIKANA_BUNDLE_ID" || true
     sleep 2
   fi
   local pid
-  pid="$(pgrep -f "/⌘英かな.app/Contents/MacOS/" | head -n 1)"
+  pid="$(pgrep -f "/⌘英かな.app/Contents/MacOS/" | head -n 1 || true)"
   if [ -z "$pid" ]; then
     record_failure "⌘英かな did not start." \
       "${cost[@]}" \
       "Fix: open ⌘英かな from Applications to see why, then re-run ./setup.sh."
     return 0
   fi
-  if ! event_tap_owners | grep -qx "$pid"; then
+  local owners
+  if ! owners="$(event_tap_owners)"; then
+    record_failure "Could not list the keyboard event taps to check on ⌘英かな." \
+      "osascript said why just above." \
+      "Fix: once the reason is gone, re-run ./setup.sh."
+    return 0
+  fi
+  if ! grep -qx "$pid" <<<"$owners"; then
     record_failure "⌘英かな is running but cannot see the keyboard yet." \
-      "Only you can grant this. In System Settings > Privacy & Security, turn" \
-      "⌘英かな on under both Input Monitoring and Accessibility." \
+      "Only you can grant this. ⌘英かな asks on its own and opens System Settings;" \
+      "under Privacy & Security, turn it on in both Input Monitoring and Accessibility." \
+      "It picks up the grant without a restart." \
       "${cost[@]}" \
       "Fix: grant both, then re-run ./setup.sh."
     return 0

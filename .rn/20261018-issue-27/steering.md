@@ -54,19 +54,20 @@ clone して `./setup.sh` を流すだけで次の Mac でもこの状態にな�
 
 **Steps**:
 
-- [ ] `lib/` に ⌘英かな の導入(tap → cask install → 起動)と権限の判定を足し、Mac の分岐から呼ぶ
-- [ ] このマシンで `./setup.sh` を流し、権限が無い状態で FAILURES に載り、2つの設定名が表示されることを確認する
-- [ ] ユーザーに権限を付けてもらい、再実行で完了になること、左右 ⌘ で切り替わり ⌘C 等が効くことを確認する
-- [ ] 2回目以降の実行(導入済み・起動済み)で再インストールせず完了になることを確認する
-- [ ] README に、権限だけは手で付ける必要があることを意図として足す
-- [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] `lib/` に ⌘英かな の導入(tap → cask install → 起動)と権限の判定を足し、Mac の分岐から呼ぶ
+- [x] このマシンで `./setup.sh` を流し、権限が無い状態で FAILURES に載り、2つの設定名が表示されることを確認する
+- [x] ユーザーに権限を付けてもらい、再実行で完了になること、左右 ⌘ で切り替わり ⌘C 等が効くことを確認する
+- [x] 2回目以降の実行(導入済み・起動済み)で再インストールせず完了になることを確認する
+- [x] README に、権限だけは手で付ける必要があることを意図として足す
+- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium; QA・Verification と1回にまとめて実施)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
-- `./setup.sh` 後、`brew list --cask dominion525/tap/cmd-eikana` が成功し、元の cask `cmd-eikana` は入っていない
+- `./setup.sh` 後、入っている cask `cmd-eikana` のインストール記録の入手元が `dominion525/tap` である
+  (元の cask と名前が同じで `brew list` では区別できない)。元の cask が入っていれば失敗として入れ替えを案内する
 - 権限が無い状態の `./setup.sh` が、入力監視とアクセシビリティを名指しした案内を出し、FAILURES に載せて非ゼロで終わる
 - 権限を付けたあとの `./setup.sh` が `Done.` で終わり、左 ⌘ 単押しで英数・右 ⌘ 単押しでかなに切り替わり、⌘C 等の組み合わせが効く
 - アプリがログイン項目に登録されている
