@@ -43,7 +43,7 @@ Issue #19 を片付ける。Claude は Issue・PR・コミット・ドキュメ�
 
 # Tasks
 
-### [ ] #1: claude/CLAUDE.md に「既にある形に合わせる」を書く
+### [x] #1: claude/CLAUDE.md に「既にある形に合わせる」を書く
 
 Purpose: 言語の行を、既にある同種のものの形に合わせる一般の方針に広げる
 
