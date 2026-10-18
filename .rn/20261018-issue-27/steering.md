@@ -58,7 +58,7 @@ clone して `./setup.sh` を流すだけで次の Mac でもこの状態にな�
 - [x] このマシンで `./setup.sh` を流し、権限が無い状態で FAILURES に載り、2つの設定名が表示されることを確認する
 - [x] ユーザーに権限を付けてもらい、再実行で完了になること、左右 ⌘ で切り替わり ⌘C 等が効くことを確認する
 - [x] 2回目以降の実行(導入済み・起動済み)で再インストールせず完了になることを確認する
-- [x] README に、権限だけは手で付ける必要があることを意図として足す
+- [x] README は変えない(setup.sh の出力が手作業を伝え、キーの選び方は読み手が直したくなる点ではないため。2026-10-18 ユーザー判断)
 - [x] self-check (OK/NG per completion criterion, record in checks/1.md)
 - [x] QA expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium; QA・Verification と1回にまとめて実施)
