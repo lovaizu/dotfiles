@@ -39,6 +39,16 @@ chezmoi で設定を管理する(Issue #17)。
   このMacでは setup.sh が入れていない `writ@ccpm` も有効になっていて、いまの丸ごと上書きは毎回これを消している。
   modify テンプレートで repo のキーだけを上書きし、他のキーを残せることを別の HOME で確かめた
 - Windows Terminal の設定は `$HOME` の外(Windows 側の AppData)にある。chezmoi は `$HOME` の下だけを扱う
+- ユーザー判断(2026-10-18):
+  - settings.json は repo のキーだけを上書きし、アプリが書き足したキーは残す
+  - Windows Terminal は WSL の適用1回のまま、スクリプトで Windows 側へコピーする。
+    Windows にも chezmoi を入れる案は、この1ファイルのために Windows の手順が2回になるので割に合わない
+  - Mac のツールは Homebrew(Brewfile)に一本化する。このMacの `~/.local/bin/herdr`(0.9.1、#26 より前の残り)は、
+    動いている herdr を閉じたあとに消す。試したときに Homebrew の herdr 0.9.5 と jq 1.8.2 が実機に入った
+  - chezmoi は自分の clone(`~/.local/share/chezmoi`)を持ち、`chezmoi init --apply lovaizu` で始め、
+    `chezmoi update` で main を適用する。作業中のブランチは適用されない
+- chezmoi は親ディレクトリの権限も揃える。`~/.config` と `~/Library` は 700 なので `private_` を付けた
+  (付けないと 755 に広げる差分が出た)
 - Windows 側は実機で確かめる必要がある(このMacからは確かめられない)
 
 # Rules
@@ -59,9 +69,9 @@ chezmoi で設定を管理する(Issue #17)。
 
 **Steps**:
 
-- [ ] herdr の設定1つで、初回適用・2回目・手で変えたあと・repo から消したあとの動きを見る
-- [ ] 失敗したときの終了コードと、`--keep-going` で他が最後まで進むかを見る
-- [ ] アプリが書き戻すファイル(settings.json)の扱い方を決める
+- [x] herdr の設定1つで、初回適用・2回目・手で変えたあと・repo から消したあとの動きを見る
+- [x] 失敗したときの終了コードと、`--keep-going` で他が最後まで進むかを見る
+- [x] アプリが書き戻すファイル(settings.json)の扱い方を決める
 
 ### #2: 設定ファイルを chezmoi のソースに移す
 
@@ -69,9 +79,9 @@ chezmoi で設定を管理する(Issue #17)。
 
 **Steps**:
 
-- [ ] repo の置き場所と、新しいマシンでの始め方を決める
-- [ ] ファイルを移し、Mac / WSL で要らないものは `.chezmoiignore` で外す
-- [ ] Windows Terminal の置き方を決めて移す
+- [x] repo の置き場所と、新しいマシンでの始め方を決める
+- [x] ファイルを移し、Mac / WSL で要らないものは `.chezmoiignore` で外す
+- [x] Windows Terminal の置き方を決めて移す
 
 ### #3: インストールや登録の処理を chezmoi のスクリプトに移す
 
@@ -80,9 +90,9 @@ chezmoi で設定を管理する(Issue #17)。
 
 **Steps**:
 
-- [ ] Homebrew で入れるものは Brewfile にまとめる
-- [ ] 残りを `run_` スクリプトに移す。失敗は0以外で終わらせる
-- [ ] `setup.sh` と `lib/` を消す
+- [x] Homebrew で入れるものは Brewfile にまとめる
+- [x] 残りを `run_` スクリプトに移す。失敗は0以外で終わらせる
+- [x] `setup.sh` と `lib/` を消す
 
 ### #4: 実機で確かめる
 
