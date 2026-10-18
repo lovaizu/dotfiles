@@ -66,18 +66,16 @@ Gruvbox のダークとライトを両方使えるようにし、初期値(ダ�
 
 # Tasks
 
-### [ ] #1: Plan sign-off
-### [ ] #2: Design sign-off
+rn は使わない(`/rn:on` していない)。サインオフは設けず、下の 3 つを直接直し、実機で確かめてから報告する
+(2026-10-18 ユーザー判断)。
 
-# Not yet specified
+- [ ] `herdr/config.toml`: `gruvbox-light` 固定をやめ、`auto_switch = true`、基準は `gruvbox`。
+  `[theme.custom.dark]` に `active_row_bg = "#504945"`、`[theme.custom.light]` に `"#d5c4a1"`
+- [ ] `iterm2/`: light 配色の 2 つ目の動的プロファイル(既定にはしない、それ以外は `herdr` と同じ)
+- [ ] `README.md`: テーマの不一致を意図とする項目を消す
+- [ ] 実機確認: Mac で herdr が Dark で揃うこと、Change Profile で Light に揃うこと、`./setup.sh` が通ること
 
-- herdr `config.toml` の `[theme]` を auto_switch にし、`[theme.custom.light]` / `[theme.custom.dark]` に
-  選択行の色を置く
-- iTerm2 に light 配色の 2 つ目の動的プロファイルを足す(既定ではない、キー割り当ては同じ)
-- 古い herdr をどう 0.9.0 以上にするか(setup.sh で `herdr update` するか、手作業として伝えるか)
-- 手動切り替えの具体的な操作: Windows Terminal は設定画面の配色(settings.json を書き換え、次の
-  `./setup.sh` で戻る)か保存しない一時変更か、iTerm2 は Change Profile をどこから呼ぶか
-- README のテーマ不一致の項目を消すこと、切り替え方を README に書くかどうか(`.claude/rules/readme.md`
-  に従って判断する)
-- 同じ herdr に複数のクライアントが付くときのテーマの扱い
-- 両ターミナルで手動切り替え時に herdr が追従するかを実機で確かめる
+# State
+
+- **Next**: 上の Tasks の 1 つ目から
+- **Notes**: Windows 機の herdr の版と、Windows で付け直して Light に揃うかは未確認。Windows 機はここにない
