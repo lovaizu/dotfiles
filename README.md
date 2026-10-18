@@ -22,6 +22,12 @@ The source is the same on both OSes: the [distributor's release page](https://gi
 - **Windows: always manual.** You can't install from WSL to Windows.
 - **Mac: `./setup.sh` installs it.**
 
+### English / Japanese input on Mac
+
+Left ⌘ alone selects English and right ⌘ alone selects Japanese, because each key picks a mode instead of toggling one, and Ctrl+Space and ⌘Space are already taken (VS Code's Emacs keybindings and Spotlight).
+
+The app that does this needs two macOS permissions that no script can grant. `./setup.sh` names them and reports a failure until you grant them by hand; the next run after that completes.
+
 ## Before you fix a setting
 
 Reading the config files straightforwardly makes you want to fix them, but there are 3 points that are intentional as they are.

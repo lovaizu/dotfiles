@@ -14,6 +14,7 @@ source "$DOTFILES_DIR/lib/windows_terminal.sh"
 source "$DOTFILES_DIR/lib/herdr_integration.sh"
 source "$DOTFILES_DIR/lib/ccpm_plugin.sh"
 source "$DOTFILES_DIR/lib/tools.sh"
+source "$DOTFILES_DIR/lib/cmd_eikana.sh"
 
 # herdr reads $XDG_CONFIG_HOME when set and never falls back to ~/.config,
 # so a hard $HOME/.config here would deploy a file herdr never reads and
@@ -55,6 +56,7 @@ case "$(uname -s)" in
   Darwin)
     deploy_iterm2_profile
     install_hackgen_font
+    realize_cmd_eikana
     ;;
   *) deploy_windows_terminal ;;
 esac
