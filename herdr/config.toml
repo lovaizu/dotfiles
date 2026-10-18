@@ -7,10 +7,16 @@ show_agent_labels_on_pane_borders = true
 agent_panel_sort = "priority"
 
 [theme]
-name = "gruvbox-light"
-auto_switch = false
+name = "gruvbox"
+auto_switch = true
 dark_name = "gruvbox"
 light_name = "gruvbox-light"
+
+[theme.custom.dark]
+active_row_bg = "#504945"
+
+[theme.custom.light]
+active_row_bg = "#d5c4a1"
 
 [keys]
 prefix = "ctrl+t"
