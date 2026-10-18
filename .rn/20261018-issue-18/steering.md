@@ -49,4 +49,4 @@ Completion criteria:
   もう1件は後回しにする
 - Must-be quality: 同じ場面で、2件目を問いに混ぜず、依らない作業は進め、既存の項目の書き方(結論・根拠・推奨)も保たれている
 
-### [ ] #2: Deliverable sign-off
+### [x] #2: Deliverable sign-off
