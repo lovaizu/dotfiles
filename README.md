@@ -7,22 +7,13 @@ A repository for using the same working environment on Windows and Mac. It assum
 
 ## Usage
 
-Settings are managed with [chezmoi](https://www.chezmoi.io/). On a new machine, install chezmoi and apply this repository in one go.
+On both OSes, this is all you need. After changing something, `git pull` and run it again.
 
 ```sh
-# Mac
-brew install chezmoi && chezmoi init --apply --keep-going lovaizu
-# WSL
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin init --apply --keep-going lovaizu
+./setup.sh
 ```
 
-chezmoi keeps its own clone of this repository. Edit and merge here as usual, then bring the machine up to date with:
-
-```sh
-chezmoi update --keep-going
-```
-
-`--keep-going` lets one failed step leave the rest to run; each failure says why and how to fix it, and the run ends non-zero.
+It applies this clone with [chezmoi](https://www.chezmoi.io/), installing chezmoi first if it is missing. One failed step leaves the rest to run; each failure says why and how to fix it, and the run ends non-zero.
 
 ### Fonts
 

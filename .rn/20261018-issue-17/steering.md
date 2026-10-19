@@ -45,8 +45,9 @@ chezmoi で設定を管理する(Issue #17)。
     Windows にも chezmoi を入れる案は、この1ファイルのために Windows の手順が2回になるので割に合わない
   - Mac のツールは Homebrew(Brewfile)に一本化する。このMacの `~/.local/bin/herdr`(0.9.1、#26 より前の残り)は、
     動いている herdr を閉じたあとに消す。試したときに Homebrew の herdr 0.9.5 と jq 1.8.2 が実機に入った
-  - chezmoi は自分の clone(`~/.local/share/chezmoi`)を持ち、`chezmoi init --apply lovaizu` で始め、
-    `chezmoi update` で main を適用する。作業中のブランチは適用されない
+  - 使い方はこれまで通り「clone して `./setup.sh`」。`setup.sh` は `chezmoi generate install.sh` の公式の入口
+    (chezmoi がなければ入れて、その clone を適用する)に `--keep-going` を足しただけ。
+    一度は chezmoi 専用の clone を持たせると決めたが、ユーザーのイメージと違ったので決め直した(2026-10-19)
 - chezmoi は親ディレクトリの権限も揃える。`~/.config` と `~/Library` は 700 なので `private_` を付けた
   (付けないと 755 に広げる差分が出た)
 - Ubuntu 24.04 のコンテナで WSL を真似て試した(2026-10-19。kernel の osrelease を差し替え、cmd.exe / wslpath は偽物):
