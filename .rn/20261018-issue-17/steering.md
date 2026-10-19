@@ -49,6 +49,10 @@ chezmoi で設定を管理する(Issue #17)。
     `chezmoi update` で main を適用する。作業中のブランチは適用されない
 - chezmoi は親ディレクトリの権限も揃える。`~/.config` と `~/Library` は 700 なので `private_` を付けた
   (付けないと 755 に広げる差分が出た)
+- Ubuntu 24.04 のコンテナで WSL を真似て試した(2026-10-19。kernel の osrelease を差し替え、cmd.exe / wslpath は偽物):
+  herdr / jq / starship が入り、`.bashrc` に読み込み行が1回だけ足され、Windows Terminal の設定がコピーされ、
+  ccpm プラグインと herdr 連携が入った。2回目は何も増えない。ホスト名だけは distro の再起動が要るので毎回 exit 1
+  (コンテナでは再起動できない)
 - Windows 側は実機で確かめる必要がある(このMacからは確かめられない)
 
 # Rules
