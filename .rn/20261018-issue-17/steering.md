@@ -105,7 +105,7 @@ chezmoi で設定を管理する(Issue #17)。
 
 - [x] ユーザーに断ってから、このMacの実際の `$HOME` に適用し、Acceptance criteria を確かめる(2026-10-19、ユーザーが `./setup.sh` を実行。
   エラーなし、適用後の差分なし、プラグインと hooks は残り、`~/.config` `~/Library` は 700 のまま)
-- [ ] このMacの `~/.local/bin/herdr` を、動いている herdr を閉じたあとに消す
+- [x] このMacの `~/.local/bin/herdr` を消す(2026-10-20、ユーザーが実行。Homebrew の 0.9.5 だけになった)
 - [ ] WSL で確かめてもらう(2026-10-19 ユーザー判断で後回し。問題が出たら直す)
 
 **Completion criteria**:
