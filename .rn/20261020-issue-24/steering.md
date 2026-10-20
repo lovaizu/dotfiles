@@ -79,6 +79,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 - ユーザー判断(2026-10-20):
   - マウントするのは起動したディレクトリではなく、それが属する `~/work/<group>`。
     起動したディレクトリそのままだと、同じグループが別々の sandbox に分かれ、`$HOME` で起動すると丸ごとマウントされる
+  - kit は repo を GitHub から clone して `main` を適用する。ホストの checkout は追加でマウントしない。
+    マウントはグループのディレクトリだけにし、新しいマシンと同じ流れにするため。変更が届くのは push のあと
   - `cc()` は #24 が終わるまで残す。消すかはそのときに決める
   - #21 は #24 のあとに、この sandbox の中でやる
   - rn は作り直し中(lovaizu/ccpm#54)で、ホストでも sandbox でも使えない。ユーザーが手でアンインストールする。
@@ -116,7 +118,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 **Steps**:
 
-- [ ] kit(`spec.yaml`)の形を読み、repo の置き場所を決める
+- [x] kit(`spec.yaml`)の形を読み、repo の置き場所を決める(GitHub から clone。ユーザー判断)
 - [ ] 作成時と起動のたびにすることを分けて書く
 - [ ] `sbx rm` から作り直して、同じ状態になるか確かめる
 
