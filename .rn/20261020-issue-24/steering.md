@@ -68,7 +68,9 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     agent のログインシェルは `/bin/bash`。kit では `SHELL` が渡るようにする。
     `sbx exec -e SHELL=/bin/bash` で `./setup.sh` を流し直すと、`.bashrc` に読み込み行が入り、新しいペインで starship が出た
   - herdr のペインの Claude で `/login` できた。VM の中に `~/.claude/.credentials.json` ができる。
-    中身が偽の値かは未確認(読み出しは権限判定で止められた)
+    中身が偽の値かは未確認(読み出しは権限判定で止められた)。
+    のちに値を出さずに形だけ見た: `accessToken`・`refreshToken` はどちらも `sk-ant-o` で始まる26文字で、
+    本物の OAuth トークン(100文字ほど)より短い。形だけ合わせた偽の値とみる(2026-10-20、kit で作り直した `lovaizu`)
   - herdr のペインの Claude で、statusline・rn plugin・日本語で簡潔な返事(`CLAUDE.md` と Concise)を確かめた(ユーザー確認)
   - herdr のペインは `/home/agent` で開く。そこで起動した Claude はマウントに気づかず「Mac のフォルダはつながっていない」と答えた。
     kit では herdr をマウントしたディレクトリで起動する
