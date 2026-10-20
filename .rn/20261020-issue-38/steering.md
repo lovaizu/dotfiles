@@ -44,5 +44,7 @@ rn の作り直し(lovaizu/ccpm#54)が終わるまで、このリポジトリを
 # State
 
 - **Status**: not suspended
-- **Next**: #2(レビューに出す)
-- **Notes**: draft PR #39
+- **Next**: #2 — PR #39 をレビューに出してよいか、ユーザーに聞く
+- **Notes**: draft PR #39。`rn@synced`(claude.ai から同期されるプラグイン)はユーザーが claude.ai で消し、
+  残っていたフォルダと settings.json の `"rn@synced": false` も消した(2026-10-20、このリポジトリの外の作業)。
+  プッシュと gh は `cc`(`~/.config/kiyobot.env` を読む)で起動したセッションで行う
