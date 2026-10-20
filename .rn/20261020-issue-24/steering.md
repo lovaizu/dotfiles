@@ -48,6 +48,21 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - sbx には `--command 'sh -c ". ~/.config/kiyobot.env && printf %s \"\$GH_TOKEN\""'` で渡す想定
 - `./setup.sh` は chezmoi の適用。`settings.json` は repo のキーだけマージ、端末とフォントの手順は macOS と WSL のときだけ。
   sandbox の中でそのまま動くかは未確認。Linux の手順は jq を `sudo apt-get` で入れる
+- 素の sandbox で確かめたこと(sbx 0.48.0、`sbx create --name lovaizu claude ~/work/lovaizu`、2026-10-20):
+  - 中は Ubuntu 26.04、kernel 7.0.14、ユーザーは agent(UID 1000、sudo グループ)。jq は最初から入っている
+  - 見えるのは `/Users/kiyo/work/lovaizu` だけ(`/Users/kiyo` の下は `work` だけ)
+  - `GH_TOKEN` は `gho_sbxproxymanaged...` という偽の値。それでも `gh api user` は kiyobot を返す
+  - sbx が最初に書く `settings.json` は `permissions.defaultMode: bypassPermissions`・`bypassPermissionsModeAccepted`・
+    `skipDangerousModePermissionPrompt`・`alwaysThinkingEnabled`・`themeId`
+  - 外への通信は、ネットワークの方針を決めるまで sandbox を作れない。`sbx policy init balanced` にした(ユーザー判断)。
+    balanced では get.chezmoi.io・herdr.dev・starship.rs が止まる(403)。
+    `sbx policy allow network --sandbox lovaizu ...` でこの sandbox だけに許した。github.com は最初から通る
+  - 許したあと中で worktree の `./setup.sh` を流すと: chezmoi 2.73.2・herdr 0.9.5・starship 1.27.0 が入り、
+    `CLAUDE.md`・statusline・herdr の設定が置かれ、rn plugin と herdr 連携が入った。WSL の手順は動かなかった。
+    `settings.json` には repo のキーがマージされ、sbx のキーは全部残った。2回目は exit 0
+  - `sbx exec` では `SHELL` が空なので、`.chezmoiignore` が `.bashrc` も `.zshrc` も外し、プロンプトの読み込み行が入らない
+- このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
+  `sbx secret set` はユーザーが iTerm の別のタブで実行した
 - ユーザー判断(2026-10-20):
   - マウントするのは起動したディレクトリではなく、それが属する `~/work/<group>`。
     起動したディレクトリそのままだと、同じグループが別々の sandbox に分かれ、`$HOME` で起動すると丸ごとマウントされる
@@ -72,11 +87,12 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 **Steps**:
 
-- [ ] ユーザーが sbx を入れて `sbx login` する(2026-10-20 sbx 0.48.0 を Homebrew で入れた。login はまだ)
+- [x] ユーザーが sbx を入れて `sbx login` する(2026-10-20 sbx 0.48.0)
 - [x] Issue #24 の Desired State に、グループのディレクトリから起動するコマンドを書き足す(2026-10-20)
-- [ ] GitHub トークンを `sbx secret set github --command ...` で渡し、中から `gh api user` が kiyobot を返すか見る
-- [ ] `sbx run claude ~/work/lovaizu` で sandbox を作り、中で `/login` する
-- [ ] 中で `./setup.sh` を流す。見ること: エラー、`settings.json` に sbx のキーが残るか、rn plugin と herdr 連携が入るか、
+- [x] GitHub トークンを `sbx secret set github --command ...` で渡し、中から `gh api user` が kiyobot を返すか見る
+- [x] sandbox を作る(`sbx create --name lovaizu claude ~/work/lovaizu`)
+- [ ] ユーザーが `sbx run --name lovaizu` で中の Claude を開き、`/login` する。`CLAUDE.md`・statusline・rn が効いているか見る
+- [x] 中で `./setup.sh` を流す。見ること: エラー、`settings.json` に sbx のキーが残るか、rn plugin と herdr 連携が入るか、
   WSL と判定されないか、jq の `sudo` が通るか
 
 ### #2: kit で sandbox に repo を持ち込み、chezmoi で適用する
