@@ -76,6 +76,13 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - 同じ herdr の2つのペインで起動した Claude 同士で、メッセージが両方向に届いた(`/run/user/1000/cc-socks/` のソケット経由。ユーザー確認)
 - このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
   `sbx secret set` はユーザーが iTerm の別のタブで実行した
+- kit を試して分かったこと(`sbx/spec.yaml`、2026-10-20):
+  - `sbx create` は PATH を省くとマウントなしで作れる。kit の試しは `sbx create --name kittest ./sbx` でグループを使わずにできる
+  - `setup.install` は `user: "1000"` で agent として流せる。`HOME`・`PATH`・`SHELL` は自分で渡す。
+    `permissions.network.allow` に chezmoi・herdr・starship を書けば、sandbox ごとの `sbx policy allow` は要らない
+  - install で clone して `./setup.sh` を流すと、作成だけで #1 の状態になった(`.bashrc` の読み込み行、sbx のキーも残る)
+  - `SHELL` は sbx が予約している名前で、`environment.variables` で変えないよう書かれている
+  - `setup.startup` はエントリポイントの起動を待たせない
 - ユーザー判断(2026-10-20):
   - マウントするのは起動したディレクトリではなく、それが属する `~/work/<group>`。
     起動したディレクトリそのままだと、同じグループが別々の sandbox に分かれ、`$HOME` で起動すると丸ごとマウントされる
