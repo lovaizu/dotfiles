@@ -44,5 +44,5 @@ rn の作り直し(lovaizu/ccpm#54)が終わるまで、このリポジトリを
 # State
 
 - **Status**: not suspended
-- **Next**: #2(draft PR を作る)
-- **Notes**: gh が未ログインのため、draft PR はユーザーのログイン後に作る
+- **Next**: #2(レビューに出す)
+- **Notes**: draft PR #39
