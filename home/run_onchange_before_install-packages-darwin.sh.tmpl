@@ -5,15 +5,24 @@
 set -euo pipefail
 {{ template "warn.sh" . }}
 if ! command -v brew &>/dev/null; then
-  warn "Homebrew is not installed, so herdr, jq, starship and the HackGen font were not installed." \
+  warn "Homebrew is not installed, so herdr, jq, starship, sbx and the HackGen font were not installed." \
     "Fix: install Homebrew, then re-run chezmoi apply."
+  exit 1
+fi
+# Docker's install steps trust its tap before installing sbx from it.
+if ! brew trust --tap docker/tap; then
+  warn "brew trust --tap docker/tap failed, so sbx was not installed." \
+    "brew said why just above." \
+    "Fix: once the reason is gone, re-run chezmoi apply."
   exit 1
 fi
 # --no-upgrade: updating what is already there is brew's job, not this one.
 if ! brew bundle --no-upgrade --file=/dev/stdin <<'EOF'; then
+tap "docker/tap"
 brew "herdr"
 brew "jq"
 brew "starship"
+cask "docker/tap/sbx"
 cask "font-hackgen-nerd"
 EOF
   warn "brew bundle did not install everything." \

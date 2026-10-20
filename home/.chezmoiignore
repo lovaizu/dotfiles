@@ -1,5 +1,10 @@
+{{- $wsl := and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 {{ if ne .chezmoi.os "darwin" }}
 Library
+{{ end }}
+{{- /* sb drives sbx from the host: a Mac, or WSL on Windows. Not inside a sandbox. */}}
+{{ if not (or (eq .chezmoi.os "darwin") $wsl) }}
+.local/bin/sb
 {{ end }}
 {{- /* Only the login shell's rc file gets the prompt line. */}}
 {{ if ne (env "SHELL" | base) "zsh" }}
