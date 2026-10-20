@@ -4,6 +4,17 @@ name: dotfiles
 displayName: Claude Code with lovaizu/dotfiles
 extends: claude
 
+sandbox:
+  # sbx appends claude's flags (--dangerously-skip-permissions) even with an
+  # empty command, so sh takes them as $1... and drops them. herdr opens its
+  # panes in $SHELL, which sbx leaves empty; the installer puts herdr outside
+  # the entrypoint's PATH.
+  entrypoint:
+    - sh
+    - -c
+    - SHELL=/bin/bash exec "$HOME/.local/bin/herdr"
+    - herdr
+
 permissions:
   network:
     allow:
@@ -19,3 +30,12 @@ setup:
         export HOME=/home/agent PATH="/home/agent/.local/bin:$PATH" SHELL=/bin/bash &&
         git clone https://github.com/lovaizu/dotfiles.git "$HOME/.local/share/dotfiles" &&
         "$HOME/.local/share/dotfiles/setup.sh"
+  startup:
+    - description: Re-apply lovaizu/dotfiles from its latest main
+      command:
+        - sh
+        - -c
+        - >-
+          export PATH="$HOME/.local/bin:$PATH" SHELL=/bin/bash &&
+          git -C "$HOME/.local/share/dotfiles" pull --ff-only &&
+          "$HOME/.local/share/dotfiles/setup.sh"

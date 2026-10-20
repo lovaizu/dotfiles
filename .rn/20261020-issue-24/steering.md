@@ -83,6 +83,11 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - install で clone して `./setup.sh` を流すと、作成だけで #1 の状態になった(`.bashrc` の読み込み行、sbx のキーも残る)
   - `SHELL` は sbx が予約している名前で、`environment.variables` で変えないよう書かれている
   - `setup.startup` はエントリポイントの起動を待たせない
+  - `extends: claude` でも `sandbox.entrypoint` を herdr にできる。ただし `command: []` でも sbx が
+    `--dangerously-skip-permissions` を後ろに付ける。`sh -c '... exec herdr' herdr` で受けて捨てる
+  - entrypoint の herdr はマウントしたディレクトリで開き、`SHELL=/bin/bash` を渡すとペインは bash になる
+  - startup の `git pull` と `./setup.sh` は起動のたびに流れる(FETCH_HEAD の時刻で確認)
+  - 端末なしで `sbx run` を試すには `script` の中で `stty rows 40 cols 120` を先に流す(大きさ0だと herdr が止まる)
 - ユーザー判断(2026-10-20):
   - マウントするのは起動したディレクトリではなく、それが属する `~/work/<group>`。
     起動したディレクトリそのままだと、同じグループが別々の sandbox に分かれ、`$HOME` で起動すると丸ごとマウントされる
@@ -126,14 +131,14 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 **Steps**:
 
 - [x] kit(`spec.yaml`)の形を読み、repo の置き場所を決める(GitHub から clone。ユーザー判断)
-- [ ] 作成時と起動のたびにすることを分けて書く
+- [x] 作成時と起動のたびにすることを分けて書く(作成時に clone と適用、起動のたびに pull と適用)
 - [ ] `sbx rm` から作り直して、同じ状態になるか確かめる
 
 ### #3: herdr を sandbox の入口にする
 
 **Steps**:
 
-- [ ] `extends: claude` の kit で herdr を入口にできるか見る。できなければ ypxing/sbx-agent-kits の herdr mixin を読む
+- [x] `extends: claude` の kit で herdr を入口にできるか見る(できる)
 - [x] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る(2026-10-20 両方向に届いた)
 
 ### #4: ホストから起動する
