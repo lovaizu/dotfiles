@@ -45,7 +45,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - kiyobot の `GH_TOKEN` だけで gh を使っている。`cc()` の外では gh はどのアカウントにもログインしていない。
     なので `--command 'gh auth token'` は sbx の常駐プロセスからは取れないはず
   - トークンのファイルは `~/work/lovaizu/.env` から `~/.config/kiyobot.env` に移した(マウントの外へ。ユーザー判断)。
-    `~/.zshrc` の `cc()` も合わせた。`~/.zshrc` は repo の外の手書き部分
+    `~/.zshrc` の `cc()` も合わせた(のちに消した)。`~/.zshrc` は repo の外の手書き部分
   - sbx には `--command 'sh -c ". ~/.config/kiyobot.env && printf %s \"\$GH_TOKEN\""'` で渡す想定
 - `./setup.sh` は chezmoi の適用。`settings.json` は repo のキーだけマージ、端末とフォントの手順は macOS と WSL のときだけ。
   sandbox の中でそのまま動くかは未確認。Linux の手順は jq を `sudo apt-get` で入れる
@@ -107,7 +107,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - Mac ごとに1回だけの手作業は README に書かず、`./setup.sh` が伝える。sbx 自身や Claude が聞くもの(承認、`/login`)は任せる
   - kit(`sbx/spec.yaml`)は、`./setup.sh` で適用したホストの clone から読む。dotfiles は clone を `./setup.sh` で
     適用して使うもので、起動コマンドも `./setup.sh` が置くため。作業は worktree でするので、その clone はふだん `main`
-  - `cc()` は #24 が終わるまで残す。消すかはそのときに決める
+  - ホストのコマンドの名前は `sb`。`cc` は C コンパイラと重なるので避けた。
+    `~/.zshrc` の `cc()` はユーザーの指示で消した(2026-10-20)。`~/.config/kiyobot.env` は `sbx secret set github` が使うので残す
   - #21 は #24 のあとに、この sandbox の中でやる
   - rn は作り直し中(lovaizu/ccpm#54)で、ホストでも sandbox でも使えない。ユーザーが手でアンインストールする。
     適用のたびに入れ直さないようにするのは #38 で別に扱う。#24 では sandbox の中で rn が入り直すことは気にしない
