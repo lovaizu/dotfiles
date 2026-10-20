@@ -161,7 +161,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 **Steps**:
 
-- [ ] `~/work/<group>` を割り出して sbx を起動するコマンドを作る(`home/dot_local/bin/executable_sb.tmpl`。止まる3通りは確認済み、起動は未確認)
+- [ ] `~/work/<group>` を割り出して sbx を起動するコマンドを作る(`home/dot_local/bin/executable_sb.tmpl`。止まる3通り、`dotfiles` の下からグループ `lovaizu` の作成・`/login`・つなぎ直しを確認。ユーザー確認)
 - [ ] `sbx login` と `sbx secret set github` が済んでいなければ、`./setup.sh` が手順を出す(自動化できるものはする)
 
 **Completion criteria**:
