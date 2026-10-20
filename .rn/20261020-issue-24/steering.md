@@ -105,6 +105,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     kit とコマンドは Linux でも動く書き方にしておく
   - ホストからはキーではなくコマンドで起動する。Issue の「herdr を起動しているキー」は誤りで、README の `Ctrl+⌘` は herdr の中の操作のキー
   - Mac ごとに1回だけの手作業は README に書かず、`./setup.sh` が伝える。sbx 自身や Claude が聞くもの(承認、`/login`)は任せる
+  - kit(`sbx/spec.yaml`)は、`./setup.sh` で適用したホストの clone から読む。dotfiles は clone を `./setup.sh` で
+    適用して使うもので、起動コマンドも `./setup.sh` が置くため。作業は worktree でするので、その clone はふだん `main`
   - `cc()` は #24 が終わるまで残す。消すかはそのときに決める
   - #21 は #24 のあとに、この sandbox の中でやる
   - rn は作り直し中(lovaizu/ccpm#54)で、ホストでも sandbox でも使えない。ユーザーが手でアンインストールする。
