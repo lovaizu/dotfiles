@@ -39,7 +39,7 @@ Issue を書いた 2026-09-06 の時点では `theme` が `light`(明るい背�
 **Steps**:
 
 - [x] Mac で質問を出し、読めるか見てもらう(2026-10-18、読めた)
-- [ ] Windows で質問を出し、読めるか見てもらう。読めなければ `claude --debug` で OSC 11 の応答と判定を見る
+- [ ] Windows で質問を出し、読めるか見てもらう。読めなければ `claude --debug` で OSC 11 の応答と判定を見る(2026-10-20、確認前にマージすると決定。問題があれば別の Issue で上げてもらう)
 - [ ] 読めない環境があれば原因を直す(設定か herdr か端末かを、全部の層を見てから決める)
 
 **Completion criteria**:
@@ -69,8 +69,8 @@ Issue を書いた 2026-09-06 の時点では `theme` が `light`(明るい背�
 
 **Steps**:
 
-- [ ] Acceptance criteria の確認結果をユーザーに提示する
-- [ ] `/rn:ty`(承認)または `/rn:gm`(修正 → 対応して再提示)で判断を受ける
+- [x] Acceptance criteria の確認結果をユーザーに提示する
+- [x] `/rn:ty`(承認)または `/rn:gm`(修正 → 対応して再提示)で判断を受ける
 
 **Completion criteria**:
 
@@ -78,8 +78,8 @@ Issue を書いた 2026-09-06 の時点では `theme` が `light`(明るい背�
 
 # State
 
-- **Status**: paused
-- **Date**: 2026-10-18
-- **Last completed**: #2 Closes ルール
-- **Next**: #1 Windows で質問文が読めるかの確認
+- **Status**: done
+- **Date**: 2026-10-20
+- **Last completed**: #3 承認(Windows の確認なしでマージ)
+- **Next**: none
 - **Notes**: branch `worktree-issue-13`、draft PR あり。Windows で読めればコード変更なしで #3 へ進み、PR を ready にする。読めなければ #1 の3つ目のステップから。
