@@ -125,7 +125,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 **Steps**:
 
 - [ ] `extends: claude` の kit で herdr を入口にできるか見る。できなければ ypxing/sbx-agent-kits の herdr mixin を読む
-- [x] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る(2026-10-21 両方向に届いた)
+- [x] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る(2026-10-20 両方向に届いた)
 
 ### #4: ホストから起動する
 
