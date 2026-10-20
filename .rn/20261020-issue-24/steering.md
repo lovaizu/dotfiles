@@ -68,6 +68,10 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     `sbx exec -e SHELL=/bin/bash` で `./setup.sh` を流し直すと、`.bashrc` に読み込み行が入り、新しいペインで starship が出た
   - herdr のペインの Claude で `/login` できた。VM の中に `~/.claude/.credentials.json` ができる。
     中身が偽の値かは未確認(読み出しは権限判定で止められた)
+  - herdr のペインの Claude で、statusline・rn plugin・日本語で簡潔な返事(`CLAUDE.md` と Concise)を確かめた(ユーザー確認)
+  - herdr のペインは `/home/agent` で開く。そこで起動した Claude はマウントに気づかず「Mac のフォルダはつながっていない」と答えた。
+    kit では herdr をマウントしたディレクトリで起動する
+  - sudo はパスワードなしで使える。claude.ai の連携(Claude Docs、Gmail など)は中でも使える
   - herdr のサーバーは VM の中で動き続ける。`sbx exec -it ... herdr` で開き直しても前のサーバーとペインにつながる
 - このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
   `sbx secret set` はユーザーが iTerm の別のタブで実行した
