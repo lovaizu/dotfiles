@@ -87,6 +87,13 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     `--dangerously-skip-permissions` を後ろに付ける。`sh -c '... exec herdr' herdr` で受けて捨てる
   - entrypoint の herdr はマウントしたディレクトリで開き、`SHELL=/bin/bash` を渡すとペインは bash になる
   - startup の `git pull` と `./setup.sh` は起動のたびに流れる(FETCH_HEAD の時刻で確認)
+  - 自作の kit は、引き継いだ `anthropic` のログイン情報を使うのに、ホストでの承認が1回要る。
+    承認は対話できる端末で作ったときだけ聞かれ、`~/.config/sbx/credentials.yaml` に残る。
+    端末なしで作ると渡されず、中の `/login` が 401 になる。ユーザーが承認したあとは `/login` が通った。
+    kit の参照(ローカルのパスか Git の URL か)ごとに要るかは未確認
+  - herdr のペインで、プロンプトの starship と Claude の statusline を確かめた(ユーザー確認)
+  - ペインで初めて `claude` を起動すると auto mode を既定にするかを1回聞かれた(`lovaizu` では出なかった)。
+    bypass のままを選ぶと、次の起動からは出なかった(ユーザー確認)
   - 端末なしで `sbx run` を試すには `script` の中で `stty rows 40 cols 120` を先に流す(大きさ0だと herdr が止まる)
 - ユーザー判断(2026-10-20):
   - マウントするのは起動したディレクトリではなく、それが属する `~/work/<group>`。
