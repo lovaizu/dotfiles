@@ -95,6 +95,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - herdr のペインで、プロンプトの starship と Claude の statusline を確かめた(ユーザー確認)
   - ペインで初めて `claude` を起動すると auto mode を既定にするかを1回聞かれた(`lovaizu` では出なかった)。
     bypass のままを選ぶと、次の起動からは出なかった(ユーザー確認)
+  - sbx は `$HOME` の下に Docker のログインを持つ。`HOME` を差し替えて試すとログインし直そうとして失敗する
   - 端末なしで `sbx run` を試すには `script` の中で `stty rows 40 cols 120` を先に流す(大きさ0だと herdr が止まる)
 - ユーザー判断(2026-10-20):
   - マウントするのは起動したディレクトリではなく、それが属する `~/work/<group>`。
@@ -160,7 +161,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 **Steps**:
 
-- [ ] `~/work/<group>` を割り出して sbx を起動するコマンドを作る
+- [ ] `~/work/<group>` を割り出して sbx を起動するコマンドを作る(`home/dot_local/bin/executable_sb.tmpl`。止まる3通りは確認済み、起動は未確認)
 - [ ] `sbx login` と `sbx secret set github` が済んでいなければ、`./setup.sh` が手順を出す(自動化できるものはする)
 
 **Completion criteria**:

@@ -1,0 +1,59 @@
+#!/bin/sh
+# Opens herdr inside the Docker Sandbox of the ~/work group this directory
+# belongs to, creating the sandbox on first use.
+set -eu
+
+# The kit in the clone ./setup.sh applied, so it changes with git pull and
+# ./setup.sh like everything else here.
+kit={{ joinPath .chezmoi.workingTree "sbx" | quote }}
+work="$HOME/work"
+
+stop() {
+  echo >&2
+  echo "sb: nothing was started." >&2
+  for line in "$@"; do
+    echo "  $line" >&2
+  done
+  echo >&2
+  exit 1
+}
+
+if [ -n "${HERDR_ENV:-}" ]; then
+  stop "This shell already runs inside herdr, and opening the sandbox's" \
+    "herdr here would put one herdr inside another." \
+    "Fix: run sb from a terminal tab that is not running herdr."
+fi
+
+if ! command -v sbx >/dev/null; then
+  stop "sbx (Docker Sandboxes) is not installed here." \
+    "Fix: run ./setup.sh in the dotfiles clone; it installs sbx on a Mac."
+fi
+
+# The physical paths, so a symlink on either side cannot hide a match.
+here="$(pwd -P)"
+if ! work_real="$(cd "$work" 2>/dev/null && pwd -P)"; then
+  stop "$work does not exist, so there is no group to open." \
+    "Fix: put the repositories in a group directory such as $work/<group>," \
+    "then run sb from inside it."
+fi
+
+# The whole group is mounted, never the directory sb was started in: one
+# group then shares one sandbox, and a worktree still reaches its main
+# repository's .git. Outside a group nothing is mounted, so $HOME never is.
+case "$here/" in
+"$work_real"/?*/)
+  group="${here#"$work_real"/}"
+  group="${group%%/*}"
+  ;;
+*)
+  stop "$here is not inside a group directory under $work." \
+    "sb mounts the whole group into the sandbox, and here there is no" \
+    "group, so it stops rather than mount this directory or \$HOME." \
+    "Fix: cd into $work/<group> or anywhere below it, then run sb again."
+  ;;
+esac
+
+if sbx ls -q | grep -qxF "$group"; then
+  exec sbx run --name "$group"
+fi
+exec sbx run --name "$group" "$kit" "$work_real/$group"
