@@ -15,6 +15,10 @@ On both OSes, this is all you need. After changing something, `git pull` and run
 
 It applies this clone with [chezmoi](https://www.chezmoi.io/), installing chezmoi first if it is missing. One failed step leaves the rest to run; each failure says why and how to fix it, and the run ends non-zero.
 
+### Sandbox
+
+To work inside the Docker Sandbox, run `sb` anywhere under `~/work/<group>`. It opens herdr inside that group's sandbox, creating the sandbox on first use. When it can't start, it says why and how to fix it.
+
 ### Fonts
 
 The source is the same on both OSes: the [distributor's release page](https://github.com/yuru7/HackGen/releases). The name of the font to install is in the terminal's config file.
