@@ -66,6 +66,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     `sbx exec -it lovaizu herdr` で開いた herdr のペインも `$` だけの sh(dash)になり、`Ctrl+L` が `^L` と出る。
     agent のログインシェルは `/bin/bash`。kit では `SHELL` が渡るようにする。
     `sbx exec -e SHELL=/bin/bash` で `./setup.sh` を流し直すと、`.bashrc` に読み込み行が入り、新しいペインで starship が出た
+  - herdr のペインの Claude で `/login` できた。VM の中に `~/.claude/.credentials.json` ができる。
+    中身が偽の値かは未確認(読み出しは権限判定で止められた)
   - herdr のサーバーは VM の中で動き続ける。`sbx exec -it ... herdr` で開き直しても前のサーバーとペインにつながる
 - このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
   `sbx secret set` はユーザーが iTerm の別のタブで実行した
