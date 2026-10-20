@@ -40,7 +40,7 @@ turn も rn の作り直しが終わるまで使わないので、同じく外�
 
 ### #2: PR を仕上げる
 
-- [ ] PR 本文に確認の結果(turn を含む)を書き、レビューに出す
+- [x] PR 本文に確認の結果(turn を含む)を書き、レビューに出す
 
 ### #3: turn も消す
 
@@ -52,7 +52,7 @@ turn も rn の作り直しが終わるまで使わないので、同じく外�
 # State
 
 - **Status**: not suspended
-- **Next**: #2 — PR #39 をレビューに出してよいか、ユーザーに聞く
-- **Notes**: draft PR #39。`rn@synced`(claude.ai から同期されるプラグイン)はユーザーが claude.ai で消し、
+- **Next**: PR #39 のレビューを待つ
+- **Notes**: PR #39(レビュー待ち)。`rn@synced`(claude.ai から同期されるプラグイン)はユーザーが claude.ai で消し、
   残っていたフォルダと settings.json の `"rn@synced": false` も消した(2026-10-20、このリポジトリの外の作業)。
   プッシュと gh は `cc`(`~/.config/kiyobot.env` を読む)で起動したセッションで行う
