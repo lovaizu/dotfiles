@@ -7,6 +7,17 @@ set -eu
 # ./setup.sh like everything else here.
 kit={{ joinPath .chezmoi.workingTree "sbx" | quote }}
 work="$HOME/work"
+{{- if eq .chezmoi.os "darwin" }}
+sbx="sbx"
+host_path() { printf '%s\n' "$1"; }
+install_fix="Fix: run ./setup.sh in the dotfiles clone; it installs sbx."
+{{- else }}
+# On Windows the sandbox runs under the Windows sbx, which WSL reaches through
+# interop and which takes Windows paths.
+sbx="sbx.exe"
+host_path() { wslpath -w "$1"; }
+install_fix="Fix: on Windows 11, winget install -h Docker.sbx, with Windows Hypervisor Platform turned on. sbx.exe must then be on WSL's PATH."
+{{- end }}
 
 stop() {
   echo >&2
@@ -24,9 +35,8 @@ if [ -n "${HERDR_ENV:-}" ]; then
     "Fix: run sb from a terminal tab that is not running herdr."
 fi
 
-if ! command -v sbx >/dev/null; then
-  stop "sbx (Docker Sandboxes) is not installed here." \
-    "Fix: run ./setup.sh in the dotfiles clone; it installs sbx on a Mac."
+if ! command -v "$sbx" >/dev/null; then
+  stop "$sbx (Docker Sandboxes) is not found." "$install_fix"
 fi
 
 # The physical paths, so a symlink on either side cannot hide a match.
@@ -53,7 +63,8 @@ case "$here/" in
   ;;
 esac
 
-if sbx ls -q | grep -qxF "$group"; then
-  exec sbx run --name "$group"
+# tr: a Windows sbx ends its lines with CR.
+if "$sbx" ls -q | tr -d '\r' | grep -qxF "$group"; then
+  exec "$sbx" run --name "$group"
 fi
-exec sbx run --name "$group" "$kit" "$work_real/$group"
+exec "$sbx" run --name "$group" "$(host_path "$kit")" "$(host_path "$work_real/$group")"

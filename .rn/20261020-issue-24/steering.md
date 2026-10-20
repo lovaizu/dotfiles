@@ -104,8 +104,11 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     起動したディレクトリそのままだと、同じグループが別々の sandbox に分かれ、`$HOME` で起動すると丸ごとマウントされる
   - kit は repo を GitHub から clone して `main` を適用する。ホストの checkout は追加でマウントしない。
     マウントはグループのディレクトリだけにし、新しいマシンと同じ流れにするため。変更が届くのは push のあと
-  - #24 はこの Mac だけで確かめる。Windows(WSL)は #40 で別に扱う。sbx が WSL で動くかが分からず、試すにはその Windows が要るため。
-    kit とコマンドは Linux でも動く書き方にしておく
+  - #24 はこの Mac だけで確かめる。Windows(WSL)で試して直すのは #40。
+    ただし WSL の分も試さずに作って main に入れる(ユーザー判断)。Windows で試すには main にあるほうが都合がよく、ダメならすぐ直すため。
+    WSL では Windows の `sbx.exe` を interop で呼び、パスは `wslpath -w` で渡す(pi-sbx の README)。sbx は Windows 側に winget で入れ、
+    WSL では `./setup.sh` が手順を出す。未確認: sandbox の中のパスが `/wsl.localhost/...` に変わると worktree の `.git` がたどれないこと
+    (docker/desktop-feedback#214)、kit を UNC パスで渡せるか
   - ホストからはキーではなくコマンドで起動する。Issue の「herdr を起動しているキー」は誤りで、README の `Ctrl+⌘` は herdr の中の操作のキー
   - Mac ごとに1回だけの手作業は README に書かず、`./setup.sh` が伝える。sbx 自身や Claude が聞くもの(承認、`/login`)は任せる
   - kit(`sbx/spec.yaml`)は、`./setup.sh` で適用したホストの clone から読む。dotfiles は clone を `./setup.sh` で
