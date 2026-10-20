@@ -73,6 +73,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     kit では herdr をマウントしたディレクトリで起動する
   - sudo はパスワードなしで使える。claude.ai の連携(Claude Docs、Gmail など)は中でも使える
   - herdr のサーバーは VM の中で動き続ける。`sbx exec -it ... herdr` で開き直しても前のサーバーとペインにつながる
+  - 同じ herdr の2つのペインで起動した Claude 同士で、メッセージが両方向に届いた(`/run/user/1000/cc-socks/` のソケット経由。ユーザー確認)
 - このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
   `sbx secret set` はユーザーが iTerm の別のタブで実行した
 - ユーザー判断(2026-10-20):
@@ -124,8 +125,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 **Steps**:
 
 - [ ] `extends: claude` の kit で herdr を入口にできるか見る。できなければ ypxing/sbx-agent-kits の herdr mixin を読む
-- [ ] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る(次はここ。素の sandbox `lovaizu` の herdr で2つのペインに claude を起動し、ユーザーが試す。
-  開き方: `sbx exec -it -e SHELL=/bin/bash lovaizu herdr`)
+- [x] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る(2026-10-21 両方向に届いた)
 
 ### #4: ホストから起動する
 
