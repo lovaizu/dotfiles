@@ -1,3 +1,7 @@
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+#!/bin/bash
+set -euo pipefail
+{{ template "warn.sh" . }}
 # herdr titles the terminal tab "<hostname>: <workspace>", and every WSL
 # distro of one PC starts with the PC's hostname, so without this the tabs of
 # different distros read the same.
@@ -29,16 +33,20 @@ realize_wsl_hostname() {
   if [ "$want" != "$(cat "$conf" 2>/dev/null)" ]; then
     echo "Setting hostname = $name in $conf (sudo asks for the password):"
     if ! printf '%s\n' "$want" | sudo tee "$conf" >/dev/null; then
-      record_failure "$conf was not changed." \
+      warn "$conf was not changed." \
         "sudo said why just above." \
         "Until this is fixed, herdr's tab shows this PC's name, the same in every distro." \
-        "Fix: once the reason is gone, re-run ./setup.sh."
-      return 0
+        "Fix: once the reason is gone, re-run chezmoi apply."
+      return 1
     fi
   fi
   # WSL reads wsl.conf only when the distro starts.
-  record_failure "The hostname becomes $name only after this distro restarts." \
+  warn "The hostname becomes $name only after this distro restarts." \
     "Until then, herdr's tab shows this PC's name, the same in every distro." \
     "Fix: close its terminals, run 'wsl --terminate $name' in PowerShell," \
-    "open it again, and re-run ./setup.sh."
+    "open it again, and re-run chezmoi apply."
+  return 1
 }
+
+realize_wsl_hostname
+{{ end -}}

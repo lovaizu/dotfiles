@@ -1,3 +1,7 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+set -euo pipefail
+{{ template "warn.sh" . }}
 CMD_EIKANA_TAP="dominion525/tap"
 CMD_EIKANA_CASK="$CMD_EIKANA_TAP/cmd-eikana"
 CMD_EIKANA_BUNDLE_ID="io.github.dominion525.cmd-eikana"
@@ -37,10 +41,10 @@ realize_cmd_eikana() {
     "way to switch input is the fn (globe) key."
   )
   if ! command -v brew &>/dev/null; then
-    record_failure "Homebrew is not installed, so ⌘英かな was not installed either." \
+    warn "Homebrew is not installed, so ⌘英かな was not installed either." \
       "${cost[@]}" \
-      "Fix: install Homebrew and re-run ./setup.sh."
-    return 0
+      "Fix: install Homebrew and re-run chezmoi apply."
+    return 1
   fi
   local installed_tap
   installed_tap="$(cmd_eikana_installed_tap)"
@@ -48,18 +52,18 @@ realize_cmd_eikana() {
     echo "⌘英かな already installed. Skipping."
   elif [ -n "$installed_tap" ]; then
     # Not replaced here: uninstalling an app the user put in is their call.
-    record_failure "The original cmd-eikana cask is installed, not the Apple Silicon fork." \
+    warn "The original cmd-eikana cask is installed, not the Apple Silicon fork." \
       "The original runs under Rosetta and hangs on macOS 26." \
-      "Fix: brew uninstall --cask cmd-eikana, then re-run ./setup.sh."
-    return 0
+      "Fix: brew uninstall --cask cmd-eikana, then re-run chezmoi apply."
+    return 1
   # Current Homebrew refuses a cask from a tap that was never tapped
   # (measured), so the tap comes first.
   elif ! brew tap "$CMD_EIKANA_TAP" || ! brew install --cask "$CMD_EIKANA_CASK"; then
-    record_failure "brew install --cask $CMD_EIKANA_CASK failed." \
+    warn "brew install --cask $CMD_EIKANA_CASK failed." \
       "brew said why just above." \
       "${cost[@]}" \
-      "Fix: once the reason is gone, re-run ./setup.sh."
-    return 0
+      "Fix: once the reason is gone, re-run chezmoi apply."
+    return 1
   fi
 
   # First launch is what registers it as a login item and asks for the
@@ -72,26 +76,29 @@ realize_cmd_eikana() {
   local pid
   pid="$(pgrep -f "/⌘英かな.app/Contents/MacOS/" | head -n 1 || true)"
   if [ -z "$pid" ]; then
-    record_failure "⌘英かな did not start." \
+    warn "⌘英かな did not start." \
       "${cost[@]}" \
-      "Fix: open ⌘英かな from Applications to see why, then re-run ./setup.sh."
-    return 0
+      "Fix: open ⌘英かな from Applications to see why, then re-run chezmoi apply."
+    return 1
   fi
   local owners
   if ! owners="$(event_tap_owners)"; then
-    record_failure "Could not list the keyboard event taps to check on ⌘英かな." \
+    warn "Could not list the keyboard event taps to check on ⌘英かな." \
       "osascript said why just above." \
-      "Fix: once the reason is gone, re-run ./setup.sh."
-    return 0
+      "Fix: once the reason is gone, re-run chezmoi apply."
+    return 1
   fi
   if ! grep -qx "$pid" <<<"$owners"; then
-    record_failure "⌘英かな is running but cannot see the keyboard yet." \
+    warn "⌘英かな is running but cannot see the keyboard yet." \
       "Only you can grant this. ⌘英かな asks on its own and opens System Settings;" \
       "under Privacy & Security, turn it on in both Input Monitoring and Accessibility." \
       "It picks up the grant without a restart." \
       "${cost[@]}" \
-      "Fix: grant both, then re-run ./setup.sh."
-    return 0
+      "Fix: grant both, then re-run chezmoi apply."
+    return 1
   fi
   echo "⌘英かな is running with keyboard access."
 }
+
+realize_cmd_eikana
+{{ end -}}

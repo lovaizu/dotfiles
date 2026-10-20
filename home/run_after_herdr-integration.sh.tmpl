@@ -1,0 +1,19 @@
+#!/bin/bash
+# hooks.SessionStart and the script it calls are herdr's to write:
+# `herdr integration install claude` adds the key to the live settings.json
+# and places the script (measured against an isolated $HOME). Measured
+# idempotent (three real runs, same end state, no duplicate entry), so it
+# runs on every apply and herdr keeps its own hook current.
+set -euo pipefail
+{{ template "warn.sh" . }}
+if ! command -v herdr &>/dev/null; then
+  warn "herdr is missing, so its Claude Code SessionStart hook was not set up." \
+    "Fix: install herdr, then re-run chezmoi apply."
+  exit 1
+fi
+if ! herdr integration install claude; then
+  warn "herdr's claude integration was not installed." \
+    "\`herdr integration install claude\` said why just above." \
+    "Fix: once the reason above is gone, re-run chezmoi apply."
+  exit 1
+fi

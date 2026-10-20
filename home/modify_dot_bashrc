@@ -1,0 +1,10 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  The rc file is the user's, so it is kept as found and only gets the one
+  line that sources the prompt, added once.
+*/ -}}
+{{- $line := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/prompt.sh") -}}
+{{- .chezmoi.stdin -}}
+{{- if not (has $line (splitList "\n" .chezmoi.stdin)) }}
+{{ $line }}
+{{ end -}}

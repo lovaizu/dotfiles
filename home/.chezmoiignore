@@ -1,0 +1,10 @@
+{{ if ne .chezmoi.os "darwin" }}
+Library
+{{ end }}
+{{- /* Only the login shell's rc file gets the prompt line. */}}
+{{ if ne (env "SHELL" | base) "zsh" }}
+.zshrc
+{{ end }}
+{{ if ne (env "SHELL" | base) "bash" }}
+.bashrc
+{{ end }}

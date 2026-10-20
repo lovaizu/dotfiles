@@ -1,4 +1,4 @@
-# Sourced from ~/.zshrc or ~/.bashrc by the one line ./setup.sh adds there.
+# Sourced from ~/.zshrc or ~/.bashrc by the one line chezmoi adds there.
 
 command -v starship >/dev/null 2>&1 || return 0
 
@@ -7,7 +7,7 @@ command -v starship >/dev/null 2>&1 || return 0
 _prompt_host="${WSL_DISTRO_NAME:-$(hostname -s)}"
 
 # The tab shows the host instead of the prompt. herdr replaces this title
-# with its own "<hostname>: <workspace>", which is why lib/wsl_hostname.sh
+# with its own "<hostname>: <workspace>", which is why run_after_wsl-hostname.sh
 # gives each distro its name as hostname too.
 _prompt_title() {
   # Through a variable: a quoted or escaped ~ keeps its backslash in zsh and

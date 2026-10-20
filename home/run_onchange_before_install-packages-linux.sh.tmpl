@@ -1,0 +1,58 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+# Runs before the files are placed, so the steps after them find herdr and
+# jq. Re-runs only when this script changes, or after a run that failed.
+set -euo pipefail
+{{ template "warn.sh" . }}
+failed=""
+
+if command -v herdr &>/dev/null; then
+  echo "herdr already installed. Skipping."
+# The official installer: no root, checks the binary's SHA-256, puts it in
+# ~/.local/bin (read, 2026-10-08).
+elif ! curl -fsSL https://herdr.dev/install.sh | sh; then
+  warn "herdr's installer failed." \
+    "It said why just above." \
+    "Fix: once the reason is gone, re-run chezmoi apply."
+  failed=1
+fi
+
+if command -v jq &>/dev/null; then
+  echo "jq already installed. Skipping."
+# apt over a downloaded binary so apt upgrade keeps it current; the cost is
+# a sudo password prompt during the run.
+elif ! command -v apt-get &>/dev/null; then
+  warn "apt-get is not available, so jq was not installed." \
+    "Fix: install jq with this system's package manager, then re-run chezmoi apply."
+  failed=1
+elif ! sudo apt-get install -y jq; then
+  warn "sudo apt-get install -y jq failed." \
+    "It said why just above (sudo needs a terminal to ask for the password)." \
+    "Fix: once the reason is gone, re-run chezmoi apply."
+  failed=1
+fi
+
+if command -v starship &>/dev/null; then
+  echo "starship already installed. Skipping."
+# The official installer into ~/.local/bin, beside herdr: its default
+# /usr/local/bin needs sudo (read, 2026-10-18).
+elif ! mkdir -p "$HOME/.local/bin" ||
+  ! curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin"; then
+  warn "starship's installer failed." \
+    "It said why just above." \
+    "Fix: once the reason is gone, re-run chezmoi apply."
+  failed=1
+fi
+
+# Both installers exit 0 even when their directory is not on PATH.
+for cmd in herdr starship; do
+  if [ -z "$failed" ] && ! command -v "$cmd" &>/dev/null; then
+    warn "$cmd is still not found on PATH." \
+      "Its directory, ~/.local/bin, is not on PATH." \
+      "Fix: add it to PATH, then re-run chezmoi apply."
+    failed=1
+  fi
+done
+
+[ -z "$failed" ]
+{{ end -}}
