@@ -91,7 +91,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - 自作の kit は、引き継いだ `anthropic` のログイン情報を使うのに、ホストでの承認が1回要る。
     承認は対話できる端末で作ったときだけ聞かれ、`~/.config/sbx/credentials.yaml` に残る。
     端末なしで作ると渡されず、中の `/login` が 401 になる。ユーザーが承認したあとは `/login` が通った。
-    kit の参照(ローカルのパスか Git の URL か)ごとに要るかは未確認
+    kit を指すパスを `./sbx` から絶対パスに変えても、聞かれなかった(ユーザー確認)。Mac ごとに1回で済むとみる
   - herdr のペインで、プロンプトの starship と Claude の statusline を確かめた(ユーザー確認)
   - ペインで初めて `claude` を起動すると auto mode を既定にするかを1回聞かれた(`lovaizu` では出なかった)。
     bypass のままを選ぶと、次の起動からは出なかった(ユーザー確認)
