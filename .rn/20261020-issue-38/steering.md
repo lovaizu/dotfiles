@@ -3,20 +3,21 @@
 rn の作り直し(lovaizu/ccpm#54)が終わるまで、このリポジトリを apply すると rn と writ が入っていない状態になる(Issue #38)。
 いまは `home/run_after_ccpm-plugin.sh.tmpl` が apply のたびに `rn@ccpm` を入れるので、手で消しても次の apply で戻る。
 #24 でサンドボックス起動ごとに apply するようになると、起動のたびに戻る。
+turn も rn の作り直しが終わるまで使わないので、同じく外す(2026-10-20、ユーザーの判断)。
 
 # Acceptance criteria
 
-- apply は rn も writ も入れない
-- rn・writ が入っているマシンで apply すると、両方が消える
+- apply は rn も writ も turn も入れない
+- rn・writ・turn が入っているマシンで apply すると、どれも消える
 - 入っていないマシンで apply しても失敗にならず、何も変えない
 - 作り直した rn が出たとき、apply で rn と turn が入り writ は入らない状態に、スクリプトの対象を書き換えるだけで移れる
-- turn など、ほかのプラグインとマーケットプレイスには触らない
+- ccpm 以外のプラグインとマーケットプレイスには触らない
 
 # Assumptions
 
 - Fact(このマシンで確認、2026-10-20): `claude plugin uninstall` は入っていないプラグインに対して exit 1 で失敗する。
   なので `claude plugin list --json` で入っているかを見てから消す
-- Fact(同): いまこのマシンには `rn@ccpm`・`writ@ccpm` は入っていない(手で消した状態)。`turn@ccpm` は入っている
+- Fact(同): いまこのマシンには `rn@ccpm`・`writ@ccpm` は入っていない(手で消した状態)。`turn@ccpm` は入っている(#3 で消した)
 - Fact(同): `rn@synced`(scope synced)が一覧に出る。このリポジトリが入れたものではない
 
 # Rules
@@ -39,7 +40,14 @@ rn の作り直し(lovaizu/ccpm#54)が終わるまで、このリポジトリを
 
 ### #2: PR を仕上げる
 
-- [ ] PR 本文に確認の結果を書き、レビューに出す
+- [ ] PR 本文に確認の結果(turn を含む)を書き、レビューに出す
+
+### #3: turn も消す
+
+- [x] 消すものに turn を加える
+- [x] このマシンで turn が入った状態から apply し、turn が消え figma が残ることを確かめる
+- [x] もう一度 apply し、何も変えずに成功することを確かめる
+  - 2026-10-20: 1回目で turn が消え figma は残った。2回目はプラグインについて何も出さず exit 0
 
 # State
 

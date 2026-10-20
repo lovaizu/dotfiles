@@ -7,11 +7,12 @@ set -euo pipefail
 marketplace_name="ccpm"
 marketplace_repo="lovaizu/ccpm"
 # rn does not work while it is rebuilt (lovaizu/ccpm#54), and writ comes in
-# with it. Leaving them out of install_ids is not enough: a machine that
-# already has them keeps them, so they are removed too. Once the rebuilt rn
-# lands, it and turn go in install_ids and writ stays in remove_ids.
+# with it. turn is not used until then either. Leaving them out of
+# install_ids is not enough: a machine that already has them keeps them, so
+# they are removed too. Once the rebuilt rn lands, it and turn go in
+# install_ids and writ stays in remove_ids.
 install_ids=()
-remove_ids=("rn@ccpm" "writ@ccpm")
+remove_ids=("rn@ccpm" "writ@ccpm" "turn@ccpm")
 
 for cmd in claude jq; do
   if ! command -v "$cmd" &>/dev/null; then
