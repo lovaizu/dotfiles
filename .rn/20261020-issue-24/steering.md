@@ -62,7 +62,9 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - 許したあと中で worktree の `./setup.sh` を流すと: chezmoi 2.73.2・herdr 0.9.5・starship 1.27.0 が入り、
     `CLAUDE.md`・statusline・herdr の設定が置かれ、rn plugin と herdr 連携が入った。WSL の手順は動かなかった。
     `settings.json` には repo のキーがマージされ、sbx のキーは全部残った。2回目は exit 0
-  - `sbx exec` では `SHELL` が空なので、`.chezmoiignore` が `.bashrc` も `.zshrc` も外し、プロンプトの読み込み行が入らない
+  - `sbx exec` では `SHELL` が空なので、`.chezmoiignore` が `.bashrc` も `.zshrc` も外し、プロンプトの読み込み行が入らない。
+    `sbx exec -it lovaizu herdr` で開いた herdr のペインも `$` だけの sh(dash)になり、`Ctrl+L` が `^L` と出る。
+    agent のログインシェルは `/bin/bash`。kit では `SHELL` が渡るようにする
 - このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
   `sbx secret set` はユーザーが iTerm の別のタブで実行した
 - ユーザー判断(2026-10-20):
