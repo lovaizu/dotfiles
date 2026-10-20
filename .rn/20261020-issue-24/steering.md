@@ -50,7 +50,9 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   sandbox の中でそのまま動くかは未確認。Linux の手順は jq を `sudo apt-get` で入れる
 - 素の sandbox で確かめたこと(sbx 0.48.0、`sbx create --name lovaizu claude ~/work/lovaizu`、2026-10-20):
   - 中は Ubuntu 26.04、kernel 7.0.14、ユーザーは agent(UID 1000、sudo グループ)。jq は最初から入っている
-  - 見えるのは `/Users/kiyo/work/lovaizu` だけ(`/Users/kiyo` の下は `work` だけ)
+  - 見えるのは `/Users/kiyo/work/lovaizu` だけ。その上の `/Users/kiyo/work` は VM の中に作られたディレクトリで、
+    sbx が `CLAUDE.md`(約18KB、sandbox での作業の説明。`/etc/sandbox-persistent.sh` など)と空の `kits-agent-context` を置く。
+    親のディレクトリの `CLAUDE.md` なので、`lovaizu` の下で起動した Claude は毎回これも読む。ホストにはない
   - `GH_TOKEN` は `gho_sbxproxymanaged...` という偽の値。それでも `gh api user` は kiyobot を返す
   - sbx が最初に書く `settings.json` は `permissions.defaultMode: bypassPermissions`・`bypassPermissionsModeAccepted`・
     `skipDangerousModePermissionPrompt`・`alwaysThinkingEnabled`・`themeId`
