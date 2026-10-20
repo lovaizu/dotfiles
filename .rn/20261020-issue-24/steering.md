@@ -65,7 +65,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - `sbx exec` では `SHELL` が空なので、`.chezmoiignore` が `.bashrc` も `.zshrc` も外し、プロンプトの読み込み行が入らない。
     `sbx exec -it lovaizu herdr` で開いた herdr のペインも `$` だけの sh(dash)になり、`Ctrl+L` が `^L` と出る。
     agent のログインシェルは `/bin/bash`。kit では `SHELL` が渡るようにする。
-    `sbx exec -e SHELL=/bin/bash` で `./setup.sh` を流し直すと、`.bashrc` に読み込み行が入った
+    `sbx exec -e SHELL=/bin/bash` で `./setup.sh` を流し直すと、`.bashrc` に読み込み行が入り、新しいペインで starship が出た
+  - herdr のサーバーは VM の中で動き続ける。`sbx exec -it ... herdr` で開き直しても前のサーバーとペインにつながる
 - このセッションのフック(worktree の外の git を止めるもの)は、`sbx exec` に渡すコマンドに `git`・`sudo`・`sh -c` の文字列があると止める。
   `sbx secret set` はユーザーが iTerm の別のタブで実行した
 - ユーザー判断(2026-10-20):
