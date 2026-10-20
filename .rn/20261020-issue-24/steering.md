@@ -162,7 +162,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 **Steps**:
 
 - [ ] `~/work/<group>` を割り出して sbx を起動するコマンドを作る(`home/dot_local/bin/executable_sb.tmpl`。止まる3通り、`dotfiles` の下からグループ `lovaizu` の作成・`/login`・つなぎ直しを確認。ユーザー確認)
-- [ ] `sbx login` と `sbx secret set github` が済んでいなければ、`./setup.sh` が手順を出す(自動化できるものはする)
+- [x] `./setup.sh` が sbx を入れ、GitHub のトークンがなければ手順を出す(2026-10-20 この Mac で両方の分岐を確認)。
+  Docker のログイン・ネットワークの方針・ログイン情報の承認は sbx が、`/login` は Claude が自分で聞くので任せる
 
 **Completion criteria**:
 
