@@ -100,6 +100,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     起動したディレクトリそのままだと、同じグループが別々の sandbox に分かれ、`$HOME` で起動すると丸ごとマウントされる
   - kit は repo を GitHub から clone して `main` を適用する。ホストの checkout は追加でマウントしない。
     マウントはグループのディレクトリだけにし、新しいマシンと同じ流れにするため。変更が届くのは push のあと
+  - #24 はこの Mac だけで確かめる。Windows(WSL)は #40 で別に扱う。sbx が WSL で動くかが分からず、試すにはその Windows が要るため。
+    kit とコマンドは Linux でも動く書き方にしておく
   - `cc()` は #24 が終わるまで残す。消すかはそのときに決める
   - #21 は #24 のあとに、この sandbox の中でやる
   - rn は作り直し中(lovaizu/ccpm#54)で、ホストでも sandbox でも使えない。ユーザーが手でアンインストールする。
