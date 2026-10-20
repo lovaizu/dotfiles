@@ -10,14 +10,15 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 # Acceptance criteria
 
 - `~/work/<group>` の下のどこで起動しても、そのグループのディレクトリをマウントした同じ sandbox につながる。
-  `~/work/<group>` の外では何もマウントせず、理由を出して止まる
+  `~/work/<group>` の外では何もマウントせず、何が起きたか・なぜ止めたか・どうすればよいかを丁寧に出して止まる
 - sandbox の中で herdr が開き、そのペインから起動した Claude Code に `CLAUDE.md`・statusline・rn plugin・
   herdr の Claude 連携が効いている
 - 同じグループの Claude のセッション同士でメッセージが届く
 - `~/.claude/settings.json` には repo のキーがマージされ、sbx が書いたキーは残る
 - GitHub のトークンと Claude のログインは VM に入らない(中から見えるのは偽の値)。
   トークンも Claude のログインも repo には入らない
-- ホストで herdr を呼ぶキーが、sandbox の中の herdr を開く。ホストの herdr の中に sandbox の herdr が入る二重にはならない
+- ホストで打つコマンド1つが、sandbox の中の herdr を開く。ホストの herdr の中に sandbox の herdr が入る二重にはならない
+- Mac ごとに1回だけの手作業(`sbx login` など)は、要るときに `./setup.sh` が手順を出す。README には書かない
 - sandbox を作り直しても(`sbx rm` のあと)、同じ手順で同じ状態に戻る
 
 # Assumptions
@@ -102,6 +103,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
     マウントはグループのディレクトリだけにし、新しいマシンと同じ流れにするため。変更が届くのは push のあと
   - #24 はこの Mac だけで確かめる。Windows(WSL)は #40 で別に扱う。sbx が WSL で動くかが分からず、試すにはその Windows が要るため。
     kit とコマンドは Linux でも動く書き方にしておく
+  - ホストからはキーではなくコマンドで起動する。Issue の「herdr を起動しているキー」は誤りで、README の `Ctrl+⌘` は herdr の中の操作のキー
+  - Mac ごとに1回だけの手作業は README に書かず、`./setup.sh` が伝える。sbx 自身や Claude が聞くもの(承認、`/login`)は任せる
   - `cc()` は #24 が終わるまで残す。消すかはそのときに決める
   - #21 は #24 のあとに、この sandbox の中でやる
   - rn は作り直し中(lovaizu/ccpm#54)で、ホストでも sandbox でも使えない。ユーザーが手でアンインストールする。
@@ -155,7 +158,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 **Steps**:
 
 - [ ] `~/work/<group>` を割り出して sbx を起動するコマンドを作る
-- [ ] ホストで herdr を呼ぶキーから、そのコマンドを起動する
+- [ ] `sbx login` と `sbx secret set github` が済んでいなければ、`./setup.sh` が手順を出す(自動化できるものはする)
 
 **Completion criteria**:
 
