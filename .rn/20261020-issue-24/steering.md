@@ -11,14 +11,14 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 - `~/work/<group>` の下のどこで起動しても、そのグループのディレクトリをマウントした同じ sandbox につながる。
   `~/work/<group>` の外では何もマウントせず、何が起きたか・なぜ止めたか・どうすればよいかを丁寧に出して止まる
-- sandbox の中で herdr が開き、そのペインから起動した Claude Code に `CLAUDE.md`・statusline・rn plugin・
-  herdr の Claude 連携が効いている
+- sandbox の中で herdr が開き、そのペインから起動した Claude Code に `CLAUDE.md`・statusline・
+  herdr の Claude 連携が効いている。plugin はホストと同じ状態になる(rn は作り直しの間は入らない、#38)
 - 同じグループの Claude のセッション同士でメッセージが届く
 - `~/.claude/settings.json` には repo のキーがマージされ、sbx が書いたキーは残る
 - GitHub のトークンと Claude のログインは VM に入らない(中から見えるのは偽の値)。
   トークンも Claude のログインも repo には入らない
 - ホストで打つコマンド1つが、sandbox の中の herdr を開く。ホストの herdr の中に sandbox の herdr が入る二重にはならない
-- Mac ごとに1回だけの手作業(`sbx login` など)は、要るときに `./setup.sh` が手順を出す。README には書かない
+- Mac ごとに1回だけの手作業は、要るときに sbx・Claude・`./setup.sh` のどれかが手順を出す。README には書かない
 - sandbox を作り直しても(`sbx rm` のあと)、同じ手順で同じ状態に戻る
 
 # Assumptions
