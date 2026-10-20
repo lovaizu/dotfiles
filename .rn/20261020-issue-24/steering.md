@@ -32,6 +32,14 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
   - sbx はホストの環境変数を自動では読まない。`sbx secret set github --command '...'` でホストでコマンドを実行して取る。
     secret はキーチェーンに入る
   - Claude のログインは sandbox の中で `/login`。OAuth はホスト側で行うとある。sandbox ごとに要るか、どれだけ持つかは書いていない
+- kit の仕様(公式ドキュメント kits-v2 を読んだ、2026-10-20):
+  - `spec.yaml`。`kind: sandbox` で `extends: claude` にすると Claude の kit を引き継げる。
+    `sandbox.entrypoint` / `sandbox.command` で起動するものを置き換えられる(`command` は引き継いだ引数を丸ごと置き換える)
+  - `setup.install` は作成時に1回、root で `sh -c`。`setup.startup` は起動のたびに agent(UID 1000)で、
+    対話なし・何度流しても同じであること。`setup.files` と `files/home/` は `/home/agent/` に置く
+  - kit はローカルのディレクトリ・Git の URL(`git+https://...#ref=<commit>&dir=<dir>`)などから読める。
+    `sbx run claude --kit <kit>` で足す。kit の組み合わせは作成時に決まる
+  - kit からホストの環境変数やファイルは読めない。認証情報は `sbx secret set` で渡す
 - このMacの GitHub トークン(2026-10-20 確認):
   - kiyobot の `GH_TOKEN` だけで gh を使っている。`cc()` の外では gh はどのアカウントにもログインしていない。
     なので `--command 'gh auth token'` は sbx の常駐プロセスからは取れないはず
