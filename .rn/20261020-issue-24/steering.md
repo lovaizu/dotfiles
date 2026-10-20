@@ -105,7 +105,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 - [x] Issue #24 の Desired State に、グループのディレクトリから起動するコマンドを書き足す(2026-10-20)
 - [x] GitHub トークンを `sbx secret set github --command ...` で渡し、中から `gh api user` が kiyobot を返すか見る
 - [x] sandbox を作る(`sbx create --name lovaizu claude ~/work/lovaizu`)
-- [ ] ユーザーが `sbx run --name lovaizu` で中の Claude を開き、`/login` する。`CLAUDE.md`・statusline・rn が効いているか見る
+- [x] 中の Claude で `/login` し、`CLAUDE.md`・statusline・rn が効いているか見る(2026-10-20 herdr のペインで。ユーザー確認)
 - [x] 中で `./setup.sh` を流す。見ること: エラー、`settings.json` に sbx のキーが残るか、rn plugin と herdr 連携が入るか、
   WSL と判定されないか、jq の `sudo` が通るか
 
@@ -124,7 +124,8 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 **Steps**:
 
 - [ ] `extends: claude` の kit で herdr を入口にできるか見る。できなければ ypxing/sbx-agent-kits の herdr mixin を読む
-- [ ] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る
+- [ ] 同じ sandbox のペイン同士で Claude のメッセージが届くか見る(次はここ。素の sandbox `lovaizu` の herdr で2つのペインに claude を起動し、ユーザーが試す。
+  開き方: `sbx exec -it -e SHELL=/bin/bash lovaizu herdr`)
 
 ### #4: ホストから起動する
 
