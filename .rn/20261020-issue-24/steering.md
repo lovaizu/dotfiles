@@ -139,7 +139,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 - [x] kit(`spec.yaml`)の形を読み、repo の置き場所を決める(GitHub から clone。ユーザー判断)
 - [x] 作成時と起動のたびにすることを分けて書く(作成時に clone と適用、起動のたびに pull と適用)
-- [ ] `sbx rm` から作り直して、同じ状態になるか確かめる
+- [x] `sbx rm` から作り直して、同じ状態になるか確かめる(`kittest` を3回作り直した)
 
 ### #3: herdr を sandbox の入口にする
 
