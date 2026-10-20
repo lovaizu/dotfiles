@@ -72,7 +72,7 @@ sandbox の中では Claude Code は既定で `--dangerously-skip-permissions` �
 
 **Steps**:
 
-- [ ] ユーザーが sbx を入れて `sbx login` する
+- [ ] ユーザーが sbx を入れて `sbx login` する(2026-10-20 sbx 0.48.0 を Homebrew で入れた。login はまだ)
 - [x] Issue #24 の Desired State に、グループのディレクトリから起動するコマンドを書き足す(2026-10-20)
 - [ ] GitHub トークンを `sbx secret set github --command ...` で渡し、中から `gh api user` が kiyobot を返すか見る
 - [ ] `sbx run claude ~/work/lovaizu` で sandbox を作り、中で `/login` する
