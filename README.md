@@ -20,7 +20,7 @@ It applies this clone with [chezmoi](https://www.chezmoi.io/), installing chezmo
 The source is the same on both OSes: the [distributor's release page](https://github.com/yuru7/HackGen/releases). The name of the font to install is in the terminal's config file.
 
 - **Windows: always manual.** You can't install from WSL to Windows.
-- **Mac: the apply installs it.**
+- **Mac: `./setup.sh` installs it.**
 
 ## Before you fix a setting
 
