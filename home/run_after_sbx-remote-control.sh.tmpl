@@ -6,19 +6,13 @@
 # the sandbox only says "Transport recovery exhausted (code 4094)".
 set -euo pipefail
 {{ template "warn.sh" . }}
-{{- if eq .chezmoi.os "darwin" }}
-sbx="sbx"
-{{- else }}
-# WSL drives the Windows sbx through interop, the same one sb runs.
-sbx="sbx.exe"
-{{- end }}
-if ! command -v "$sbx" &>/dev/null; then
+if ! command -v sbx &>/dev/null; then
   # The package step or the GitHub token check already said why.
   exit 0
 fi
-if ! out="$("$sbx" settings set claude.remoteControl true 2>&1)"; then
+if ! out="$(sbx settings set claude.remoteControl true 2>&1)"; then
   warn "Could not turn on Claude Code's Remote Control in sbx." \
-    "$sbx settings set claude.remoteControl true said: $out" \
+    "sbx settings set claude.remoteControl true said: $out" \
     "Fix: once the reason is gone, re-run chezmoi apply."
   exit 1
 fi
