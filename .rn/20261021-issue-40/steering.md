@@ -24,7 +24,7 @@ Windows で、WSL の `~/work/<group>` の下から `sb` を起動すると、Ma
   - ホストで作った worktree は中で `fatal: not a git repository`(`.git` がホストのパスを指す)
   - 中では全ファイルが 777 に見え、git が全ファイルを mode change と言う
   - 中の `git status` が ccpm(177ファイル)で 2〜4 秒(ホストは 0.003 秒)。starship が時間切れの警告を出す
-  - どれも Windows を経由する遠回りが原因。Linux 版 sbx を WSL の中で動かせば避けられる見込み(未確認)
+  - どれも Windows を経由する遠回りが原因。Linux 版 sbx を WSL の中で動かすと避けられた(#1 で確認)
 - Linux 版 sbx の条件(公式): Ubuntu 24.04 以降、KVM、ユーザーが kvm グループ。VM の中なら nested virtualization
 
 # Rules
@@ -37,18 +37,24 @@ Windows で、WSL の `~/work/<group>` の下から `sb` を起動すると、Ma
 
 # Tasks
 
-### #1: Linux 版 sbx が WSL の中で動くか小さく試す
+### #1: Linux 版 sbx が WSL の中で動くか小さく試す(済み)
 
-**Steps**:
+- Linux 版 sbx を `./setup.sh` で入れる(Docker の apt リポジトリを Ubuntu 向け手順で足し、`docker-sbx` だけ。
+  `get.docker.com` は WSL で Docker Desktop を勧めて 20 秒止まるので使わない。ユーザー判断)。kvm グループにも入れる
+- 新しいタブで kvm が効くのを確認。`sbx login` とネットワーク方針は sbx がその場で聞く(確認済み)
+- sandbox の中: パスはホストと同じ、herdr のペインはグループ(ユーザー確認)、worktree の git が通る、mode は 644/755、
+  ccpm の `git status` 0.01 秒(確認済み)
+- `sb`、GitHub トークン、Remote Control の処理を Linux 版の `sbx` に。Windows 版 sbx、sandbox、`~/.local/bin/sbx.exe` は片付けた
 
-- [ ] ユーザーの了承を取る(kvm グループに入れる sudo、Linux 版 sbx を入れる)
-- [ ] Linux 版を入れ、グループをマウントした sandbox を作る。見ること: 動くか、パスがホストと同じか、worktree の git、mode、速さ
-- [ ] 動けば、Windows 版の処理(winget、`~/.local/bin/sbx.exe` のリンク、`sb` と run_after の `sbx.exe`)を Linux 版に置き換える。
-  Windows 側の sbx と sandbox `lovaizu` の片付けも
+### #2: 残り
 
-### 済み(ブランチ `issue-40`、コミット cb5bf4f、未 push)
+- [ ] Windows 版 sbx のデータ `C:\Users\ito-kiyohito\AppData\Local\DockerSandboxes`(2.5G)が残っている。消すか聞く
+- [ ] Linux 版 sbx はキーチェーンがなく、GitHub トークンを平文でディスクに置く(`no keychain detected`)。どうするか聞く
+- [ ] Windows Terminal で選択したらコピーされるか、ユーザーに確認
+- [ ] PR(`Closes #40`、`Closes #42`)
+
+### 済み(コミット cb5bf4f)
 
 - Windows Terminal の `copyOnSelect` を true(コピーできたかはユーザー未回答)
 - `cmd.exe` を `cd /mnt/c` してから呼び、文字化けを消した(確認済み)
-- GitHub トークンを `gh auth token` から sbx に渡す(確認済み)。Windows 版前提の部分は #1 の結果で書き直す
-- Windows 版 sbx の winget インストールとリンク(確認済み、ただし #1 次第で捨てる)
+- GitHub トークンを `gh auth token` から sbx に渡す(確認済み)
