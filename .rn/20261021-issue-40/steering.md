@@ -48,13 +48,13 @@ Windows で、WSL の `~/work/<group>` の下から `sb` を起動すると、Ma
 
 ### #2: 残り
 
-- [ ] Windows 版 sbx のデータ `C:\Users\ito-kiyohito\AppData\Local\DockerSandboxes`(2.5G)が残っている。消すか聞く
-- [ ] Linux 版 sbx はキーチェーンがなく、GitHub トークンを平文でディスクに置く(`no keychain detected`)。どうするか聞く
-- [ ] Windows Terminal で選択したらコピーされるか、ユーザーに確認
+- [x] Windows 版 sbx のデータ `C:\Users\ito-kiyohito\AppData\Local\DockerSandboxes`(2.5G)が残っている。消すか聞く
+- [x] Linux 版 sbx はキーチェーンがなく、GitHub トークンを平文でディスクに置く(`no keychain detected`)。sandbox の中からは見えないので、このまま(ユーザー判断)
+- [x] Windows Terminal で選択したらコピーされる(ユーザー確認)
 - [ ] PR(`Closes #40`、`Closes #42`)
 
 ### 済み(コミット cb5bf4f)
 
-- Windows Terminal の `copyOnSelect` を true(コピーできたかはユーザー未回答)
+- Windows Terminal の `copyOnSelect` を true(ユーザー確認)
 - `cmd.exe` を `cd /mnt/c` してから呼び、文字化けを消した(確認済み)
 - GitHub トークンを `gh auth token` から sbx に渡す(確認済み)
