@@ -21,7 +21,9 @@ if ! command -v wslpath &>/dev/null || ! command -v cmd.exe &>/dev/null; then
   exit 1
 fi
 
-appdata="$(cmd.exe /c 'echo %LOCALAPPDATA%' | tr -d '\r' || true)"
+# cd: cmd.exe cannot start in a WSL directory (a UNC path to Windows) and
+# says so in the console's code page, which WSL shows garbled.
+appdata="$(cd /mnt/c && cmd.exe /c 'echo %LOCALAPPDATA%' | tr -d '\r' || true)"
 if [ -n "$appdata" ]; then
   appdata="$(wslpath "$appdata" || echo "$appdata")"
 fi
@@ -35,8 +37,8 @@ case "$appdata" in
       "  ${appdata:-(nothing at all)}" \
       "Whatever cmd.exe or wslpath said about it is just above. Nothing was" \
       "written anywhere." \
-      "Fix: check that \`cmd.exe /c 'echo %LOCALAPPDATA%'\` answers from" \
-      "this shell (a cwd on a UNC path is the usual reason it does not)."
+      "Fix: check that \`cd /mnt/c && cmd.exe /c 'echo %LOCALAPPDATA%'\`" \
+      "answers from this shell, then re-run chezmoi apply."
     exit 1
     ;;
 esac

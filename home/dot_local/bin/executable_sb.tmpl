@@ -10,13 +10,11 @@ work="$HOME/work"
 {{- if eq .chezmoi.os "darwin" }}
 sbx="sbx"
 host_path() { printf '%s\n' "$1"; }
-install_fix="Fix: run ./setup.sh in the dotfiles clone; it installs sbx."
 {{- else }}
 # On Windows the sandbox runs under the Windows sbx, which WSL reaches through
 # interop and which takes Windows paths.
 sbx="sbx.exe"
 host_path() { wslpath -w "$1"; }
-install_fix="Fix: on Windows 11, winget install -h Docker.sbx, with Windows Hypervisor Platform turned on. sbx.exe must then be on WSL's PATH."
 {{- end }}
 
 stop() {
@@ -36,7 +34,8 @@ if [ -n "${HERDR_ENV:-}" ]; then
 fi
 
 if ! command -v "$sbx" >/dev/null; then
-  stop "$sbx (Docker Sandboxes) is not found." "$install_fix"
+  stop "$sbx (Docker Sandboxes) is not found." \
+    "Fix: run ./setup.sh in the dotfiles clone; it installs sbx."
 fi
 
 # The physical paths, so a symlink on either side cannot hide a match.
