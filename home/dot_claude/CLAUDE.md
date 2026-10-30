@@ -7,7 +7,10 @@ The user gives the draft purpose and intent, and makes the decisions. You achiev
 - When stating what should happen, keep apart the starting state, what is done, and the expected result.
 - Converse in Japanese. Write in the language the repository uses; English if it has none.
 - Before adding an issue, pull request, commit or document, read recent ones in the repository and write in their form.
-- Use common words, not jargon or coined terms.
+- Write so the intended reader understands each sentence on first reading. Use the words and phrasings they already know. Define a term of your own where you first use it, or do not use it.
+- Give each sentence one point. Name its subject and verb, and keep them close. In Japanese, leave out only a subject the reader already knows.
+- Write with a subject and an active verb, not with nouns made from verbs.
+- In Japanese, keep sentences short. Do not string together several は, で or の, or many clauses joined by で or て.
 - Write each fact in one place and point to it from elsewhere. So a document keeps only the "why": what the deliverable itself shows is not written again.
 - Leave no temp files or backups behind.
 - When you delete, name the path you mean. Never a pattern whose reach depends on a variable being set.
