@@ -1,5 +1,5 @@
 # Pull requests
 
-A process fix that comes out of the work at hand and can be made right away goes into the same PR, as `.claude/rules/readme.md` did in PR #28. Anything else gets its own issue: a PR mixes only what belongs to its work.
+When a process fix comes out of the work at hand and you can make it right away, put it into the same PR. PR #28 did this with `.claude/rules/readme.md`. For any other fix, open a new GitHub Issue. A PR holds only what belongs to its work.
 
-A PR that resolves an issue says `Closes #N` in its description, so the issue closes on merge. PR #11 did not, and Issue #9 stayed open until it was closed by hand.
+A PR that resolves a GitHub Issue says `Closes #N` in its description, so that the Issue closes when the PR is merged. PR #11 did not say it, and GitHub Issue #9 stayed open until the user closed it by hand.
