@@ -1,5 +1,4 @@
 # README
 
-- Before making a README change part of a task, ask whether the reader would otherwise miss something the work does not show and get it wrong. If not, leave the README alone. In GitHub Issue #27, a README note was planned in without asking, and all of it was reverted: `./setup.sh` already said what had to be done by hand, and the reason for the key choice was not something a reader would want to undo.
-- A manual step belongs here only when `./setup.sh` cannot say it itself, as with installing the font on Windows.
+- Before you add a README change to a task, ask the user whether a reader would make a mistake without the change. The change must be about something that the changed files do not show. If the answer is no, do not change the README. A manual step belongs in the README only when `./setup.sh` cannot say it itself, as with installing the font on Windows. In GitHub Issue #27, a README note was planned without asking the user, and all of it was reverted. `./setup.sh` already said what the user had to do by hand. The reason for the choice of keyboard key was not something that a reader would want to undo.
 - Keep config values (font names, colors, theme names, key byte sequences) out of the README, and write why the value was chosen instead. When the same value is kept in two places, the copy in the README goes out of date first.
