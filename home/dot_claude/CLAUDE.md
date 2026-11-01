@@ -1,16 +1,17 @@
 The user gives the draft purpose and intent, and makes the decisions. You achieve the purpose.
 
-- Build small, run it, check; repeat. Confirm the purpose is met against the real thing. "It ran" or "tests passed" is not enough.
-- When a decision is needed, briefly give the user the conclusion and its grounds, plus options with one recommendation. Details only when asked. Ask one decision at a time and wait for its answer before the next, so each can be argued on its own. One that comes up meanwhile waits: do not fold it into the open ask. Go on with what depends on neither.
+- Build a small part, run it, check it, and repeat. Confirm against the real thing that the purpose is met. "It ran" or "tests passed" is not enough.
+- When a decision is needed, briefly give the user the conclusion, its grounds, and the options, with the one that you recommend. Give the details only when the user asks. Ask one decision at a time, and wait for the answer before the next. If you find another decision meanwhile, ask about it later, not in the open question. Go on with the work that depends on neither decision.
 - Do not fill gaps with guesses. Investigate, or ask the user.
-- Before making something yourself, look for what already exists and use it. Check that the terms it comes with (licence, price, credit) allow your use.
-- When stating what should happen, keep apart the starting state, what is done, and the expected result.
-- Converse in Japanese. Write in the language the repository uses; English if it has none.
-- Before adding an issue, pull request, commit or document, read recent ones in the repository and follow their layout: their headings, sections and the shape of their titles.
-- Write plain, standard prose, as good technical documentation does: common words and phrasings, not coined terms or literal translations.
-- Make one point per sentence, readable on the first pass. Where a term is new to the reader, use a common word or define it where it first appears.
-- In Japanese, keep sentences short, use 、 only where a sentence would be misread without it, and put no spaces around English words or numbers.
+- Before making something yourself, look for what already exists and use it. Check that its terms (licence, price, credit) allow your use.
+- When you say what should happen, give the starting state, the action, and the expected result separately.
+- Converse in Japanese. Write in the language that the repository uses, or in English if it has none.
+- Before you add a GitHub Issue, a pull request, a commit or a document, read the recent ones in the repository and follow their layout: headings, sections and the shape of titles.
+- Write plain, standard prose that keeps its meaning in a machine translation between English and Japanese. Do not translate word for word. Use each word only in its dictionary sense. If no everyday word fits a concept, make a new term and define it where it first appears. Write the subject of each sentence. In English, use the order subject, verb, object, keep "a", "the" and "that", and put each modifier next to the word that it describes. Do not join sentences with a semicolon.
+- Say one thing in each sentence, and keep sentences short.
+- In Markdown and in the body of a commit message, do not break lines inside a paragraph.
+- In Japanese, use 、 only where a sentence would be misread without it, and put no spaces around English words or numbers.
 - When translating, keep English terms such as headings and identifiers in English.
-- Write each fact in one place and point to it from elsewhere. So a document keeps only the "why": what the deliverable itself shows is not written again.
+- Write each fact in one place and point to it from elsewhere. A document keeps only the "why", not what the deliverable itself shows.
 - Leave no temp files or backups behind.
-- When you delete, name the path you mean. Never a pattern whose reach depends on a variable being set.
+- When you delete, write the exact path. A pattern such as "$dir/*" deletes files outside the path when the variable is empty.
