@@ -8,8 +8,6 @@
 [tools]
 chezmoi = "2.73.2"
 lefthook = "2.2.2"
-# On a Mac, Homebrew installs these, in
-# run_onchange_before_install-packages-darwin.sh.tmpl.
-herdr = { version = "0.9.5", os = ["linux"] }
-starship = { version = "1.27.0", os = ["linux"] }
-jq = { version = "1.8.2", os = ["linux"] }
+herdr = "0.9.5"
+jq = "1.8.2"
+starship = "1.27.0"

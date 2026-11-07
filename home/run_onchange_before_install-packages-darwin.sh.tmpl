@@ -1,11 +1,13 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/bin/bash
-# Runs before chezmoi places the files, so the steps after them find herdr
-# and jq. Re-runs only when this list changes, or after a run that failed.
+# Installs on a Mac what mise can't: sbx, from the tap that Docker signs, and
+# the HackGen font. mise installs the command-line tools on every OS, in
+# run_onchange_before_install-mise-tools.sh.tmpl. Re-runs only when this
+# list changes, or after a run that failed.
 set -euo pipefail
 {{ template "warn.sh" . }}
 if ! command -v brew &>/dev/null; then
-  warn "Homebrew isn't installed, so herdr, jq, starship, sbx and the HackGen font weren't installed." \
+  warn "Homebrew isn't installed, so sbx and the HackGen font weren't installed." \
     "Fix: install Homebrew, then re-run chezmoi apply."
   exit 1
 fi
@@ -19,9 +21,6 @@ fi
 # --no-upgrade: updating what is already there is brew's job, not this one.
 if ! brew bundle --no-upgrade --file=/dev/stdin <<'EOF'; then
 tap "docker/tap"
-brew "herdr"
-brew "jq"
-brew "starship"
 cask "docker/tap/sbx"
 cask "font-hackgen-nerd"
 EOF
