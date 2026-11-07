@@ -1,0 +1,23 @@
+{
+  "name": "dotfiles",
+  "description": "The Claude Code plugins that lovaizu/dotfiles installs.",
+  "owner": {
+    "name": "lovaizu"
+  },
+  "plugins": [
+    {
+      "name": "prose-check",
+      "source": "./plugins/prose-check",
+      "description": "Checks the text that Claude Code writes and keeps, with the checks of lovaizu/checks. Vale checks the English with the Google developer documentation style, and lint.py of the skill natural-japanese checks the Japanese."
+    },
+    {
+      "name": "natural-japanese",
+      "source": {
+        "source": "github",
+        "repo": "coji/natural-japanese",
+        "sha": "840bd400cbcb64c8b64d492a144da54fc05776c5"
+      },
+      "description": "The skill natural-japanese by coji, under the Massachusetts Institute of Technology (MIT) License, at the commit that Claude Code read in full before the install."
+    }
+  ]
+}

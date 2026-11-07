@@ -1,10 +1,21 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
-  The rc file is the user's, so it is kept as found and only gets the one
-  line that sources the prompt, added once.
+  The rc file is the user's, so this template keeps it as found and only
+  adds two lines, once: one that puts the tools of mise on PATH, and one
+  that sources the prompt. The prompt needs starship from mise, so its line
+  comes last. An rc file that has only the prompt line gets the two lines
+  at its end, in that order.
 */ -}}
-{{- $line := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/prompt.sh") -}}
+{{- $mise := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/mise.sh") -}}
+{{- $prompt := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/prompt.sh") -}}
+{{- $lines := splitList "\n" .chezmoi.stdin -}}
+{{- if has $mise $lines -}}
 {{- .chezmoi.stdin -}}
-{{- if not (has $line (splitList "\n" .chezmoi.stdin)) }}
-{{ $line }}
+{{- if not (has $prompt $lines) }}
+{{ $prompt }}
+{{ end -}}
+{{- else -}}
+{{- without $lines $prompt | join "\n" }}
+{{ $mise }}
+{{ $prompt }}
 {{ end -}}

@@ -1,0 +1,15 @@
+# The checks that lovaizu repositories share, from lovaizu/checks, before
+# each commit. The workflow Tests runs them on each push, at the commit in
+# .github/workflows/tests.yml. The setup turns them on in this clone with
+# home/run_after_lefthook.sh.tmpl.
+remotes:
+  - git_url: https://github.com/lovaizu/checks
+    ref: v0.1.0
+    configs:
+      - hooks.yml
+
+# The session notes in .rn/ are working notes, not prose that the repository
+# keeps for its readers.
+pre-commit:
+  exclude:
+    - ".rn/**"

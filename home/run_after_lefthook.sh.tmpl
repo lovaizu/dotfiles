@@ -1,0 +1,19 @@
+#!/bin/bash
+# Turns on the git hooks of lefthook.yml in this clone, so that the checks
+# of lovaizu/checks run before each commit. lefthook writes the hooks into
+# the clone's .git/hooks, which worktrees of the clone share.
+set -euo pipefail
+{{ template "warn.sh" . }}
+clone={{ .chezmoi.workingTree | quote }}
+
+if ! command -v lefthook &>/dev/null; then
+  warn "lefthook is missing, so the git hooks of $clone weren't turned on." \
+    "Fix: run ./setup.sh of this clone, which installs lefthook with mise."
+  exit 1
+fi
+if ! (cd "$clone" && lefthook install); then
+  warn "lefthook didn't turn on the git hooks of $clone." \
+    "lefthook said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi

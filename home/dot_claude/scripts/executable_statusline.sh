@@ -2,16 +2,17 @@
 input=$(cat)
 
 # The JSON is re-emitted with printf, never echo: both of the shells this runs
-# under — macOS /bin/sh and WSL's dash — expand backslash escapes in echo, which
-# mangles the JSON before jq ever parses it.
+# under, macOS /bin/sh and the dash of Windows Subsystem for Linux (WSL),
+# expand backslash escapes in echo, which mangles the JSON before jq ever
+# parses it.
 
-# Context usage in tokens: used_k/size_k (e.g. C:110k/1000k).
+# Context usage in tokens: used_k/size_k, for example C:110k/1000k.
 # The built-in indicator and .context_window.used_percentage both count input
-# tokens only (input + cache_creation + cache_read), so they read low. The real
-# context-limit check counts output too. Compute from current_usage's raw token
-# breakdown — input + output + cache_creation + cache_read — to match it exactly.
-# Fall back to used_percentage (+ output share) on older clients without
-# current_usage.
+# tokens only, namely input + cache_creation + cache_read, so they read low.
+# The real context-limit check counts output too. Compute from current_usage's
+# raw token breakdown, input + output + cache_creation + cache_read, to match
+# it exactly. Fall back to used_percentage plus the output share on older
+# clients without current_usage.
 seg1=$(printf '%s\n' "$input" | jq -r '
   .context_window as $cw
   | ($cw.context_window_size // 0) as $w
@@ -33,12 +34,13 @@ seg1=$(printf '%s\n' "$input" | jq -r '
     end
 ')
 
-# Model name: family + version — Opus5 / Sonnet5 / Fable5 / Haiku4.5. No family
-# is named: the old per-family list let Fable through. jq, unlike sed, measured
-# the same on both hosts. display_name arrives empty as well as absent, so take
-# the first non-empty of display_name / id — jq's // keeps empty strings. Order
-# matters: notes go first (context size is the C: segment's job) so the anchor
-# then strips a leading "Claude " only, leaving "Foo Claude 5" whole.
+# Model name: family + version, as in Opus5 / Sonnet5 / Fable5 / Haiku4.5. The
+# code names no family: the old per-family list let Fable through. jq, unlike
+# sed, measured the same on both hosts. display_name arrives empty as well as
+# absent, so take the first non-empty of display_name / id, because jq's //
+# keeps empty strings. Order matters. Notes go first, as context size is the
+# C: segment's job, so the anchor then strips a leading "Claude " only and
+# leaves "Foo Claude 5" whole.
 model_name=$(printf '%s\n' "$input" | jq -r '
   [.model.display_name, .model.id]
   | map(select(. != null and . != ""))
@@ -69,7 +71,7 @@ else
   seg3="${dirname}"
 fi
 
-# Max plan rate limits — append to seg1
+# Max plan rate limits, appended to seg1
 five_h_pct=$(printf '%s\n' "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
 seven_d_pct=$(printf '%s\n' "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
 

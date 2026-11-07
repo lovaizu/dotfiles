@@ -2,8 +2,8 @@
 {{- if or (eq .chezmoi.os "darwin") $wsl -}}
 #!/bin/bash
 # Without this setting, sbx's egress proxy puts its own credential on Remote
-# Control's requests and the server rejects them, but /remote-control inside
-# the sandbox only says "Transport recovery exhausted (code 4094)".
+# Control's requests and the server rejects them. But /remote-control inside
+# the sandbox only says "Transport recovery exhausted" with code 4094.
 set -euo pipefail
 {{ template "warn.sh" . }}
 if ! command -v sbx &>/dev/null; then
@@ -11,9 +11,9 @@ if ! command -v sbx &>/dev/null; then
   exit 0
 fi
 if ! out="$(sbx settings set claude.remoteControl true 2>&1)"; then
-  warn "Could not turn on Claude Code's Remote Control in sbx." \
+  warn "This script couldn't turn on Claude Code's Remote Control in sbx." \
     "sbx settings set claude.remoteControl true said: $out" \
-    "Fix: once the reason is gone, re-run chezmoi apply."
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
   exit 1
 fi
 echo "sbx lets Claude Code's Remote Control through."

@@ -2,7 +2,7 @@
 {{ if ne .chezmoi.os "darwin" }}
 Library
 {{ end }}
-{{- /* sb drives sbx from the host: a Mac, or WSL on Windows. Not inside a sandbox. */}}
+{{- /* sb drives sbx from the host: a Mac, or Windows Subsystem for Linux (WSL) on Windows. Not inside a sandbox. */}}
 {{ if not (or (eq .chezmoi.os "darwin") $wsl) }}
 .local/bin/sb
 {{ end }}

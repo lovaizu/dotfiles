@@ -16,7 +16,7 @@ remove_ids=("rn@ccpm" "writ@ccpm" "turn@ccpm")
 
 for cmd in claude jq; do
   if ! command -v "$cmd" &>/dev/null; then
-    warn "$cmd is missing, so the plugins from the $marketplace_name marketplace were not set up." \
+    warn "$cmd is missing, so the plugins from the $marketplace_name marketplace weren't set up." \
       "Fix: install $cmd, then re-run chezmoi apply."
     exit 1
   fi
@@ -27,9 +27,9 @@ installed_now="$(claude plugin list --json)"
 for plugin_id in "${remove_ids[@]}"; do
   if echo "$installed_now" | jq -e --arg id "$plugin_id" '.[] | select(.id == $id)' >/dev/null; then
     if ! claude plugin uninstall "$plugin_id"; then
-      warn "Plugin $plugin_id was not uninstalled." \
-        "\`claude plugin uninstall\` said why just above." \
-        "Fix: once the reason above is gone, re-run chezmoi apply."
+      warn "Plugin $plugin_id wasn't uninstalled." \
+        "\`claude plugin uninstall\` said why in the preceding output." \
+        "Fix: once that reason no longer applies, re-run chezmoi apply."
       exit 1
     fi
   fi
@@ -44,10 +44,10 @@ fi
 marketplaces_now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
 if ! echo "$marketplaces_now" | jq -e --arg n "$marketplace_name" '.[] | select(.name == $n)' >/dev/null; then
   if ! claude plugin marketplace add "$marketplace_repo"; then
-    warn "Marketplace $marketplace_name ($marketplace_repo) was not added." \
-      "\`claude plugin marketplace add\` said why just above, and the" \
-      "plugins from it could not be installed either." \
-      "Fix: once the reason above is gone, re-run chezmoi apply."
+    warn "Marketplace $marketplace_name wasn't added from $marketplace_repo." \
+      "\`claude plugin marketplace add\` said why in the preceding output, and this" \
+      "script couldn't install the plugins from it either." \
+      "Fix: once that reason no longer applies, re-run chezmoi apply."
     exit 1
   fi
 fi
@@ -56,9 +56,9 @@ fi
 # install's own prompt so a run never sits waiting for input.
 for plugin_id in "${install_ids[@]}"; do
   if ! claude plugin install "$plugin_id" -y; then
-    warn "Plugin $plugin_id was not installed." \
-      "\`claude plugin install\` said why just above." \
-      "Fix: once the reason above is gone, re-run chezmoi apply."
+    warn "Plugin $plugin_id wasn't installed." \
+      "\`claude plugin install\` said why in the preceding output." \
+      "Fix: once that reason no longer applies, re-run chezmoi apply."
     exit 1
   fi
 done
