@@ -55,6 +55,9 @@ fi
 if cmp -s "$src" "$dst"; then
   exit 0
 fi
+# The whole file replaces the old one. It holds the WSL profiles of the one
+# Windows machine in use, so on another machine it would replace that
+# machine's own profiles with these.
 # Renamed into place only once whole, so a stop midway leaves the old file.
 tmp="$wt_dir/.settings.json.dotfiles-tmp.$$"
 trap 'rm -f "$tmp"' EXIT
