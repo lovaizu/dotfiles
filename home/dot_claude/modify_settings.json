@@ -1,7 +1,8 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
-  Claude Code and herdr write enabledPlugins and hooks back into this file,
-  so only the keys kept in the repo are set and the rest is left as found.
+  Claude Code writes enabledPlugins back into this file, and herdr writes
+  hooks.SessionStart, so only the keys kept in the repo are set and the
+  rest is left as found.
   A key dropped from the repo stays on the machine until removed here.
 */ -}}
 {{- $live := dict -}}

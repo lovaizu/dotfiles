@@ -1,8 +1,0 @@
-{
-  "name": "prose-check",
-  "version": "0.1.0",
-  "description": "Checks the text that Claude Code writes and keeps, with the checks of lovaizu/checks. Vale checks the English with the Google developer documentation style, and lint.py of the skill natural-japanese checks the Japanese.",
-  "author": {
-    "name": "lovaizu"
-  }
-}

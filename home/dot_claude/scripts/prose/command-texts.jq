@@ -1,11 +1,11 @@
 # Reads the syntax tree that `shfmt --to-json` makes of a Bash command, and
 # prints the texts that the command would keep: the message of each
-# `git commit`, the title, body or comment of each `gh issue` and `gh pr`
-# command, and the text that `cat` or `tee` writes into a file from a
-# here-document. Each text is {what, text}, {what, file} when the text is in
-# a file, or {what, text: null} when the command builds it in a way that
-# cannot be read without running it, such as from a variable. A text that
-# goes into a file also has {name}, the name of that file.
+# `git commit`, and the title, body or comment of each `gh issue` and
+# `gh pr` command. Each text is {what, text}, {what, file} when the text is
+# in a file, or {what, text: null} when the command builds it in a way that
+# can't be read without running it, such as from a variable. The command
+# also writes files, by a redirect such as `> notes.md` or by `tee`: each
+# of these is {what, name}, the name of that file.
 
 def joined: if any(.[]; . == null) then null else join("") end;
 
@@ -54,7 +54,7 @@ def file_text($what; $file; $stdin):
   elif $file == null then {what: $what, text: null}
   else {what: $what, file: $file} end;
 
-[.. | objects | select((.Cmd | type) == "object" and .Cmd.Type == "CallExpr") |
+[(.. | objects | select((.Cmd | type) == "object" and .Cmd.Type == "CallExpr") |
   stdin as $stdin |
   [.Cmd.Args[] | word] as $args |
   if $args[0] == "git" then
@@ -84,16 +84,10 @@ def file_text($what; $file; $stdin):
     (if $args[2] == "close" then [["--body", "--comment"], ["b", "c"]] else [["--body"], ["b"]] end) as $body |
     (values($rest; $body[0]; $body[1])[] | {what: "the body of \($cmd)", text: .}),
     (values($rest; ["--body-file"]; ["F"])[] | file_text("the body of \($cmd)"; .; $stdin))
-  elif ($args[0] == "cat" and ($args | length) == 1) or $args[0] == "tee" then
-    (if $args[0] == "cat"
-      then [.Redirs[]? | select(.Op == ">" or .Op == ">>" or .Op == ">|") | .Word | word]
-      else [$args[1:][] | select(. != null and (startswith("-") | not))] end)[] |
-    select(. != null) |
-    {what: "the text written to \(.)", name: ., text: $stdin}
-  elif ($args[0] == "cat" and ($args | length) == 1) or $args[0] == "tee" then
-    (if $args[0] == "cat"
-      then [.Redirs[]? | select(.Op == ">" or .Op == ">>" or .Op == ">|") | .Word | word]
-      else [$args[1:][] | select(. != null and (startswith("-") | not))] end)[] |
-    select(. != null) |
-    {what: "the text written to \(.)", name: ., text: $stdin}
-  else empty end]
+  elif $args[0] == "tee" then
+    $args[1:][] | select(. != null and (startswith("-") | not)) | {what: "the file \(.)", name: .}
+  else empty end),
+  # A redirect writes a file, whatever the command is.
+  (.. | objects | select(has("Redirs")) | .Redirs[] | .Op as $op |
+    select(any([">", ">>", ">|", "&>", "&>>"][]; . == $op)) | .Word | word |
+    select(. != null) | {what: "the file \(.)", name: .})]

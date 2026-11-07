@@ -1,0 +1,39 @@
+#!/bin/bash
+# Installs the skill style-review of agent-style by Yue Zhao. As
+# home/dot_claude/CLAUDE.md says, Claude Code uses it on English. Its code
+# is under the Massachusetts Institute of Technology (MIT) License, and its
+# rules under CC BY 4.0. agent-style has no Claude Code plugin, so pipx
+# installs its command at the commit that Claude Code read in full before
+# the install, as lovaizu/dotfiles#57 asks. The skill comes with the
+# command. `agent-style enable style-review` writes the skill only into a
+# project, so the script copies the skill into ~/.claude/skills, where
+# Claude Code finds it in every project.
+set -euo pipefail
+{{ template "warn.sh" . }}
+url="git+https://github.com/yzhao062/agent-style@d1bdb0fa0c6305942bf43805edeae330946e8cf7#subdirectory=packages/pypi"
+skill="${HOME:?}/.claude/skills/style-review"
+
+if ! command -v pipx &>/dev/null; then
+  warn "pipx is missing, so the skill style-review wasn't installed." \
+    "Fix: re-run chezmoi apply, which installs pipx with mise."
+  exit 1
+fi
+# pipx installs again only when the installed copy came from another commit.
+now="$(pipx list --json 2>/dev/null | jq -r '.venvs["agent-style"].metadata.main_package.package_or_url // empty')"
+if [ "$now" != "$url" ] && ! pipx install --force "$url"; then
+  warn "pipx didn't install agent-style from $url." \
+    "pipx said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+if ! source="$(agent-style path)/skills/style-review" || [ ! -f "$source/SKILL.md" ]; then
+  warn "agent-style has no skill style-review, so it wasn't installed." \
+    "Fix: check the commit in this script, then re-run chezmoi apply."
+  exit 1
+fi
+# The copy is replaced whole, so that no file of an older copy stays.
+if ! diff -rq "$source" "$skill" &>/dev/null; then
+  mkdir -p "$(dirname "$skill")"
+  rm -rf "${HOME:?}/.claude/skills/style-review"
+  cp -R "$source" "$skill"
+fi

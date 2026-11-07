@@ -6,11 +6,6 @@
   },
   "plugins": [
     {
-      "name": "prose-check",
-      "source": "./plugins/prose-check",
-      "description": "Checks the text that Claude Code writes and keeps, with the checks of lovaizu/checks. Vale checks the English with the Google developer documentation style, and lint.py of the skill natural-japanese checks the Japanese."
-    },
-    {
       "name": "natural-japanese",
       "source": {
         "source": "github",

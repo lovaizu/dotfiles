@@ -1,20 +1,16 @@
 #!/bin/bash
-# Installs the plugins of this repository's marketplace: prose-check, and
-# natural-japanese, the skill that home/dot_claude/CLAUDE.md tells Claude
-# Code to follow for Japanese. The hooks of prose-check don't use this copy.
-# They run the copy that lovaizu/checks fetches. This script installs the
-# plugins with `claude plugin` commands, not in settings.json, for the reason in
-# run_after_ccpm-plugin.sh.tmpl.
-#
-# The marketplace is this clone itself, so Claude Code loads prose-check in
-# place from it, and a `git pull` takes effect at the next session.
-# natural-japanese is pinned in .claude-plugin/marketplace.json to the commit
-# that was read in full before it was installed (lovaizu/dotfiles#57).
+# Installs natural-japanese, the skill that home/dot_claude/CLAUDE.md tells
+# Claude Code to use on Japanese, from the marketplace of this repository.
+# The script installs it with `claude plugin` commands, not in
+# settings.json, for the reason in run_after_ccpm-plugin.sh.tmpl.
+# .claude-plugin/marketplace.json pins it to the commit that was read in
+# full before it was installed (lovaizu/dotfiles#57). The prose check
+# doesn't use this copy: it runs lint.py from lovaizu/checks.
 set -euo pipefail
 {{ template "warn.sh" . }}
 clone={{ .chezmoi.workingTree | quote }}
 marketplace=dotfiles
-plugins=("natural-japanese@$marketplace" "prose-check@$marketplace")
+plugins=("natural-japanese@$marketplace")
 # natural-japanese came from its own marketplace before it was pinned here.
 # Two copies would load the skill twice. Removing the marketplace also
 # uninstalls its plugin.
@@ -40,7 +36,7 @@ for name in "${old_marketplaces[@]}"; do
 done
 
 # A marketplace of this name that reads from another directory, such as an
-# older clone, is replaced, so that the plugins come from this clone.
+# older clone, is replaced, so that the pins come from this clone.
 if ! echo "$marketplaces_now" | jq -e --arg n "$marketplace" --arg p "$clone" \
   '.[] | select(.name == $n and .path == $p)' >/dev/null; then
   if echo "$marketplaces_now" | jq -e --arg n "$marketplace" '.[] | select(.name == $n)' >/dev/null &&
