@@ -6,9 +6,10 @@ Library
 {{ if not (or (eq .chezmoi.os "darwin") $wsl) }}
 .local/bin/sb
 {{ end }}
-{{- /* Only the login shell's rc file gets the prompt line. */}}
+{{- /* Only the files of the login shell get their lines. ~/.profile isn't here, as a login shell of bash reads it, and so does one of sh. */}}
 {{ if ne (env "SHELL" | base) "zsh" }}
 .zshrc
+.zprofile
 {{ end }}
 {{ if ne (env "SHELL" | base) "bash" }}
 .bashrc
