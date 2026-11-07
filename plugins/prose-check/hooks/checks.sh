@@ -2,7 +2,7 @@
 # home/run_after_prose-check-checks.sh.tmpl fetches that commit into
 # $checks_dir and installs its tools. The hooks then source its lib/lib.sh.
 checks_url=https://github.com/lovaizu/checks.git
-checks_sha=71fe7294d60893c79687537d2c25d7062c071865
+checks_sha=ba9e6bcd5448fbee5fc68dc55fb56c47c87549d5
 checks_dir="${XDG_DATA_HOME:-$HOME/.local/share}/lovaizu-checks/$checks_sha"
 
 # The hooks run jq, and lib.sh runs mise, which is in ~/.local/bin. A Claude
