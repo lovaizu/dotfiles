@@ -1,63 +1,79 @@
 #!/bin/bash
-# Installs natural-japanese, the skill that home/dot_claude/CLAUDE.md says
-# to use on Japanese, with the `claude plugin` commands of its own
-# marketplace, not in settings.json, for the reason in
-# run_after_ccpm-plugin.sh.tmpl. The prose check doesn't use this copy: it
-# runs lint.py from lovaizu/checks.
-#
-# The marketplace is pinned to tag v2.0.0, as `marketplace add` takes a
-# branch or a tag but not a commit. The skills of v2.0.0 are the same as
-# those of commit 840bd40, which Claude Code read in full before the
-# install, as lovaizu/dotfiles#57 asks. The author can move a tag, so the
-# script checks the commit that Claude Code installed, and removes a copy
-# from any other commit.
+# Installs natural-japanese, the skill that home/dot_claude/CLAUDE.md tells
+# Claude Code to use on Japanese, from the marketplace of this repository.
+# The script installs it with `claude plugin` commands, not in
+# settings.json, for the reason in run_after_ccpm-plugin.sh.tmpl.
+# .claude-plugin/marketplace.json pins it to the commit that was read in
+# full before it was installed (lovaizu/dotfiles#57). The prose check
+# doesn't use this copy: it runs lint.py from lovaizu/checks.
 set -euo pipefail
 {{ template "warn.sh" . }}
-marketplace=natural-japanese
-source="coji/natural-japanese#v2.0.0"
-commit=1fb57128a2f0d160e61320154226fdc86343ee2a
-plugin_id="natural-japanese@$marketplace"
+clone={{ .chezmoi.workingTree | quote }}
+marketplace=dotfiles
+plugins=("natural-japanese@$marketplace")
+# natural-japanese came from its own marketplace before it was pinned here.
+# Two copies would load the skill twice. Removing the marketplace also
+# uninstalls its plugin.
+old_marketplaces=(natural-japanese)
 
 for cmd in claude jq; do
   if ! command -v "$cmd" &>/dev/null; then
-    warn "$cmd is missing, so the plugin $plugin_id wasn't set up." \
+    warn "$cmd is missing, so the plugins of the $marketplace marketplace weren't set up." \
       "Fix: install $cmd, then re-run chezmoi apply."
     exit 1
   fi
 done
 
-# A marketplace of this name at another tag is replaced. Removing a
-# marketplace also uninstalls its plugin.
-now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
-if ! jq -e --arg n "$marketplace" '.[] | select(.name == $n and .repo == "coji/natural-japanese" and .ref == "v2.0.0")' <<<"$now" >/dev/null; then
-  if jq -e --arg n "$marketplace" '.[] | select(.name == $n)' <<<"$now" >/dev/null &&
-    ! claude plugin marketplace remove "$marketplace"; then
-    warn "Marketplace $marketplace wasn't removed, so it stays at another version." \
+marketplaces_now="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
+for name in "${old_marketplaces[@]}"; do
+  if echo "$marketplaces_now" | jq -e --arg n "$name" '.[] | select(.name == $n)' >/dev/null &&
+    ! claude plugin marketplace remove "$name"; then
+    warn "Marketplace $name wasn't removed." \
       "\`claude plugin marketplace remove\` said why in the preceding output." \
       "Fix: once that reason no longer applies, re-run chezmoi apply."
     exit 1
   fi
-  if ! claude plugin marketplace add "$source"; then
-    warn "Marketplace $marketplace wasn't added from $source." \
+done
+
+# A marketplace of this name that reads from another directory, such as an
+# older clone, is replaced, so that the pins come from this clone.
+if ! echo "$marketplaces_now" | jq -e --arg n "$marketplace" --arg p "$clone" \
+  '.[] | select(.name == $n and .path == $p)' >/dev/null; then
+  if echo "$marketplaces_now" | jq -e --arg n "$marketplace" '.[] | select(.name == $n)' >/dev/null &&
+    ! claude plugin marketplace remove "$marketplace"; then
+    warn "Marketplace $marketplace wasn't removed, so Claude Code couldn't read it from $clone." \
+      "\`claude plugin marketplace remove\` said why in the preceding output." \
+      "Fix: once that reason no longer applies, re-run chezmoi apply."
+    exit 1
+  fi
+  if ! claude plugin marketplace add "$clone"; then
+    warn "Marketplace $marketplace wasn't added from $clone." \
       "\`claude plugin marketplace add\` said why in the preceding output." \
       "Fix: once that reason no longer applies, re-run chezmoi apply."
     exit 1
   fi
 fi
 
-# On a plugin that is there, `install` says so and exits 0.
-if ! claude plugin install "$plugin_id" -y; then
-  warn "Plugin $plugin_id wasn't installed." \
-    "\`claude plugin install\` said why in the preceding output." \
-    "Fix: once that reason no longer applies, re-run chezmoi apply."
-  exit 1
-fi
+# A plugin installed at a commit other than the pinned one is installed
+# again. `claude plugin update` is not used: it clones over SSH, which fails
+# where no SSH key is set up, while `install` falls back to HTTPS.
 installed="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json"
-got="$(jq -r --arg id "$plugin_id" '.plugins[$id][0].gitCommitSha // empty' "$installed" 2>/dev/null || true)"
-if [ "$got" != "$commit" ]; then
-  claude plugin marketplace remove "$marketplace" || true
-  warn "Plugin $plugin_id came from commit ${got:-unknown}, not $commit, which Claude Code read, so the script removed it." \
-    "The tag v2.0.0 may have moved." \
-    "Fix: read the new commit in full, then change the tag and the commit in this script."
-  exit 1
-fi
+for plugin_id in "${plugins[@]}"; do
+  pinned="$(jq -r --arg n "${plugin_id%@*}" \
+    '.plugins[] | select(.name == $n) | .source.sha? // empty' "$clone/.claude-plugin/marketplace.json")"
+  now="$(jq -r --arg id "$plugin_id" '.plugins[$id][0].gitCommitSha // empty' "$installed" 2>/dev/null || true)"
+  if [ -n "$pinned" ] && [ -n "$now" ] && [ "$pinned" != "$now" ] &&
+    ! claude plugin uninstall "$plugin_id"; then
+    warn "Plugin $plugin_id wasn't uninstalled, so it stays at commit $now, not $pinned." \
+      "\`claude plugin uninstall\` said why in the preceding output." \
+      "Fix: once that reason no longer applies, re-run chezmoi apply."
+    exit 1
+  fi
+  # On a plugin that is there, `install` says so and exits 0.
+  if ! claude plugin install "$plugin_id" -y; then
+    warn "Plugin $plugin_id wasn't installed." \
+      "\`claude plugin install\` said why in the preceding output." \
+      "Fix: once that reason no longer applies, re-run chezmoi apply."
+    exit 1
+  fi
+done
