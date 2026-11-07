@@ -1,0 +1,22 @@
+#!/bin/bash
+# Installs the tools of the global config of mise, at the version and with
+# the sha256 that its mise.lock keeps. It runs before chezmoi places the
+# files, so mise reads the config from this clone. chezmoi runs it again when
+# one of these sums changes, or after a run that failed:
+# {{ include "private_dot_config/mise/config.toml" | sha256sum }}
+# {{ include "private_dot_config/mise/mise.lock" | sha256sum }}
+set -euo pipefail
+{{ template "warn.sh" . }}
+if ! command -v mise &>/dev/null; then
+  warn "mise isn't installed, so the tools of its global config weren't installed." \
+    "Fix: run ./setup.sh of this clone, which installs mise."
+  exit 1
+fi
+# --locked fails on a tool that mise.lock doesn't pin, or whose download
+# has another sha256.
+if ! MISE_GLOBAL_CONFIG_FILE={{ joinPath .chezmoi.sourceDir "private_dot_config/mise/config.toml" | quote }} mise install --locked; then
+  warn "mise didn't install every tool of its global config." \
+    "mise said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi

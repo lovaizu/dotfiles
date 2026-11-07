@@ -1,0 +1,15 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  The login shell reads this file once, and every program that it starts
+  gets its environment. So the line that puts the tools of mise on PATH
+  goes here. A shell that reads no rc file, such as `zsh -lc`, and the
+  programs that it starts, find the tools too. The file is the user's, so
+  this template keeps it as found and only adds that line, once.
+*/ -}}
+{{- $mise := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/mise.sh") -}}
+{{- .chezmoi.stdin -}}
+{{- if not (has $mise (splitList "\n" .chezmoi.stdin)) -}}
+{{- if and .chezmoi.stdin (not (hasSuffix "\n" .chezmoi.stdin)) }}
+{{ end -}}
+{{ $mise }}
+{{ end -}}

@@ -1,6 +1,6 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/bin/bash
-# Only warns: the profile file itself is placed either way.
+# Only warns: chezmoi places the profile file itself either way.
 set -euo pipefail
 {{ template "warn.sh" . }}
 # Must match "Guid" in the herdr.json profile -- JSON has no comments to
@@ -10,18 +10,18 @@ iterm_profile_guid="8f7b6c1e-3d2a-4e9b-9c5d-71a2b4e6f038"
 iterm_default_menu="iTerm2 > Settings > Profiles > herdr > Other Actions... > Set as Default"
 if default_guid="$(defaults read com.googlecode.iterm2 "Default Bookmark Guid" 2>/dev/null)"; then
   if [ "$default_guid" != "$iterm_profile_guid" ]; then
-    warn "the 'herdr' profile is not iTerm2's default profile." \
+    warn "the 'herdr' profile isn't iTerm2's default profile." \
       "The ctrl+cmd key mappings apply only to windows using that profile," \
-      "so herdr workspace switching will not work in other windows." \
+      "so herdr workspace switching doesn't work in other windows." \
       "Fix: set it as the default in" \
       "  $iterm_default_menu" \
-      "then open a NEW window (existing windows keep their old profile)."
+      "then open a new window, because existing windows keep their old profile."
   fi
 else
   warn "iTerm2 has no preferences on this machine, so which profile is its default is unknown." \
-    "That is what a Mac looks like where iTerm2 has never been installed or" \
-    "never been started. The profile itself is deployed and iTerm2 will" \
-    "read it when it first runs, so nothing was missed here." \
+    "That's how a Mac looks when nobody has installed or started iTerm2 on it." \
+    "chezmoi has deployed the profile itself, and iTerm2 reads it on its" \
+    "first run, so this run missed nothing." \
     "Fix: after installing and starting iTerm2, set the default profile in" \
     "  $iterm_default_menu" \
     "Re-running chezmoi apply then says whether it took."

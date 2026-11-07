@@ -2,13 +2,14 @@
 {{ if ne .chezmoi.os "darwin" }}
 Library
 {{ end }}
-{{- /* sb drives sbx from the host: a Mac, or WSL on Windows. Not inside a sandbox. */}}
+{{- /* sb drives sbx from the host: a Mac, or Windows Subsystem for Linux (WSL) on Windows. Not inside a sandbox. */}}
 {{ if not (or (eq .chezmoi.os "darwin") $wsl) }}
 .local/bin/sb
 {{ end }}
-{{- /* Only the login shell's rc file gets the prompt line. */}}
+{{- /* Only the files of the login shell get their lines. ~/.profile isn't here, as a login shell of bash reads it, and so does one of sh. */}}
 {{ if ne (env "SHELL" | base) "zsh" }}
 .zshrc
+.zprofile
 {{ end }}
 {{ if ne (env "SHELL" | base) "bash" }}
 .bashrc

@@ -1,0 +1,58 @@
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+#!/bin/bash
+# Runs on Windows Subsystem for Linux (WSL) alone, before chezmoi places the
+# files, so the steps after them find sbx. Re-runs only when this script
+# changes, or after a run that failed. mise installs the other tools, in
+# run_onchange_before_install-mise-tools.sh.tmpl.
+set -euo pipefail
+{{ template "warn.sh" . }}
+failed=""
+
+# sbx for Linux, inside Windows Subsystem for Linux (WSL) with the rest of
+# the work. The Windows sbx mounts the group at a path under /wsl.localhost,
+# where worktrees lose their main repository. Docker's apt repository as its
+# Ubuntu steps write it, holding sbx alone as on the Mac. get.docker.com would
+# wait 20 seconds on WSL to suggest Docker Desktop. Read on 2026-10-21.
+add_docker_repo() {
+  local suite
+  suite="$(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")"
+  sudo install -m 0755 -d /etc/apt/keyrings &&
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &&
+    sudo chmod a+r /etc/apt/keyrings/docker.asc &&
+    printf '%s\n' "Types: deb" \
+      "URIs: https://download.docker.com/linux/ubuntu" \
+      "Suites: $suite" \
+      "Components: stable" \
+      "Architectures: $(dpkg --print-architecture)" \
+      "Signed-By: /etc/apt/keyrings/docker.asc" |
+    sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null &&
+    sudo apt-get update
+}
+if command -v sbx &>/dev/null; then
+  echo "sbx already installed. Skipping."
+elif ! command -v apt-get &>/dev/null; then
+  warn "apt-get isn't available, so the Docker Sandboxes tool sbx wasn't installed." \
+    "Fix: install sbx as https://docs.docker.com/ai/sandboxes/install/ says, then re-run chezmoi apply."
+  failed=1
+elif ! add_docker_repo || ! sudo apt-get install -y docker-sbx; then
+  warn "The Docker Sandboxes tool sbx wasn't installed from Docker's apt repository." \
+    "It said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  failed=1
+fi
+
+# Local sandboxes run on the Kernel-based Virtual Machine (KVM), which only the kvm group may open.
+if ! id -nG "$USER" | tr ' ' '\n' | grep -qxF kvm &&
+  ! sudo usermod -aG kvm "$USER"; then
+  warn "sudo usermod -aG kvm $USER failed, so sbx can't start a sandbox." \
+    "It said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  failed=1
+elif ! id -nG | tr ' ' '\n' | grep -qxF kvm; then
+  warn "$USER is now in the kvm group, but this terminal started before that." \
+    "Fix: open a new Windows Subsystem for Linux (WSL) terminal, then re-run chezmoi apply."
+  failed=1
+fi
+
+[ -z "$failed" ]
+{{ end -}}

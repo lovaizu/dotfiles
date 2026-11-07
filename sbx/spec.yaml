@@ -5,22 +5,29 @@ displayName: Claude Code with lovaizu/dotfiles
 extends: claude
 
 sandbox:
-  # sbx appends claude's flags (--dangerously-skip-permissions) even with an
-  # empty command, so sh takes them as $1... and drops them. herdr opens its
-  # panes in $SHELL, which sbx leaves empty; the installer puts herdr outside
-  # the entrypoint's PATH.
+  # sbx appends the flags of claude, such as the one that skips permission
+  # prompts, even with an empty command. So sh takes them as $1 onward and
+  # drops them. herdr opens its panes in the shell that the environment
+  # names, and sbx leaves that name empty. mise puts herdr outside the PATH
+  # of the entrypoint, so mise.sh adds it, as it does for the shells.
   entrypoint:
     - sh
     - -c
-    - SHELL=/bin/bash exec "$HOME/.local/bin/herdr"
+    - . "$HOME/.config/shell/mise.sh" && SHELL=/bin/bash exec herdr
     - herdr
 
 permissions:
   network:
     allow:
-      - get.chezmoi.io
-      - herdr.dev
-      - starship.rs
+      # setup.sh and mise download the tools from GitHub releases. The
+      # checks of lovaizu/checks get the Python packages of lint.py from the
+      # Python Package Index.
+      - github.com
+      - api.github.com
+      - objects.githubusercontent.com
+      - release-assets.githubusercontent.com
+      - pypi.org
+      - files.pythonhosted.org
 
 setup:
   install:
