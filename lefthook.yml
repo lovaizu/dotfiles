@@ -7,9 +7,3 @@ remotes:
     ref: v0.1.2
     configs:
       - hooks.yml
-
-# The session notes in .rn/ are working notes, not prose that the repository
-# keeps for its readers.
-pre-commit:
-  exclude:
-    - ".rn/**"
