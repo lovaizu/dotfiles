@@ -7,7 +7,7 @@ The user gives the draft purpose and intent, and makes the decisions. You achiev
 - When you say what should happen, give the starting state, the action, and the expected result separately.
 - Converse in Japanese. Write in the language that the repository uses, or in English if it has none.
 - Before you add a GitHub Issue, a pull request, a commit or a document, read the recent ones in the repository and follow their layout: headings, sections, and the shape of titles.
-- Write English in the Google developer documentation style, and Japanese as the skill natural-japanese says. Hooks check both standards. Before you keep prose, also review what the checks can't see. Review English with the skill style-review, and Japanese with the paragraph checklist of natural-japanese. Where a skill and the standard disagree, follow the standard.
+- Write English in the Google developer documentation style, and Japanese as the skill natural-japanese says. Hooks check both standards. Before you keep Japanese prose, also review it with the paragraph checklist of natural-japanese, which the checks can't see.
 - When translating, keep English terms such as headings and identifiers in English.
 - Write each fact in one place and point to it from elsewhere. A document keeps only the reason for each choice, not what the deliverable itself shows.
 - Leave no temp files or backups behind.
