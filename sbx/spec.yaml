@@ -38,7 +38,7 @@ setup:
         git clone https://github.com/lovaizu/dotfiles.git "$HOME/.local/share/dotfiles" &&
         "$HOME/.local/share/dotfiles/setup.sh"
   startup:
-    - description: Re-apply lovaizu/dotfiles from its latest main
+    - description: Pull main of lovaizu/dotfiles and apply it again
       command:
         - sh
         - -c

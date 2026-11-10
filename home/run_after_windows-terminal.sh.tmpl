@@ -22,14 +22,14 @@ if ! command -v wslpath &>/dev/null || ! command -v cmd.exe &>/dev/null; then
   exit 1
 fi
 
-# cd: cmd.exe cannot start in a WSL directory (a UNC path to Windows) and
-# says so in the console's code page, which WSL shows garbled.
+# cd: cmd.exe can't start in a WSL directory, which is a network path to
+# Windows, and says so in the console's code page, which WSL shows garbled.
 appdata="$(cd /mnt/c && cmd.exe /c 'echo %LOCALAPPDATA%' | tr -d '\r' || true)"
 if [ -n "$appdata" ]; then
   appdata="$(wslpath "$appdata" || echo "$appdata")"
 fi
 # Must come back absolute: cmd.exe echoes an unset variable back as the
-# literal %LOCALAPPDATA% (measured).
+# literal %LOCALAPPDATA%, as measured.
 case "$appdata" in
   /*) ;;
   *)

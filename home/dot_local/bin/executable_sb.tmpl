@@ -29,7 +29,7 @@ if ! command -v sbx >/dev/null; then
     "Fix: run ./setup.sh in the dotfiles clone; it installs sbx."
 fi
 
-# The physical paths, so a symlink on either side cannot hide a match.
+# The physical paths, so a symlink on either side can't hide a match.
 here="$(pwd -P)"
 if ! work_real="$(cd "$work" 2>/dev/null && pwd -P)"; then
   stop "$work does not exist, so there is no group to open." \
@@ -37,9 +37,10 @@ if ! work_real="$(cd "$work" 2>/dev/null && pwd -P)"; then
     "then run sb from inside it."
 fi
 
-# The whole group is mounted, never the directory sb was started in: one
+# sb mounts the whole group, never the directory that it started in: one
 # group then shares one sandbox, and a worktree still reaches its main
-# repository's .git. Outside a group nothing is mounted, so $HOME never is.
+# repository's .git. Outside a group sb mounts nothing, so it never mounts
+# `$HOME`.
 case "$here/" in
 "$work_real"/?*/)
   group="${here#"$work_real"/}"

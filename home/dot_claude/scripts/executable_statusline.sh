@@ -49,7 +49,8 @@ model_name=$(printf '%s\n' "$input" | jq -r '
   | sub("^\\s*Claude\\s"; "")
   | gsub("\\s"; "")
 ')
-# Nothing but a note or blanks empties out under those rules; default it here.
+# A name of nothing but a note or blanks empties out under those rules, so
+# this line gives it a default.
 [ -n "$model_name" ] || model_name=unknown
 
 # Effort level first letter

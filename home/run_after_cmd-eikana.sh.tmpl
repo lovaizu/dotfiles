@@ -58,8 +58,8 @@ realize_cmd_eikana() {
       "The original runs under Rosetta and hangs on macOS 26." \
       "Fix: brew uninstall --cask cmd-eikana, then re-run chezmoi apply."
     return 1
-  # Current Homebrew refuses a cask from a tap that was never tapped
-  # (measured), so the tap comes first.
+  # Current Homebrew refuses a cask from a tap that was never tapped,
+  # as measured, so the tap comes first.
   elif ! brew tap "$CMD_EIKANA_TAP" || ! brew install --cask "$CMD_EIKANA_CASK"; then
     warn "brew install --cask $CMD_EIKANA_CASK failed." \
       "brew said why in the preceding output." \
@@ -69,8 +69,8 @@ realize_cmd_eikana() {
   fi
 
   # First launch is what registers it as a login item and asks for the
-  # permissions; later launches come from that login item. A failed open is
-  # caught by the pgrep below, with its own message.
+  # permissions. Later launches come from that login item. The `pgrep` below
+  # catches a failed open, with its own message.
   if ! pgrep -f "/⌘英かな.app/Contents/MacOS/" >/dev/null; then
     open -b "$CMD_EIKANA_BUNDLE_ID" || true
     sleep 2

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Installs the tools of the global config of mise, at the version and with
-# the sha256 that its mise.lock keeps. It runs before chezmoi places the
+# Installs each tool of the global config of mise at the version and
+# sha256 that its mise.lock keeps. It runs before chezmoi places the
 # files, so mise reads the config from this clone. chezmoi runs it again when
 # one of these sums changes, or after a run that failed:
 # {{ include "private_dot_config/mise/config.toml" | sha256sum }}

@@ -8,7 +8,7 @@
 #
 # The script installs the plugins with `claude plugin` commands, not in
 # settings.json. Claude Code writes enabledPlugins back into the live file
-# once a plugin is installed, so a copy in the repository would be runtime
+# once it installs a plugin, so a copy in the repository would be runtime
 # state, not configuration. The prose check doesn't use this copy of
 # natural-japanese: it runs lint.py from lovaizu/checks.
 set -euo pipefail
@@ -16,12 +16,12 @@ set -euo pipefail
 clone={{ .chezmoi.workingTree | quote }}
 marketplace=dotfiles
 # Removing a marketplace also uninstalls its plugins. natural-japanese came
-# from its own marketplace before it was pinned here, and two copies would
-# load the skill twice.
+# from its own marketplace before this repository pinned it, and two copies
+# would load the skill twice.
 old_marketplaces=(natural-japanese)
 # Plugins that came from other marketplaces and are no longer used. rn,
-# writ and turn of lovaizu/ccpm don't work while ccpm is rebuilt
-# (lovaizu/ccpm#54). Once the rebuilt rn lands, it gets an entry in
+# writ and turn of lovaizu/ccpm don't work while ccpm is rebuilt in
+# lovaizu/ccpm#54. Once the rebuilt rn lands, it gets an entry in
 # marketplace.json, with the source git-subdir and its commit.
 old_plugins=("rn@ccpm" "writ@ccpm" "turn@ccpm")
 
@@ -56,8 +56,8 @@ for name in "${old_marketplaces[@]}"; do
   fi
 done
 
-# A marketplace of this name that reads from another directory, such as an
-# older clone, is replaced, so that the pins come from this clone.
+# The script replaces a marketplace of this name that reads from another
+# directory, such as an older clone, so that the pins come from this clone.
 if ! echo "$marketplaces_now" | jq -e --arg n "$marketplace" --arg p "$clone" \
   '.[] | select(.name == $n and .path == $p)' >/dev/null; then
   if echo "$marketplaces_now" | jq -e --arg n "$marketplace" '.[] | select(.name == $n)' >/dev/null &&
@@ -75,9 +75,10 @@ if ! echo "$marketplaces_now" | jq -e --arg n "$marketplace" --arg p "$clone" \
   fi
 fi
 
-# A plugin installed at a commit other than the pinned one is installed
-# again. `claude plugin update` is not used: it clones over SSH, which fails
-# where no SSH key is set up, while `install` falls back to HTTPS.
+# The script installs again a plugin that sits at a commit other than the
+# pinned one. It doesn't use `claude plugin update`: that clones over SSH,
+# which fails where the machine has no SSH key, while `install` falls back
+# to HTTPS.
 installed="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json"
 for name in $(jq -r '.plugins[].name' "$clone/.claude-plugin/marketplace.json"); do
   plugin_id="$name@$marketplace"
@@ -91,7 +92,7 @@ for name in $(jq -r '.plugins[].name' "$clone/.claude-plugin/marketplace.json");
       "Fix: once that reason no longer applies, re-run chezmoi apply."
     exit 1
   fi
-  # On a plugin that is there, `install` says so and exits 0.
+  # On a plugin that's there, `install` says so and exits 0.
   if ! claude plugin install "$plugin_id" -y; then
     warn "Plugin $plugin_id wasn't installed." \
       "\`claude plugin install\` said why in the preceding output." \
