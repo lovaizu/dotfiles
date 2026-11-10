@@ -36,10 +36,12 @@ Reading the config files straightforwardly makes you want to fix them, but 3 poi
 
 ## Before you add an instruction to Claude Code
 
-Instructions fall into 3 layers, and `home/dot_claude/CLAUDE.md` holds only one of them.
+Instructions fall into 3 layers by what they apply to, and `home/dot_claude/CLAUDE.md` holds only one of them.
 
-- **`home/dot_claude/CLAUDE.md` = basic policy.** It doesn't depend on any procedure or any repository. It's the relationship with Claude itself. It should still make sense even with every plugin removed.
-- **Plugins such as rn = procedures.** What to do, in what order, what to keep, and where to stop.
-- **Skills = knowledge of a domain.** What's the standard approach in that domain, and what to avoid.
+- **General: `home/dot_claude/CLAUDE.md`.** It holds for any kind of work: deciding, reporting, what not to destroy, and techniques that still say something without the words of the domain they came from.
+- **Process: plugins such as rn.** The order of steps, and where to stop. It means nothing outside its workflow.
+- **Specialized: skills.** What good work looks like inside one craft. It means nothing without the words of that craft.
 
-When adding a line, decide by elimination. If it's one step of a procedure, it goes to a plugin. If it's knowledge of a domain, it goes to a skill. If it's neither, it stays in `home/dot_claude/CLAUDE.md`.
+To tell general from specialized, restate the rule without the words of the domain it came from. If it still says something, it's general. "Keep the starting state, the action, and the expected result apart" survives. "Mock the module boundary" doesn't.
+
+A general rule still stays out of `home/dot_claude/CLAUDE.md` when a line there already implies it. Every conversation reads that file, so its value is its shortness. Wanting a rule to apply everywhere is about reach, not about layer. If a skill doesn't fire when it should, fix how it's invoked.
