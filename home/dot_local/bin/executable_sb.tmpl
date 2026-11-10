@@ -29,6 +29,11 @@ if ! command -v sbx >/dev/null; then
     "Fix: run ./setup.sh in the dotfiles clone; it installs sbx."
 fi
 
+if ! command -v jq >/dev/null; then
+  stop "jq is not found, and sb needs it to read the status of the sandbox." \
+    "Fix: run ./setup.sh in the dotfiles clone; it installs jq with mise."
+fi
+
 # The physical paths, so a symlink on either side can't hide a match.
 here="$(pwd -P)"
 if ! work_real="$(cd "$work" 2>/dev/null && pwd -P)"; then
@@ -54,7 +59,21 @@ case "$here/" in
   ;;
 esac
 
-if sbx ls -q | grep -qxF "$group"; then
+# The kit's startup command, which pulls main of the dotfiles, runs only
+# when a sandbox starts, and sbx run only reconnects to a running sandbox.
+# So sb stops a running sandbox first, and the start runs the command again.
+# sb knows only the status "running" of sbx ls, so it leaves a sandbox with
+# any other status alone.
+status="$(sbx ls --json | jq -r --arg name "$group" \
+  '.[] | select(.name == $name) | .status')"
+if [ "$status" = running ]; then
+  if ! sbx stop "$group"; then
+    stop "sbx stop $group failed, so the sandbox can't restart and pull main" \
+      "of the dotfiles." \
+      "Fix: read the error above, then run sb again."
+  fi
+fi
+if [ -n "$status" ]; then
   exec sbx run --name "$group"
 fi
 exec sbx run --name "$group" "$kit" "$work_real/$group"
