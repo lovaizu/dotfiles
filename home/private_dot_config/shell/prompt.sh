@@ -17,7 +17,7 @@ _prompt_title() {
   printf '\033]0;%s: %s\007' "$_prompt_host" "${PWD/#"$HOME"/$tilde}"
 }
 
-# Starship's user hook is bash-only and takes a function name; zsh has its
+# Starship's user hook is bash-only and takes a function name. zsh has its
 # own precmd list, as read in starship 1.25's init scripts.
 if [ -n "${ZSH_VERSION:-}" ]; then
   precmd_functions+=(_prompt_title)

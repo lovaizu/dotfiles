@@ -18,7 +18,7 @@ if ! brew trust --tap docker/tap; then
     "Fix: once that reason no longer applies, re-run chezmoi apply."
   exit 1
 fi
-# --no-upgrade: updating what is already there is brew's job, not this one.
+# --no-upgrade: updating what's already there is brew's job, not this one.
 if ! brew bundle --no-upgrade --file=/dev/stdin <<'EOF'; then
 tap "docker/tap"
 cask "docker/tap/sbx"

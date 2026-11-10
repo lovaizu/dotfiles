@@ -3,7 +3,7 @@
 # `git commit`, and the title, body or comment of each `gh issue` and
 # `gh pr` command. Each text is {what, text}, {what, file} when the text is
 # in a file, or {what, text: null} when the command builds it in a way that
-# can't be read without running it, such as from a variable. The command
+# only running it can show, such as from a variable. The command
 # also writes files, by a redirect such as `> notes.md` or by `tee`: each
 # of these is {what, name}, the name of that file.
 
@@ -18,7 +18,7 @@ def part:
   elif .Type == "SglQuoted" then .Value
   elif .Type == "DblQuoted" then
     [.Parts[]? | if .Type == "Lit" then .Value | gsub("\\\\(?<c>[\"\\\\$`])"; .c) else part end] | joined
-  # $(cat <<'EOF' ... EOF) gives the body of the here-document, without the
+  # `$(cat <<'EOF' ... EOF)` gives the body of the here-document, without the
   # newlines at its end, as a command substitution drops them.
   elif .Type == "CmdSubst" then
     if (.Stmts | length) == 1 and .Stmts[0].Cmd.Type == "CallExpr"
