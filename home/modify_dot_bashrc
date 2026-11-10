@@ -1,21 +1,27 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
   The rc file is the user's, so this template keeps it as found and only
-  adds two lines, once: one that puts the tools of mise on PATH, and one
-  that sources the prompt. The prompt needs starship from mise, so its line
-  comes last. An rc file that has only the prompt line gets the two lines
-  at its end, in that order.
+  adds three lines, once: one that puts the tools of mise on PATH, one that
+  sources the prompt, and one that prints the notice of a failed update.
+  The prompt needs starship from mise, so its line comes after that of
+  mise. An rc file that has only the prompt line gets the three lines at
+  its end, in that order.
 */ -}}
 {{- $mise := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/mise.sh") -}}
 {{- $prompt := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/prompt.sh") -}}
+{{- $notice := printf ". %q" (joinPath .chezmoi.homeDir ".config/shell/update-notice.sh") -}}
 {{- $lines := splitList "\n" .chezmoi.stdin -}}
 {{- if has $mise $lines -}}
 {{- .chezmoi.stdin -}}
 {{- if not (has $prompt $lines) }}
 {{ $prompt }}
 {{ end -}}
+{{- if not (has $notice $lines) }}
+{{ $notice }}
+{{ end -}}
 {{- else -}}
-{{- without $lines $prompt | join "\n" }}
+{{- without $lines $prompt $notice | join "\n" }}
 {{ $mise }}
 {{ $prompt }}
+{{ $notice }}
 {{ end -}}

@@ -38,11 +38,41 @@ setup:
         git clone https://github.com/lovaizu/dotfiles.git "$HOME/.local/share/dotfiles" &&
         "$HOME/.local/share/dotfiles/setup.sh"
   startup:
+    # A failed update must not stop the sandbox from starting: sbx v0.49.1
+    # doesn't start a sandbox whose startup command fails, although Docker's
+    # documentation says that it does. The output of this command goes only
+    # to /var/log/sbx-kit-startup.log, so it writes a notice to a file, and
+    # update-notice.sh prints that file in each new shell.
     - description: Pull main of lovaizu/dotfiles and apply it again
       command:
         - sh
         - -c
-        - >-
-          export PATH="$HOME/.local/bin:$PATH" SHELL=/bin/bash &&
-          git -C "$HOME/.local/share/dotfiles" pull --ff-only &&
-          "$HOME/.local/share/dotfiles/setup.sh"
+        - |-
+          export PATH="$HOME/.local/bin:$PATH" SHELL=/bin/bash
+          dotfiles="$HOME/.local/share/dotfiles"
+          failed=
+          git -C "$dotfiles" pull --ff-only || failed="git pull --ff-only exited with code $?"
+          if [ -z "$failed" ]; then
+            "$dotfiles/setup.sh" || failed="./setup.sh exited with code $?"
+          fi
+          notice_sh="$HOME/.config/shell/update-notice.sh"
+          if [ ! -f "$notice_sh" ]; then
+            echo "$notice_sh is missing, so no shell reports the result of this update." >&2
+            exit 0
+          fi
+          . "$notice_sh"
+          if [ -z "$failed" ]; then
+            rm -f "$dotfiles_update_notice"
+            exit 0
+          fi
+          mkdir -p "$(dirname "$dotfiles_update_notice")"
+          cat >"$dotfiles_update_notice" <<EOF
+
+          WARNING: The dotfiles weren't updated at the start of the sandbox on $(date).
+            $failed, so the sandbox runs with the settings of the last update that succeeded.
+            /var/log/sbx-kit-startup.log has the output that says why.
+            Fix: remove the cause in $dotfiles, then restart the sandbox.
+            The next update that succeeds removes this notice.
+
+          EOF
+          exit 0
