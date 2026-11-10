@@ -1,9 +1,17 @@
 # Reads the syntax tree that `shfmt --to-json` makes of a Bash command, and
-# prints {rm, scripts}. rm is true when the command runs rm itself. scripts
-# holds the script string of each shell that the command starts with -c,
-# such as the "…" of `bash -l -c "…"`. A part that only running the command
-# can give, such as $dir, stands as `_` in the string, so that the string
-# still parses and shows each command in it.
+# prints {rm, scripts, braces}.
+#
+# rm is true when the command runs rm itself. scripts holds the script
+# string of each shell that the command starts with -c, such as the "…" of
+# `bash -l -c "…"`. A part that only running the command can give, such as
+# $dir, stands as `_` in the string, so that the string still parses and
+# shows each command in it.
+#
+# braces holds each ${…} expansion whose operand has more { than }, outside
+# quotes, such as ${y:-{\}}. Each is {end, need}: end is the byte offset
+# just after the closing }, and need is the count of { left open. Bash
+# counts a { in the operand, so the expansion ends only after need more }.
+# shfmt ends it at the first }, so the check of those } is up to the hook.
 
 def part:
   if .Type == "Lit" then .Value
@@ -35,6 +43,16 @@ def script:
     | select(.c and .script != null) | .script
   else empty end;
 
+# The count of { minus the count of } in a literal, where a character
+# after a backslash counts as neither.
+def open_braces:
+  gsub("\\\\."; "") | [explode[] | if . == 123 then 1 elif . == 125 then -1 else 0 end] | add // 0;
+
 [.. | objects | select(.Type? == "CallExpr" and (.Args | length) > 0) | [.Args[] | word] | unwrap] as $calls
 | {rm: any($calls[]; length > 0 and (.[0] | split("/") | last) == "rm"),
-   scripts: [$calls[] | script]}
+   scripts: [$calls[] | script],
+   braces: [.. | objects | select(.Type? == "ParamExp" and .Rbrace != null) |
+     {end: .End.Offset,
+      need: ([(.Exp.Word?, .Repl.Orig?, .Repl.With?) | select(. != null) |
+        .Parts[]? | select(.Type == "Lit") | .Value | open_braces] | add // 0)} |
+     select(.need > 0)]}
