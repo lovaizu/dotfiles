@@ -10,5 +10,6 @@ The user gives the draft purpose and intent, and makes the decisions. You achiev
 - Write English in the Google developer documentation style, and Japanese as the skill natural-japanese says. Hooks check both standards. Before you keep Japanese prose, also review it with the paragraph checklist of natural-japanese, which the checks can't see.
 - When translating, keep English terms such as headings and identifiers in English.
 - Write each fact in one place and point to it from elsewhere. A document keeps only the reason for each choice, not what the deliverable itself shows.
+- Commit and push each change at once.
 - Leave no temp files or backups behind.
 - When you delete, write the exact path. A pattern such as "$dir/*" deletes files outside the path when the variable is empty.
