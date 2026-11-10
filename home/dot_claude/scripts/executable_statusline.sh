@@ -53,11 +53,12 @@ model_name=$(printf '%s\n' "$input" | jq -r '
 # this line gives it a default.
 [ -n "$model_name" ] || model_name=unknown
 
-# Effort level first letter
+# Effort level in full, for example Opus5/medium. Its first letter alone
+# showed medium and max both as m. The level shows whole, not as a short mark,
+# so the script keeps no table that a new level would leave out of date.
 effort=$(printf '%s\n' "$input" | jq -r '.effort.level // empty')
 if [ -n "$effort" ]; then
-  e=$(printf '%.1s' "$effort")
-  seg2="${model_name}/${e}"
+  seg2="${model_name}/${effort}"
 else
   seg2="${model_name}"
 fi
