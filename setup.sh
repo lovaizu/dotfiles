@@ -12,15 +12,15 @@ script_dir="$(cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P)"
 # its GitHub release. Each sum is that of the binary for the platform, as
 # the release's SHASUMS256.txt gives it. To change the version, take the
 # new sums from that file.
-mise_version=2026.11.3
+mise_version=2026.11.5
 bin_dir="${HOME}/.local/bin"
 mise="${bin_dir}/mise"
 if [ "$("$mise" --version 2>/dev/null | cut -d ' ' -f 1)" != "$mise_version" ]; then
 	case "$(uname -s)-$(uname -m)" in
-	Linux-x86_64) platform=linux-x64 sum=c2f7e814cb39f60b7f67a0ff36cb805e94128bf2dff09d175309d0f095b8cc3b ;;
-	Linux-aarch64 | Linux-arm64) platform=linux-arm64 sum=a9a2a66bbbe87ea9cc849e1f006606ae2b34f3d3ba56a54d5cd5d64b6557d164 ;;
-	Darwin-arm64) platform=macos-arm64 sum=6d39119ab914c54ab865204dee9337c71b83a7ed1e730f663c2fc3453e38fe9c ;;
-	Darwin-x86_64) platform=macos-x64 sum=49f32abd93f54147af0599a1c9583d2092df8e7250c9fe635783a7932c4087ef ;;
+	Linux-x86_64) platform=linux-x64 sum=7a5b051d6f17d335c502f8047a5175cf3103f347d91942771c60da4e302ebcb0 ;;
+	Linux-aarch64 | Linux-arm64) platform=linux-arm64 sum=3cb907fc1d3f033afab40b4a8efca4fd71440bf91b63bfca3beb3302b0f3a6d5 ;;
+	Darwin-arm64) platform=macos-arm64 sum=4f9faebcfac7f8bb1321e697ba7a5ba26f645233aa269741a16482f757bd482e ;;
+	Darwin-x86_64) platform=macos-x64 sum=f9489962f8c979520111b86b70c5da91086c54c9141edd116198d89093784a1e ;;
 	*)
 		echo "setup.sh: mise has no binary for $(uname -s) on $(uname -m), so setup.sh can't install it." >&2
 		exit 1
