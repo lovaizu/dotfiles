@@ -7,3 +7,12 @@ remotes:
     ref: v0.1.6
     configs:
       - hooks.yml
+
+# Files that hold no prose of their own: the lockfile that mise writes, and
+# the settings of Windows Terminal and Claude Code, whose values are names
+# and commands.
+pre-commit:
+  exclude:
+    - "home/private_dot_config/mise/mise.lock"
+    - "home/.chezmoitemplates/windows-terminal-settings.json"
+    - "home/.chezmoitemplates/claude-settings.json"
