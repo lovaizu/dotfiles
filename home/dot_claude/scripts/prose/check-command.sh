@@ -45,11 +45,7 @@ while IFS= read -r item; do
   else
     jq -r .text <<<"$item" >"$text"
   fi
-  if [ "$what" = "the commit message" ]; then
-    prose "$cwd" commit-msg "$what" "$text"
-  else
-    prose "$cwd" pre-commit "$what" --file "$text"
-  fi
+  prose_text "$cwd" "$text" "$what"
 done < <(jq -c '.[] | select(has("name") | not)' <<<"$texts")
 
 answer PreToolUse "the text that this command would keep, so the command didn't run" \

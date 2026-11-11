@@ -25,7 +25,7 @@ while IFS= read -r file; do
   case "$file" in /*) ;; *) file="$cwd/$file" ;; esac
   [ -f "$file" ] || continue
   path="$(in_repo "$file")" || continue
-  prose "$(dirname "$file")" pre-commit "$file" --file "$path"
+  prose_file "$file" "$path"
   checked+=("$file")
 done <<<"$files"
 
