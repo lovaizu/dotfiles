@@ -34,7 +34,7 @@ Reading the config files straightforwardly makes you want to fix them, but 3 poi
 - **dotfiles is the source of truth.** On the next apply, chezmoi asks about a placed file that changed from an app's UI or by hand, and overwriting it brings back what's in dotfiles. Put anything you want to keep into dotfiles itself. There are two exceptions. Claude Code's `settings.json` gets only the keys kept here. What Claude Code and herdr write into it stays. `./setup.sh` copies Windows Terminal's settings over without asking.
 - **Taking something out of dotfiles doesn't always take it off the machine.** Each kind of thing leaves in its own way:
   - A file leaves when `home/.chezmoiremove` names it.
-  - A Claude Code setting leaves when `home/dot_claude/modify_settings.json` deletes it.
+  - A Claude Code setting leaves when `home/dot_claude/modify_settings.json` deletes it. A hook also has a script, which leaves as a file.
   - A plugin of Claude Code leaves when `home/run_after_plugins.sh.tmpl` lists it.
   - A tool of mise leaves on its own. `./setup.sh` deletes each version that no config of mise on the machine names. mise knows a config, such as the `mise.toml` of a project, once it has loaded it, and forgets it once someone deletes the file.
 
