@@ -10,8 +10,8 @@ remotes:
       - english.yml
 
 # The job english checks each file but those that hold no prose of their
-# own: the lockfile that mise writes, and the settings of Windows Terminal
-# and Claude Code, whose values are names and commands.
+# own: the lockfile that mise writes, and the settings of Windows Terminal,
+# Claude Code and iTerm2, whose values are names, numbers and commands.
 pre-commit:
   jobs:
     - name: english
@@ -19,3 +19,4 @@ pre-commit:
         - "home/private_dot_config/mise/mise.lock"
         - "home/.chezmoitemplates/windows-terminal-settings.json"
         - "home/.chezmoitemplates/claude-settings.json"
+        - "home/private_Library/private_Application Support/iTerm2/DynamicProfiles/herdr.json"

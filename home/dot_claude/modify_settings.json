@@ -1,8 +1,8 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
   Claude Code writes `enabledPlugins` back into this file, and herdr writes
-  `hooks.SessionStart`, so the template sets only the keys kept in the
-  repo and leaves the rest as found.
+  its hook of `SessionStart` under `hooks`, so the template sets only the
+  keys kept in the repo and leaves the rest as found.
   A key dropped from the repo stays on the machine until removed here.
 */ -}}
 {{- $live := dict -}}
