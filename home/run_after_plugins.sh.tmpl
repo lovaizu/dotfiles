@@ -9,21 +9,21 @@
 # The script installs the plugins with `claude plugin` commands, not in
 # settings.json. Claude Code writes enabledPlugins back into the live file
 # once it installs a plugin, so a copy in the repository would be runtime
-# state, not configuration. The prose check doesn't use this copy of
-# natural-japanese: it runs lint.py from lovaizu/checks.
+# state, not configuration.
 set -euo pipefail
 {{ template "warn.sh" . }}
 clone={{ .chezmoi.workingTree | quote }}
 marketplace=dotfiles
-# Removing a marketplace also uninstalls its plugins. natural-japanese came
-# from its own marketplace before this repository pinned it, and two copies
-# would load the skill twice.
+# Removing a marketplace also uninstalls its plugins. Before this
+# repository pinned natural-japanese, the plugin came from a marketplace of
+# its own.
 old_marketplaces=(natural-japanese)
-# Plugins that came from other marketplaces and are no longer used. rn,
-# writ and turn of lovaizu/ccpm don't work while ccpm is rebuilt in
-# lovaizu/ccpm#54. Once the rebuilt rn lands, it gets an entry in
-# marketplace.json, with the source git-subdir and its commit.
-old_plugins=("rn@ccpm" "writ@ccpm" "turn@ccpm")
+# Plugins that are no longer used. rn, writ and turn of lovaizu/ccpm don't
+# work while ccpm is rebuilt in lovaizu/ccpm#54. Once the rebuilt rn lands,
+# it gets an entry in marketplace.json, with the source git-subdir and its
+# commit. The skill of natural-japanese held a standard for Japanese other
+# than the one that textlint applies in lovaizu/checks.
+old_plugins=("rn@ccpm" "writ@ccpm" "turn@ccpm" "natural-japanese@dotfiles")
 
 for cmd in claude jq; do
   if ! command -v "$cmd" &>/dev/null; then
