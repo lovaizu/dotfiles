@@ -1,0 +1,7 @@
+# The lefthook settings of the dotfiles, which lefthook.yml of
+# lovaizu/repofiles extends.
+pre-commit:
+  jobs:
+    # The dotfiles hold no Japanese.
+    - name: japanese
+      skip: true

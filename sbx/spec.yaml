@@ -16,19 +16,6 @@ sandbox:
     - . "$HOME/.config/shell/mise.sh" && SHELL=/bin/bash exec herdr
     - herdr
 
-permissions:
-  network:
-    allow:
-      # setup.sh and mise download the tools from GitHub releases. The
-      # checks of lovaizu/checks get the Python packages of lint.py from the
-      # Python Package Index.
-      - github.com
-      - api.github.com
-      - objects.githubusercontent.com
-      - release-assets.githubusercontent.com
-      - pypi.org
-      - files.pythonhosted.org
-
 setup:
   install:
     - description: Apply lovaizu/dotfiles
