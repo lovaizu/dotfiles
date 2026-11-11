@@ -16,15 +16,6 @@ sandbox:
     - . "$HOME/.config/shell/mise.sh" && SHELL=/bin/bash exec herdr
     - herdr
 
-permissions:
-  network:
-    allow:
-      # setup.sh and mise download the tools from GitHub releases.
-      - github.com
-      - api.github.com
-      - objects.githubusercontent.com
-      - release-assets.githubusercontent.com
-
 setup:
   install:
     - description: Apply lovaizu/dotfiles
