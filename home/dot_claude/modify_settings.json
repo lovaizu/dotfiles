@@ -8,6 +8,20 @@
 {{- $live := dict -}}
 {{- if .chezmoi.stdin -}}{{- $live = fromJson .chezmoi.stdin -}}{{- end -}}
 {{- $merged := mergeOverwrite (deepCopy $live) (include ".chezmoitemplates/claude-settings.json" | fromJson) -}}
+{{- /*
+  The hook of the prose check moved to lovaizu/checks, which each repository
+  registers on its own. The repo no longer has PostToolUse, so its entry
+  stays in the live file unless removed here.
+*/ -}}
+{{- with $merged.hooks -}}
+{{- if hasKey . "PostToolUse" -}}
+{{- $kept := list -}}
+{{- range .PostToolUse -}}
+{{- if not (contains "/.claude/scripts/prose/" (toJson .)) -}}{{- $kept = append $kept . -}}{{- end -}}
+{{- end -}}
+{{- if $kept -}}{{- $_ := set . "PostToolUse" $kept -}}{{- else -}}{{- $_ := unset . "PostToolUse" -}}{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- /* Left byte for byte when nothing changes: rewriting only reorders keys. */ -}}
 {{- if eq (toJson $merged) (toJson $live) -}}
 {{- .chezmoi.stdin -}}

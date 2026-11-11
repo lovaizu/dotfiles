@@ -20,25 +20,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$HOME/.claude/scripts/prose/check-command.sh\"",
-            "timeout": 120
-          },
-          {
-            "type": "command",
             "command": "bash \"$HOME/.claude/scripts/rm/check-command.sh\"",
             "timeout": 30
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$HOME/.claude/scripts/prose/check-file.sh\"",
-            "timeout": 120
           }
         ]
       }

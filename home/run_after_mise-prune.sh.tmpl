@@ -1,0 +1,20 @@
+#!/bin/bash
+# Deletes each installed tool and version of mise that no config of mise on
+# the machine names, such as a version that left the global config. mise
+# records each config file that it loads, such as the mise.toml of a
+# project, and `mise prune` keeps what any of them names. It first forgets
+# the configs that no longer exist, so their tools go too.
+set -euo pipefail
+{{ template "warn.sh" . }}
+if ! command -v mise &>/dev/null; then
+  warn "mise isn't installed, so its unused tools weren't deleted." \
+    "Fix: run ./setup.sh of this clone, which installs mise."
+  exit 1
+fi
+# --yes, as chezmoi runs the script with nobody to answer the prompt.
+if ! mise prune --yes; then
+  warn "mise didn't delete every tool that no config names." \
+    "mise said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
