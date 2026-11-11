@@ -14,4 +14,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: lovaizu/checks@4dc569bfcdf35a825583389dde28699eee982aa1 # v0.1.7
+      - uses: lovaizu/checks@504575be65dfe91bdc1c3fac709e9fa11f4686b9 # v0.2.0

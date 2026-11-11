@@ -2,17 +2,20 @@
 # each commit. The workflow Tests runs them on each push, at the commit in
 # .github/workflows/tests.yml. The setup turns them on in this clone with
 # home/run_after_lefthook.sh.tmpl.
+# The repository holds only English, so only english.yml is in configs.
 remotes:
   - git_url: https://github.com/lovaizu/checks
-    ref: v0.1.7
+    ref: v0.2.0
     configs:
-      - hooks.yml
+      - english.yml
 
-# Files that hold no prose of their own: the lockfile that mise writes, and
-# the settings of Windows Terminal and Claude Code, whose values are names
-# and commands.
+# The job english checks each file but those that hold no prose of their
+# own: the lockfile that mise writes, and the settings of Windows Terminal
+# and Claude Code, whose values are names and commands.
 pre-commit:
-  exclude:
-    - "home/private_dot_config/mise/mise.lock"
-    - "home/.chezmoitemplates/windows-terminal-settings.json"
-    - "home/.chezmoitemplates/claude-settings.json"
+  jobs:
+    - name: english
+      exclude:
+        - "home/private_dot_config/mise/mise.lock"
+        - "home/.chezmoitemplates/windows-terminal-settings.json"
+        - "home/.chezmoitemplates/claude-settings.json"
