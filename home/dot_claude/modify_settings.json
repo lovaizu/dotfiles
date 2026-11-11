@@ -1,8 +1,8 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
   Claude Code writes `enabledPlugins` back into this file, and herdr writes
-  its hook of `SessionStart` under `hooks`, so the template sets only the
-  keys kept in the repo and leaves the rest as found.
+  `hooks.SessionStart`, so the template sets only the keys kept in the
+  repo and leaves the rest as found.
   A key dropped from the repo stays on the machine until removed here.
 */ -}}
 {{- $live := dict -}}
@@ -10,8 +10,8 @@
 {{- $merged := mergeOverwrite (deepCopy $live) (include ".chezmoitemplates/claude-settings.json" | fromJson) -}}
 {{- /*
   The hook of the prose check moved to lovaizu/repofiles, whose setup.sh
-  puts it into each repository. The repo no longer has PostToolUse, so its entry
-  stays in the live file unless removed here.
+  puts it into each repository. The repo no longer has PostToolUse, so its
+  entry stays in the live file unless removed here.
 */ -}}
 {{- with $merged.hooks -}}
 {{- if hasKey . "PostToolUse" -}}
