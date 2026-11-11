@@ -1,4 +1,4 @@
-{{/* The scripts of the prose check, which moved to lovaizu/checks. */ -}}
+{{/* The scripts of the prose check, which moved to lovaizu/repofiles. */ -}}
 .claude/scripts/prose
 {{/* The copies that the installers of chezmoi, herdr and starship put in ~/.local/bin before mise installed these tools. The shims of mise come first on PATH, so the old copies are never run. They go only once mise has installed chezmoi, so that a machine keeps a chezmoi to run. */ -}}
 {{ if stat (joinPath .chezmoi.homeDir ".local/share/mise/shims/chezmoi") -}}

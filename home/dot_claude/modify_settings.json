@@ -9,8 +9,8 @@
 {{- if .chezmoi.stdin -}}{{- $live = fromJson .chezmoi.stdin -}}{{- end -}}
 {{- $merged := mergeOverwrite (deepCopy $live) (include ".chezmoitemplates/claude-settings.json" | fromJson) -}}
 {{- /*
-  The hook of the prose check moved to lovaizu/checks, which each repository
-  registers on its own. The repo no longer has PostToolUse, so its entry
+  The hook of the prose check moved to lovaizu/repofiles, whose setup.sh
+  puts it into each repository. The repo no longer has PostToolUse, so its entry
   stays in the live file unless removed here.
 */ -}}
 {{- with $merged.hooks -}}

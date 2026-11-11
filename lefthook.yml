@@ -1,22 +1,14 @@
-# The checks that lovaizu repositories share, from lovaizu/checks, before
-# each commit. The workflow Tests runs them on each push, at the commit in
-# .github/workflows/tests.yml. The setup turns them on in this clone with
-# home/run_after_lefthook.sh.tmpl.
-# The repository holds only English, so only english.yml is in configs.
+# setup.sh of lovaizu/repofiles puts this file. To change it, run that
+# setup.sh again, as the README of lovaizu/repofiles says.
+# lefthook-repo.yml holds the settings of this repository, and setup.sh
+# doesn't change it: the files of each job, by glob and exclude, and
+# skip: true on the job of a language that this repository doesn't hold.
+extends:
+  - lefthook-repo.yml
 remotes:
-  - git_url: https://github.com/lovaizu/checks
-    ref: v0.2.0
+  - git_url: https://github.com/lovaizu/repofiles
+    ref: v0.1.0
     configs:
       - english.yml
-
-# The job english checks each file but those that hold no prose of their
-# own: the lockfile that mise writes, and the settings of Windows Terminal,
-# Claude Code and iTerm2, whose values are names, numbers and commands.
-pre-commit:
-  jobs:
-    - name: english
-      exclude:
-        - "home/private_dot_config/mise/mise.lock"
-        - "home/.chezmoitemplates/windows-terminal-settings.json"
-        - "home/.chezmoitemplates/claude-settings.json"
-        - "home/private_Library/private_Application Support/iTerm2/DynamicProfiles/herdr.json"
+      - japanese.yml
+      - claude-code.yml

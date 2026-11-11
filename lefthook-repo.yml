@@ -1,0 +1,17 @@
+# The lefthook settings of the dotfiles, which lefthook.yml of
+# lovaizu/repofiles extends.
+pre-commit:
+  jobs:
+    # The job english checks each file but those that hold no prose of
+    # their own: the lockfile that mise writes, and the settings of Windows
+    # Terminal, Claude Code and iTerm2, whose values are names, numbers and
+    # commands.
+    - name: english
+      exclude:
+        - "home/private_dot_config/mise/mise.lock"
+        - "home/.chezmoitemplates/windows-terminal-settings.json"
+        - "home/.chezmoitemplates/claude-settings.json"
+        - "home/private_Library/private_Application Support/iTerm2/DynamicProfiles/herdr.json"
+    # The dotfiles hold no Japanese.
+    - name: japanese
+      skip: true
