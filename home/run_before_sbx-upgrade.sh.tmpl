@@ -55,7 +55,9 @@ if [ "$old" = "$new" ]; then
   exit 0
 fi
 
-if ! names="$(sbx ls --json | jq -r '.[] | select(.status == "running") | .name')"; then
+# jq reads only the first JSON value. sbx before v0.53.0 can print its update
+# notice to stdout after the JSON, which is the case this script is for.
+if ! names="$(sbx ls --json | jq -rn 'input | .[] | select(.status == "running") | .name')"; then
   warn "sbx ls failed, so sbx wasn't upgraded from $old to $new." \
     "It said why in the preceding output." \
     "Fix: once that reason no longer applies, re-run chezmoi apply."
