@@ -4,8 +4,8 @@
 # Upgrades sbx when a newer version is out. The package scripts install sbx
 # but never upgrade it, and run again only when they change, so this one runs
 # on every apply. Its name sorts after theirs, so it runs after them.
-# An upgrade stops the daemon, and with it each sandbox, so this script stops
-# them itself and says which it stopped.
+# An upgrade stops the daemon, so this script stops the running sandboxes
+# first and says which it stopped.
 set -euo pipefail
 {{ template "warn.sh" . }}
 if ! command -v sbx &>/dev/null; then

@@ -19,7 +19,7 @@ if ! brew trust --tap docker/tap; then
   exit 1
 fi
 # --no-upgrade: run_before_sbx-upgrade.sh.tmpl upgrades sbx, as it first
-# stops the sandboxes.
+# stops the sandboxes, and upgrading the font is brew's job.
 if ! brew bundle --no-upgrade --file=/dev/stdin <<'EOF'; then
 tap "docker/tap"
 cask "docker/tap/sbx"
