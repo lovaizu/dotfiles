@@ -1,0 +1,96 @@
+{{- $wsl := and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+{{- if or (eq .chezmoi.os "darwin") $wsl -}}
+#!/bin/bash
+# Upgrades sbx when a newer version is out. The package scripts install sbx
+# but never upgrade it, and run again only when they change, so this one runs
+# on every apply. Its name sorts after theirs, so it runs after them.
+# An upgrade stops the daemon, so this script stops the running sandboxes
+# first and says which it stopped.
+set -euo pipefail
+{{ template "warn.sh" . }}
+if ! command -v sbx &>/dev/null; then
+  # The package step already said why.
+  exit 0
+fi
+# On the first apply, chezmoi hasn't placed the global config of mise yet,
+# so the shim of jq reads it from this clone.
+export MISE_GLOBAL_CONFIG_FILE={{ joinPath .chezmoi.sourceDir "private_dot_config/mise/config.toml" | quote }}
+if ! command -v jq &>/dev/null; then
+  warn "jq isn't found, so this script couldn't check for a newer sbx." \
+    "Fix: install the tools of mise, then re-run chezmoi apply."
+  exit 1
+fi
+{{- if eq .chezmoi.os "darwin" }}
+if ! command -v brew &>/dev/null; then
+  warn "Homebrew isn't installed, so this script couldn't check for a newer sbx." \
+    "Fix: install Homebrew, then re-run chezmoi apply."
+  exit 1
+fi
+# brew info reads the tap as it is on this machine, and brew refreshes a tap
+# by itself only once in a while.
+if ! brew update --quiet ||
+  ! info="$(brew info --cask --json=v2 docker/tap/sbx)" ||
+  ! old="$(jq -er '.casks[0].installed' <<<"$info")" ||
+  ! new="$(jq -er '.casks[0].version' <<<"$info")"; then
+  warn "This script couldn't check for a newer sbx." \
+    "brew said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+upgrade() { brew upgrade --cask docker/tap/sbx; }
+{{- else }}
+if ! sudo apt-get update ||
+  ! old="$(dpkg-query -W -f='${Version}' docker-sbx)" ||
+  ! new="$(apt-cache policy docker-sbx | awk '$1 == "Candidate:" { print $2 }')" ||
+  [ -z "$new" ] || [ "$new" = "(none)" ]; then
+  warn "This script couldn't check for a newer sbx in Docker's apt repository." \
+    "It said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+upgrade() { sudo apt-get install -y --only-upgrade docker-sbx; }
+{{- end }}
+if [ "$old" = "$new" ]; then
+  echo "sbx $old is the newest version."
+  exit 0
+fi
+
+# jq reads only the first JSON value. sbx before v0.53.0 can print its update
+# notice to stdout after the JSON, which is the case this script is for.
+if ! names="$(sbx ls --json | jq -rn 'input | .[] | select(.status == "running") | .name')"; then
+  warn "sbx ls failed, so sbx wasn't upgraded from $old to $new." \
+    "It said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+# A loop, not mapfile: the /bin/bash of macOS is bash 3.2.
+running=()
+while IFS= read -r name; do
+  if [ -n "$name" ]; then
+    running+=("$name")
+  fi
+done <<<"$names"
+if [ "${#running[@]}" -gt 0 ] && ! sbx stop "${running[@]}"; then
+  warn "sbx stop failed, so sbx wasn't upgraded from $old to $new." \
+    "It said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+if ! sbx daemon stop || ! upgrade; then
+  warn "sbx wasn't upgraded from $old to $new." \
+    "It said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+
+echo
+echo "Upgraded sbx from $old to $new."
+if [ "${#running[@]}" -gt 0 ]; then
+  echo "Stopped these sandboxes, which sb starts again: ${running[*]}"
+fi
+# Some releases need a step by hand, such as v0.54.0, which needs
+# sbx setup ssh again. The release notes say it, so this script doesn't.
+echo "Read the release notes for any step to take by hand:"
+echo "  https://github.com/docker/sbx-releases/releases"
+echo
+{{ end -}}

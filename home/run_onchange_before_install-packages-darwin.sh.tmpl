@@ -18,7 +18,8 @@ if ! brew trust --tap docker/tap; then
     "Fix: once that reason no longer applies, re-run chezmoi apply."
   exit 1
 fi
-# --no-upgrade: updating what's already there is brew's job, not this one.
+# --no-upgrade: run_before_sbx-upgrade.sh.tmpl upgrades sbx, as it first
+# stops the sandboxes, and upgrading the font is brew's job.
 if ! brew bundle --no-upgrade --file=/dev/stdin <<'EOF'; then
 tap "docker/tap"
 cask "docker/tap/sbx"
