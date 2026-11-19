@@ -93,48 +93,9 @@
             "font":
             {
                 "face": "HackGen Console NF",
-                "size": 14
+                "size": 12
             }
-        },
-        "list":
-        [
-            {
-                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
-                "hidden": false,
-                "name": "Windows PowerShell"
-            },
-            {
-                "commandline": "%SystemRoot%\\System32\\cmd.exe",
-                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
-                "hidden": false,
-                "name": "コマンド プロンプト"
-            },
-            {
-                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
-                "hidden": false,
-                "name": "Azure Cloud Shell",
-                "source": "Windows.Terminal.Azure"
-            },
-            {
-                "guid": "{14aad45b-3d8b-50fc-86fa-9eeaef3383cb}",
-                "hidden": false,
-                "name": "Ubuntu",
-                "source": "Microsoft.WSL"
-            },
-            {
-                "guid": "{06ab3b02-897e-55f6-a30d-7dba85ddc6a2}",
-                "hidden": false,
-                "name": "ClaudeCode",
-                "source": "Microsoft.WSL"
-            },
-            {
-                "guid": "{9028f9c7-2d30-5f08-9cb4-f5d75c69dcc9}",
-                "hidden": false,
-                "name": "my",
-                "source": "Microsoft.WSL"
-            }
-        ]
+        }
     },
     "schemes":
     [
