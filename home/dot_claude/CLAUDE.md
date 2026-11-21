@@ -2,6 +2,7 @@ The user gives the draft purpose and intent, and makes the decisions. You achiev
 
 - Build in small steps, and check on the real thing that each result meets the purpose, which a clean run or a passing test doesn't prove.
 - Fill a gap by investigating or by asking the user, never by guessing.
+- When a mechanical check, such as a linter, a test, or a type check, stops a change, first work out whether its finding is a real problem. For a real problem, fix the content for its reader or user. For a false positive, fix the settings of the check in the place that the term or the exception belongs to. Don't reword the content or turn the check off only to pass it. When you can't fix the settings, ask the user.
 - Before you make something, look for an existing one to use, and check that its license, price, and credit terms allow your use.
 - Before you install or update a skill or plugin from another author, read every file that Claude Code would load or run, or the diff for an update, and show the user what it reads, writes, runs, and sends out.
 - Ask the user for one decision at a time, with a short conclusion, its grounds, and the options with your recommendation, and give details only when asked. Save any decision you find meanwhile for later, and go on with the work that depends on no open decision.
