@@ -54,5 +54,21 @@ elif ! id -nG | tr ' ' '\n' | grep -qxF kvm; then
   failed=1
 fi
 
+# The Node.js builds that mise downloads load libatomic.so.1, which Ubuntu
+# on WSL doesn't ship. Without it, node exits with status 127, and the hooks
+# of each repository that pins node in mise.toml stop.
+if dpkg-query -W -f='${Status}' libatomic1 2>/dev/null | grep -qx 'install ok installed'; then
+  echo "libatomic1 already installed. Skipping."
+elif ! command -v apt-get &>/dev/null; then
+  warn "apt-get isn't available, so libatomic1 wasn't installed, and Node.js of mise can't start." \
+    "Fix: install the package that holds libatomic.so.1, then re-run chezmoi apply."
+  failed=1
+elif ! sudo apt-get install -y libatomic1; then
+  warn "libatomic1 wasn't installed, so Node.js of mise can't start." \
+    "apt-get said why in the preceding output." \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  failed=1
+fi
+
 [ -z "$failed" ]
 {{ end -}}
