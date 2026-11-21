@@ -1,13 +1,16 @@
 # Every run_ script includes this, so a reason reads the same whichever
-# script it comes from.
+# script it comes from. setup.sh gives DOTFILES_WARNINGS, and prints the
+# file again once chezmoi ends.
 warn() {
-  local what="$1" line
+  local block="WARNING: $1" line
   shift
-  echo >&2
-  echo "WARNING: $what" >&2
   for line in "$@"; do
-    echo "  $line" >&2
+    block="$block
+  $line"
   done
-  echo >&2
+  printf '\n%s\n\n' "$block" >&2
+  if [ -n "${DOTFILES_WARNINGS:-}" ]; then
+    printf '%s\n\n' "$block" >>"$DOTFILES_WARNINGS" || true
+  fi
   return 0
 }
