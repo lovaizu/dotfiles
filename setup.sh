@@ -71,7 +71,8 @@ set -- init --apply --keep-going --source="${script_dir}"
 DOTFILES_WARNINGS="$(mktemp)"
 export DOTFILES_WARNINGS
 trap 'rm -f "${DOTFILES_WARNINGS}"' EXIT
-trap 'exit 130' INT TERM
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 echo "Running 'chezmoi $*'" >&2
 status=0
