@@ -64,6 +64,26 @@ export PATH
 
 set -- init --apply --keep-going --source="${script_dir}"
 
+# --keep-going runs each script after one that fails, and chezmoi prints no
+# summary at the end, so an early warning scrolls out of sight. warn in each
+# script also writes its warning to this file, and this script prints them
+# all once chezmoi ends.
+DOTFILES_WARNINGS="$(mktemp)"
+export DOTFILES_WARNINGS
+trap 'rm -f "${DOTFILES_WARNINGS}"' EXIT
+trap 'exit 130' INT TERM
+
 echo "Running 'chezmoi $*'" >&2
-# exec: replace current process with chezmoi
-exec "$chezmoi" "$@"
+status=0
+"$chezmoi" "$@" || status=$?
+
+if [ -s "${DOTFILES_WARNINGS}" ]; then
+	echo >&2
+	echo "setup.sh: each warning of this run, again:" >&2
+	echo >&2
+	cat "${DOTFILES_WARNINGS}" >&2
+fi
+if [ "${status}" -ne 0 ]; then
+	echo "setup.sh: chezmoi exited with status ${status}, so a step failed. Its reason is in the preceding output." >&2
+fi
+exit "${status}"
