@@ -55,8 +55,9 @@ elif ! id -nG | tr ' ' '\n' | grep -qxF kvm; then
 fi
 
 # The Node.js builds that mise downloads load libatomic.so.1, which Ubuntu
-# on WSL doesn't ship. Without it, node exits with status 127, and the hooks
-# of each repository that pins node in mise.toml stop.
+# 24.04 on WSL didn't have, as lovaizu/dotfiles#84 measured. Without it, node
+# exits with status 127, and the hooks of each repository that pins node in
+# mise.toml stop.
 if dpkg-query -W -f='${Status}' libatomic1 2>/dev/null | grep -qx 'install ok installed'; then
   echo "libatomic1 already installed. Skipping."
 elif ! command -v apt-get &>/dev/null; then
