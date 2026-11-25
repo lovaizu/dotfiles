@@ -1,12 +1,28 @@
 #!/bin/sh
 # Opens herdr inside the Docker Sandbox of the ~/work group this directory
-# belongs to, creating the sandbox on first use.
-#
-# Usage: sb [sbx run flags...]
-# The flags, such as --memory 16g or --cpus 4, go to sbx run when sb
-# creates the sandbox. A sandbox keeps the settings it was created with, so
-# sb stops when it gets flags for a sandbox that already exists.
+# belongs to, creating the sandbox on first use. The usage is below.
 set -eu
+
+# Before anything else: for a sandbox that exists, any flag stops sb with
+# the advice to run sbx rm, which a request for help must not get.
+for arg in "$@"; do
+  case "$arg" in
+  -h | --help)
+    cat <<'EOF'
+Usage: sb [sbx run flags...]
+
+Opens herdr inside the Docker Sandbox of the ~/work group of this
+directory, creating the sandbox on first use.
+
+The flags, such as --memory 16g or --cpus 4, go to sbx run when sb
+creates the sandbox. A sandbox keeps the settings it was created with, so
+sb stops when it gets flags for a sandbox that already exists.
+For the flags, run: sbx run --help
+EOF
+    exit 0
+    ;;
+  esac
+done
 
 # The kit in the clone ./setup.sh applied, so it changes with git pull and
 # ./setup.sh like everything else here.
