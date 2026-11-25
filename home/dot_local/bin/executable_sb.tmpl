@@ -15,11 +15,12 @@ kit={{ joinPath .chezmoi.workingTree "sbx" | quote }}
 # published claude kit always starts claude, and a mixin can't change that.
 workload=docker.io/sbx/shell:latest
 claude=docker.io/sbx/claude-mixin:latest
-# What the sandbox starts, in place of the workload's own shell. herdr opens
-# its panes in the shell that the environment names, and sbx leaves that
-# name empty. mise puts herdr outside the PATH that sbx starts with, so
-# mise.sh adds it, as it does for the shells. $HOME is the one inside the
-# sandbox, so the host's shell must not expand it.
+# What the workload's shell runs, as sbx passes the arguments after -- to
+# that shell. herdr opens its panes in the shell that the environment
+# names, and sbx leaves that name empty. mise puts herdr outside the PATH
+# that sbx starts with, so mise.sh adds it, as it does for the shells.
+# $HOME is the one inside the sandbox, so the host's shell must not expand
+# it.
 # shellcheck disable=SC2016
 launch='. "$HOME/.config/shell/mise.sh" && SHELL=/bin/bash exec herdr'
 work="$HOME/work"
@@ -97,7 +98,7 @@ if [ "$status" = running ]; then
   fi
 fi
 if [ -n "$status" ]; then
-  exec sbx run --name "$group" -- sh -c "$launch"
+  exec sbx run --name "$group" -- -c "$launch"
 fi
 exec sbx run --name "$group" "$@" "$workload" --kit "$claude" --kit "$kit" \
-  "$work_real/$group" -- sh -c "$launch"
+  "$work_real/$group" -- -c "$launch"
