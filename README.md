@@ -17,7 +17,7 @@ It installs [mise](https://mise.jdx.dev/), and with it [chezmoi](https://www.che
 
 ### Sandbox
 
-To work inside the Docker Sandbox, run `sb` anywhere under `~/work/<group>`. It opens herdr inside that group's sandbox, creating the sandbox on first use. When it can't start, it says why and how to fix it.
+To work inside the Docker Sandbox, run `sb` anywhere under `~/work/<group>`. It opens herdr inside that group's sandbox, creating the sandbox on first use. When it can't start, it says why and how to fix it. To create the sandbox with other settings, pass the flags of `sbx run`, such as `sb --memory 16g`. They apply only when `sb` creates the sandbox.
 
 ### Fonts
 
