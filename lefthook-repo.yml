@@ -5,3 +5,8 @@ pre-commit:
     # The dotfiles hold no Japanese.
     - name: japanese
       skip: true
+    # A template of chezmoi, which ends in .md only because chezmoi names
+    # the file it writes after it. Vale reads its code as prose.
+    - name: english
+      exclude:
+        - home/dot_claude/modify_CLAUDE.md

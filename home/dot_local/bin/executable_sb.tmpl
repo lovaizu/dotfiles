@@ -1,11 +1,27 @@
 #!/bin/sh
 # Opens herdr inside the Docker Sandbox of the ~/work group this directory
 # belongs to, creating the sandbox on first use.
+#
+# Usage: sb [sbx run flags...]
+# The flags, such as --memory 16g or --cpus 4, go to sbx run when sb
+# creates the sandbox. A sandbox keeps the settings it was created with, so
+# sb stops when it gets flags for a sandbox that already exists.
 set -eu
 
 # The kit in the clone ./setup.sh applied, so it changes with git pull and
 # ./setup.sh like everything else here.
 kit={{ joinPath .chezmoi.workingTree "sbx" | quote }}
+# The shell workload with the published mixin of Claude Code, because the
+# published claude kit always starts claude, and a mixin can't change that.
+workload=docker.io/sbx/shell:latest
+claude=docker.io/sbx/claude-mixin:latest
+# What the sandbox starts, in place of the workload's own shell. herdr opens
+# its panes in the shell that the environment names, and sbx leaves that
+# name empty. mise puts herdr outside the PATH that sbx starts with, so
+# mise.sh adds it, as it does for the shells. $HOME is the one inside the
+# sandbox, so the host's shell must not expand it.
+# shellcheck disable=SC2016
+launch='. "$HOME/.config/shell/mise.sh" && SHELL=/bin/bash exec herdr'
 work="$HOME/work"
 
 stop() {
@@ -66,6 +82,13 @@ esac
 # any other status alone.
 status="$(sbx ls --json | jq -r --arg name "$group" \
   '.[] | select(.name == $name) | .status')"
+if [ -n "$status" ] && [ "$#" -gt 0 ]; then
+  stop "The sandbox $group already exists, and the flags $* apply only" \
+    "when sb creates a sandbox." \
+    "Fix: run sbx rm $group, then run sb $* again." \
+    "sbx rm deletes what was installed inside the sandbox; the files" \
+    "under $work_real/$group stay."
+fi
 if [ "$status" = running ]; then
   if ! sbx stop "$group"; then
     stop "sbx stop $group failed, so the sandbox can't restart and pull main" \
@@ -74,6 +97,7 @@ if [ "$status" = running ]; then
   fi
 fi
 if [ -n "$status" ]; then
-  exec sbx run --name "$group"
+  exec sbx run --name "$group" -- sh -c "$launch"
 fi
-exec sbx run --name "$group" "$kit" "$work_real/$group"
+exec sbx run --name "$group" "$@" "$workload" --kit "$claude" --kit "$kit" \
+  "$work_real/$group" -- sh -c "$launch"

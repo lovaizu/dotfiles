@@ -4,8 +4,10 @@
 command -v starship >/dev/null 2>&1 || return 0
 
 # The distros of one PC all share its hostname, so on Windows Subsystem for
-# Linux (WSL) the distro name is what sets their tabs apart.
-_prompt_host="${WSL_DISTRO_NAME:-$(hostname -s)}"
+# Linux (WSL) the distro name is what sets their tabs apart. uname, as the
+# shell image of sbx has no hostname command.
+_prompt_host="${WSL_DISTRO_NAME:-$(uname -n)}"
+_prompt_host="${_prompt_host%%.*}"
 
 # The tab shows the host instead of the prompt. herdr replaces this title
 # with its own "<hostname>: <workspace>" title, which is why
