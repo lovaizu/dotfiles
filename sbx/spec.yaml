@@ -6,6 +6,11 @@ schemaVersion: "3"
 kind: mixin
 displayName: lovaizu/dotfiles
 description: Applies lovaizu/dotfiles at the creation of the sandbox, and again at each start.
+# sbx runs the install commands of the kits in the order of what they
+# require, never in the order of the --kit flags. The dotfiles write into
+# ~/.claude, which belongs to root until the mixin of Claude Code gives it
+# to the agent.
+requires: ["claude"]
 
 capabilities:
   - type: com.docker.sandbox/lifecycle@1
