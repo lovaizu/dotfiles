@@ -1,0 +1,41 @@
+{
+  "ost": {
+    "outcome": "The one user of these dotfiles finds no worktree of a merged or closed pull request left in ~/.herdr/worktrees or in the list of workspaces of herdr, so that the worktrees don't pile up.",
+    "opportunities": [
+      {
+        "id": "O1",
+        "opportunity": "The worktree that `herdr worktree create` made for a pull request is removed once the pull request is merged or closed, so that worktrees don't pile up in ~/.herdr/worktrees and in the list of workspaces of herdr.",
+        "by": "GitHub Issue lovaizu/dotfiles#93, and the user's words in the hearing on 2026-11-27",
+        "opportunities": [],
+        "solution": null
+      }
+    ],
+    "target": null,
+    "decisions": [
+      {
+        "decision": "The work is for the user themselves, the one user of these dotfiles.",
+        "by": "user"
+      },
+      {
+        "decision": "What the user wants and what for is what GitHub Issue #93 says, so the hearing doesn't ask it again.",
+        "by": "user"
+      },
+      {
+        "decision": "Talk with the user in Japanese, the language of their words, and write the deliverables in English, the language of the repository's documents, as the two don't disagree.",
+        "by": "rn"
+      }
+    ],
+    "questions": [
+      "最初に取り組むニーズを選んでください。\n1. O1: PR がマージまたはクローズされたら、`herdr worktree create` で作ったその PR の worktree が削除され、~/.herdr/worktrees と herdr のワークスペース一覧に溜まらない（推奨: Issue #93 が挙げるニーズはこれ一つで、ほかに挙がったニーズはないため）"
+    ]
+  },
+  "state": {
+    "issues": {
+      "closes": [
+        93
+      ],
+      "refs": []
+    },
+    "steps": []
+  }
+}
