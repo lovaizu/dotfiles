@@ -1,0 +1,40 @@
+{{- $wsl := and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+{{- if or (eq .chezmoi.os "darwin") $wsl -}}
+#!/bin/bash
+# sb creates each sandbox from the kit on GitHub, and sbx takes a remote kit
+# only from the sources in kit.allowedSources. The value replaces the whole
+# list, so this script adds to what is there. The prefix is the owner, as
+# the examples of sbx give one: a prefix matches whole path segments, and the
+# URL that sb passes ends in dotfiles.git, not dotfiles.
+set -euo pipefail
+{{ template "warn.sh" . }}
+source=github.com/lovaizu/
+if ! command -v sbx &>/dev/null; then
+  # The package step already said why.
+  exit 0
+fi
+if ! command -v jq &>/dev/null; then
+  warn "jq isn't found, so this script couldn't let sbx take the kit of sb from GitHub." \
+    "Fix: once mise has installed jq, re-run chezmoi apply."
+  exit 1
+fi
+if ! out="$(sbx settings get --json kit.allowedSources 2>&1)" ||
+  ! sources="$(jq -ce '.value | arrays' <<<"$out" 2>/dev/null)"; then
+  warn "This script couldn't read kit.allowedSources of sbx, so sb can't create a sandbox." \
+    "sbx settings get --json kit.allowedSources said: $out" \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+if jq -e --arg s "$source" 'any(. == "*" or . == $s)' <<<"$sources" >/dev/null; then
+  echo "sbx takes kits from $source."
+  exit 0
+fi
+sources="$(jq -c --arg s "$source" '. + [$s]' <<<"$sources")"
+if ! out="$(sbx settings set kit.allowedSources "$sources" 2>&1)"; then
+  warn "This script couldn't let sbx take the kit of sb from GitHub, so sb can't create a sandbox." \
+    "sbx settings set kit.allowedSources '$sources' said: $out" \
+    "Fix: once that reason no longer applies, re-run chezmoi apply."
+  exit 1
+fi
+echo "sbx takes kits from $source."
+{{ end -}}

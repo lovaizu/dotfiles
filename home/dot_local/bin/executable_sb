@@ -2,15 +2,21 @@
 # Opens herdr inside the Docker Sandbox of the ~/work group this directory
 # belongs to, creating the sandbox on first use.
 #
-# Usage: sb [sbx run flags...]
+# Usage: [SB_KIT_REF=<branch>] sb [sbx run flags...]
 # The flags, such as --memory 16g or --cpus 4, go to sbx run when sb
-# creates the sandbox. A sandbox keeps the settings it was created with, so
-# sb stops when it gets flags for a sandbox that already exists.
+# creates the sandbox. SB_KIT_REF picks the branch of lovaizu/dotfiles that
+# the kit comes from, main by default, so that a pull request that changes
+# the kit can be checked. A sandbox keeps the settings it was created with,
+# so sb stops when it gets either for a sandbox that already exists.
 set -eu
 
-# The kit in the clone ./setup.sh applied, so it changes with git pull and
-# ./setup.sh like everything else here.
-kit={{ joinPath .chezmoi.workingTree "sbx" | quote }}
+# The kit comes from GitHub, as the dotfiles that its install command clones
+# do, and never from the branch that a clone on this machine has checked
+# out. sb turns the branch into its commit, as sbx documents a commit for
+# ref, and a cached build of an older commit can't stand in for it.
+# setup.sh lets sbx take a kit from this repository.
+repo=https://github.com/lovaizu/dotfiles.git
+kit_ref="${SB_KIT_REF:-}"
 # The shell workload with the published mixin of Claude Code, because the
 # published claude kit always starts claude, and a mixin can't change that.
 workload=docker.io/sbx/shell:latest
@@ -89,6 +95,13 @@ if [ -n "$status" ] && [ "$#" -gt 0 ]; then
     "sbx rm deletes what was installed inside the sandbox; the files" \
     "under $work_real/$group stay."
 fi
+if [ -n "$status" ] && [ -n "$kit_ref" ]; then
+  stop "The sandbox $group already exists, and SB_KIT_REF applies only" \
+    "when sb creates a sandbox." \
+    "Fix: run sbx rm $group, then run SB_KIT_REF=$kit_ref sb again." \
+    "sbx rm deletes what was installed inside the sandbox; the files" \
+    "under $work_real/$group stay."
+fi
 if [ "$status" = running ]; then
   if ! sbx stop "$group"; then
     stop "sbx stop $group failed, so the sandbox can't restart and pull main" \
@@ -99,5 +112,13 @@ fi
 if [ -n "$status" ]; then
   exec sbx run --name "$group" -- sh -c "$launch"
 fi
+branch="${kit_ref:-main}"
+if ! commit="$(git ls-remote --exit-code "$repo" "refs/heads/$branch")"; then
+  stop "sb couldn't find the branch $branch of $repo," \
+    "so it has no kit to create the sandbox from." \
+    "Fix: check the name of the branch and that it is pushed, then run sb again."
+fi
+commit="${commit%%[[:space:]]*}"
+kit="git+$repo#ref=$commit&dir=sbx"
 exec sbx run --name "$group" "$@" "$workload" --kit "$claude" --kit "$kit" \
   "$work_real/$group" -- sh -c "$launch"
