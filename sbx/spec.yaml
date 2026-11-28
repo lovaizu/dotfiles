@@ -16,6 +16,13 @@ capabilities:
   - type: com.docker.sandbox/lifecycle@1
     config:
       install:
+        # The Node.js builds that mise downloads load libatomic.so.1, which
+        # the image of the sandbox doesn't hold, as lovaizu/dotfiles#96
+        # measured. The script of setup.sh that installs it runs on WSL
+        # alone, so the sandbox installs it here, before setup.sh runs mise.
+        - description: Install libatomic1 for Node.js of mise
+          user: "0"
+          command: apt-get update && apt-get install -y libatomic1
         - description: Apply lovaizu/dotfiles
           user: "1000"
           command: >-
